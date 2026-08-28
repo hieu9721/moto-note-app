@@ -5,12 +5,17 @@
   <=30) mechanism and the app_flutter/receipts/ path derivation. Both files
   are required together; neither supersedes the other across minSdk=26's
   supported API range.
+
+  domain MUST be "root", not "file" — the data-extraction-rules parser shares
+  FullBackup.BackupScheme.getDirectoryForCriteriaDomain() with the legacy
+  parser, so "file" resolves to {dataDir}/files/ and would never match
+  {dataDir}/app_flutter/receipts/. See 01-REVIEW.md CR-01.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="file" path="app_flutter/receipts/"/>
+        <exclude domain="root" path="app_flutter/receipts/"/>
     </cloud-backup>
     <device-transfer>
-        <exclude domain="file" path="app_flutter/receipts/"/>
+        <exclude domain="root" path="app_flutter/receipts/"/>
     </device-transfer>
 </data-extraction-rules>

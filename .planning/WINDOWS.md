@@ -56,6 +56,18 @@ last_updated: 2026-08-28T10:20:24.425Z
     "reason": "",
     "recorded_at": "2026-08-28T10:20:24.425Z",
     "resolved_at": null
+  },
+  {
+    "id": 4,
+    "kind": "unrun-verify",
+    "phase": "01",
+    "file": "android/app/src/main/res/xml/data_extraction_rules.xml",
+    "line": null,
+    "description": "Receipt-photo backup exclusion (D-20) fix for 01-REVIEW.md CR-01 — domain changed file->root — not empirically verified. Needs on-device check: place a probe file at {dataDir}/app_flutter/receipts/probe.jpg, run `adb shell bmgr backupnow io.github.hieu9721.motonote`, unpack with abe, confirm the probe is absent. No real Android device available (P1-D-13).",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-28T10:40:16.037Z",
+    "resolved_at": null
   }
 ]
 ````
