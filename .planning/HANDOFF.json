@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-08-28T15:39:04.197Z",
+  "phase": "01",
+  "phase_name": "Toolchain, Scaffold & Data Layer",
+  "phase_dir": ".planning/phases/01-toolchain-scaffold-data-layer",
+  "plan": 6,
+  "task": 6,
+  "total_tasks": 6,
+  "status": "paused",
+  "pause_point": "after verify_phase_goal returned human_needed; phase deliberately NOT marked complete",
+  "completed_tasks": [
+    {"id": 1, "name": "01-01 scaffold + atomic-write data layer", "status": "done", "commit": "pre-session"},
+    {"id": 2, "name": "01-02 Android build + receipt storage", "status": "done", "commit": "pre-session"},
+    {"id": 3, "name": "01-03 remaining §4.2 models + AppData list fields", "status": "done", "commit": "pre-session"},
+    {"id": 4, "name": "01-04 harden data layer (backup fallback, quarantine, migrations)", "status": "done", "commit": "pre-session"},
+    {"id": 5, "name": "01-05 mutation funnel, startup path, theme", "status": "done", "commit": "pre-session"},
+    {"id": 6, "name": "01-06 gap closure — SerialQueue, failure boundary, UTC updatedAt", "status": "done", "commit": "49eb7b9"}
+  ],
+  "remaining_tasks": [
+    {"id": 7, "name": "UAT test 6 — build_runner interrupted mid-run leaves no half-written generated file", "status": "not_started", "owner": "human"},
+    {"id": 8, "name": "phase.complete — mark Phase 01 done, fix REQUIREMENTS.md SETUP-06 traceability", "status": "not_started", "owner": "verify-work auto-transition"}
+  ],
+  "blockers": [
+    {
+      "description": "Phase 01 cannot be marked complete until UAT test 6 passes. 01-VERIFICATION.md status is human_needed (62/63 must-haves verified).",
+      "type": "human_action",
+      "workaround": "None needed — it is a one-shot manual test, not a defect."
+    }
+  ],
+  "async_jobs": [],
+  "human_actions_pending": [
+    {
+      "action": "Run UAT test 6: kill `dart run build_runner build` part-way through (after freezed starts writing, before json_serializable finishes), then run `dart run build_runner build --delete-conflicting-outputs` and confirm every generated file regenerates correctly and `flutter analyze` stays clean.",
+      "context": "01-01 must_have tagged `verification: backstop` — inherently untestable by any deterministic check, because it depends on where in its own write sequence the tool is killed. The only item still open after the device round closed the other four. Recorded as test 6 in 01-UAT.md.",
+      "blocking": true
+    },
+    {
+      "action": "Run /gsd-secure-phase 01 to produce 01-SECURITY.md.",
+      "context": "The secure-phase step hook is active at verify:post but no *-SECURITY.md exists for this phase. Surfaced by execute-phase's aggregate_results security gate.",
+      "blocking": false
+    }
+  ],
+  "decisions": [
+    {
+      "decision": "Passed the executor's protocol files (execute-plan.md, summary.md, checkpoints.md, tdd.md, worktree-path-safety.md, executor-examples.md) as a <required_reading> list of absolute paths instead of inlining their ~156 KB of content into the Agent() prompt.",
+      "rationale": "execute-phase.md's dispatch template says to inline them verbatim, to avoid #3324 (a bare `@path` line never expands inside an Agent prompt and arrives as dead text). But gsd-executor.md's own definition embeds mandatory-initial-read.md, which hard-requires the agent to Read every file listed in <required_reading> before any other action — so an explicit Read-tool list carries the same guarantee without round-tripping 156 KB through the orchestrator and blowing its ~15% context budget. The executor did read them; all 3 tasks and 7 commits landed correctly.",
+      "phase": "01"
+    },
+    {
+      "decision": "Updated the existing 01-UAT.md in place rather than overwriting it with a fresh UAT file.",
+      "rationale": "execute-phase.md's human_needed branch (Step A) writes a brand-new UAT file from the template. Here 01-UAT.md already held hash-level device evidence from the real-hardware round (SM-A066B) that the verifier had just cited as its evidence for closing four criteria. Clobbering it would have destroyed the proof for its own verdict. Instead: three gaps flipped failed -> resolved, test 5 flipped issue -> pass with a resolution note, test 6 appended as the sole pending item, summary recounted 6/5/0/1.",
+      "phase": "01"
+    },
+    {
+      "decision": "Ran `flutter analyze` and `dart test` by hand as the post-merge build/test gate.",
+      "rationale": "post-merge-gate.md's command sniffer only knows Makefile/Justfile/Cargo/go/npm/python/Xcode — it has no Flutter branch, so it would have printed 'No build command detected' and skipped the gate entirely on this project.",
+      "phase": "01"
+    },
+    {
+      "decision": "Excluded generated files (*.freezed.dart, *.g.dart), binary assets (*.png) and pubspec.lock from the code-review scope's git-diff cross-check.",
+      "rationale": "The SUMMARY-tier scope was 26 files; the raw diff cross-check would have pushed it to ~55, over the workflow's own 50-file 'superficial review' threshold, with the additions being build_runner output and flutter create scaffolding. Final scope was 39 files, all hand-written.",
+      "phase": "01"
+    }
+  ],
+  "uncommitted_files": [],
+  "git_state": {
+    "branch": "main",
+    "head": "ab6b14a",
+    "clean": true,
+    "ahead_of_origin_main": 63,
+    "behind_origin_main": 0,
+    "note": "63 local commits have never been pushed. Not a blocker, but the whole of Phase 01 exists only on this machine."
+  },
+  "next_action": "Run /gsd-verify-work 01. It walks UAT test 6 (the build_runner interrupt backstop) and, when it passes, auto-transitions the phase to complete — which is also what fixes REQUIREMENTS.md's stale SETUP-06 'Pending' row. Do NOT run phase.complete by hand.",
+  "context_notes": "This session ran /gsd-execute-phase 01 --gaps-only. Exactly one plan matched (01-06, gap_closure: true), closing G-01-5, G-01-W3, G-01-W5 — all three inside the same ten-line AppNotifier._mutate. Executor ran in a harness worktree off 3d9684f, produced 7 TDD commits (RED then GREEN per gap), merged clean at 49eb7b9. Test suite 31 -> 42, all green; flutter analyze clean; dart format 0/26 changed. Then code review (0 critical / 5 warning / 3 info, committed f15ddaf) and the verifier (62/63, human_needed). STATE.md's body is STALE — it still reads 'Plan: 1 of 5' and 'Progress 0%' with state_head at 3d9684f, because phase.complete has correctly not run yet. Trust this handoff and .planning/ROADMAP.md over STATE.md's Current Position block until the phase closes."
+}
