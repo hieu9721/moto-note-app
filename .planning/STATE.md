@@ -64,8 +64,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Android toolchain incomplete:** Flutter 3.47.2 / Dart 3.13.2 (stable) is installed at `C:Users
-guyeAppDataLocallutter` and is on the machine PATH. Android SDK 36.1.0 is present, but `cmdline-tools` is missing, the SDK licences are unaccepted, and no Android device or emulator is connected (only Windows/Chrome/Edge targets are visible). `flutter create` has not been run. Phase 1 must close these before its success criterion 1 can be met. (Node.js 24 and git are present.)
+- **No Android test device:** the toolchain is green — Flutter 3.47.2 / Dart 3.13.2 (stable) at `C:Users
+guyeAppDataLocallutter`, Android SDK 36.1.0 with `cmdline-tools` installed and licences accepted (`flutter doctor` clears the Android toolchain check). What is still missing is hardware: only Windows/Chrome/Edge targets are visible, no Android device or emulator. Phase 1 success criterion 1 requires `flutter run --release` on a **real** low-end Android device (3–4 GB RAM), which an emulator cannot satisfy — and §10.6 OEM battery-optimisation behaviour is only observable on real hardware. An emulator is still fine for day-to-day development.
+- **Scaffold absent:** `flutter create` has not been run; the repo holds only the source doc, README, .gitignore and the GSD install. (Node.js 24 and git are present. Visual Studio is absent but irrelevant — it is only needed for Windows desktop targets.)
 - **Open question, Phase 2 (deferred by the user):** the onboarding item-selection defaults have two incompatible definitions — §8.2/§6 say 8 pre-checked of 15, Appendix A's `defaultOn` flags yield 11 of 20 for scooter. Both variants preserved; resolve during `/gsd-discuss-phase 2`. See `.planning/INGEST-CONFLICTS.md`.
 - **Open question, Phase 2:** the ODO estimation error threshold named in the v1.0 success metric is not defined anywhere in the source; it must be decided and documented before Phase 6's soak can measure against it.
 - **Phase 5 risk (§15 R6):** a missing SHA-1 fingerprint makes Google sign-in fail *silently*; all three keys (debug, release, Play App Signing) must be registered and tested on a `--release` build.

@@ -47,7 +47,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 **Plans**: TBD
-**Notes**: Flutter 3.47.2 / Dart 3.13.2 stable is installed and on PATH; `flutter create` has not been run yet. Android SDK 36.1.0 is present but `cmdline-tools` is missing, the SDK licences are unaccepted (`flutter doctor --android-licenses`), and no Android device or emulator is connected — criterion 1 stays blocked until those three are closed. Scaffolding and Android toolchain completion are part of this phase. §3.1's version pins are reference points only; verify with `flutter pub outdated` and read the `google_sign_in` and `freezed` CHANGELOGs first (§15 R7).
+**Notes**: Toolchain is ready — Flutter 3.47.2 / Dart 3.13.2 stable, Android SDK 36.1.0 with `cmdline-tools` and licences accepted; `flutter doctor` passes the Android check. `flutter create` has not been run, so scaffolding is part of this phase. Criterion 1 still needs a **real** low-end Android device (3–4 GB RAM) with USB debugging — none is connected, and an emulator does not satisfy it. §3.1's version pins are reference points only; verify with `flutter pub outdated` and read the `google_sign_in` and `freezed` CHANGELOGs first (§15 R7).
 
 ### Phase 2: Onboarding, Catalog & Estimation Engines
 **Goal**: A first-time user sets up their bike in six steps, and the app can say — honestly, including when it is only guessing — when each maintenance item is next due.
