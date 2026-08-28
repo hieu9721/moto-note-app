@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  API 31+ cloud-backup and device-transfer exclusion for the DATA-08
+  receipt-photo directory. See auto_backup_rules.xml for the legacy (API
+  <=30) mechanism and the app_flutter/receipts/ path derivation. Both files
+  are required together; neither supersedes the other across minSdk=26's
+  supported API range.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="app_flutter/receipts/"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="app_flutter/receipts/"/>
+    </device-transfer>
+</data-extraction-rules>
