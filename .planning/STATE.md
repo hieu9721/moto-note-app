@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 1
-current_phase_name: Toolchain, Scaffold & Data Layer
-status: planning
+current_phase: 01
+current_phase_name: toolchain-scaffold-data-layer
+status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-08-28T07:54:38.243Z"
+last_updated: "2026-08-28T09:03:28.681Z"
 last_activity: 2026-08-28
 last_activity_desc: Ingested motonote-v3-flutter.md; PROJECT.md, REQUIREMENTS.md and ROADMAP.md created
-state_head: f2cacf942e608b3caaed787b3f74e9c2678e9219
+state_head: 259adecdbf4aa72281af30cd3a522e6df6215b5f
 progress:
   total_phases: 6
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
 ---
 
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-08-28)
 
 ## Current Position
 
-Phase: 1 of 6 (Toolchain, Scaffold & Data Layer)
+Phase: 01 (toolchain-scaffold-data-layer) — READY TO EXECUTE
 Plan: 0 of TBD in current phase
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-28 — Ingested motonote-v3-flutter.md; PROJECT.md, REQUIREMENTS.md and ROADMAP.md created
 
 Progress: [░░░░░░░░░░] 0%
@@ -76,6 +76,7 @@ None yet.
 - **No Android test device:** the toolchain is green — Flutter 3.47.2 / Dart 3.13.2 (stable) at `C:/Users/nguye/AppData/Local/flutter`, Android SDK 36.1.0 with `cmdline-tools` installed and licences accepted (`flutter doctor` clears the Android toolchain check). What is still missing is hardware: only Windows/Chrome/Edge targets are visible, no Android device or emulator. Phase 1 success criterion 1 requires `flutter run --release` on a **real** low-end Android device (3–4 GB RAM), which an emulator cannot satisfy — and §10.6 OEM battery-optimisation behaviour is only observable on real hardware. An emulator is still fine for day-to-day development.
 - **Scaffold absent:** `flutter create` has not been run; the repo holds only the source doc, README, .gitignore and the GSD install. (Node.js 24 and git are present. Visual Studio is absent but irrelevant — it is only needed for Windows desktop targets.)
 - **Phase 5 risk (§15 R6):** a missing SHA-1 fingerprint makes Google sign-in fail *silently*; all three keys (debug, release, Play App Signing) must be registered and tested on a `--release` build.
+- **Decision-coverage gate override (Phase 1, 2026-08-28):** `check.decision-coverage-plan` returned `passed: false, reason: "could-not-parse", total: 0` when planning Phase 1. Its parser only extracts `- **D-NN:**` bullets, while `01-CONTEXT.md` deliberately namespaces its decisions as `- **P1-D-01:**` to avoid colliding with PROJECT.md's project-wide `D-01…D-36`. Actual coverage was verified two ways — by `gsd-plan-checker` and by direct grep — and is **13/13**: every `P1-D-01…P1-D-13` is cited in at least one plan body and `must_haves`. The user chose to proceed rather than renaming the ids. Verify-phase should re-surface this; the same mismatch will recur for `P2-D-NN` in Phase 2.
 
 ## Deferred Items
 
