@@ -94,9 +94,10 @@ void main() {
       );
 
       await repo.save(original);
-      final loaded = await repo.load();
+      final result = await repo.load();
 
-      expect(loaded, equals(original));
+      expect(result, isA<AppDataLoaded>());
+      expect((result as AppDataLoaded).data, equals(original));
     });
 
     test('notes list [A, B] round-trips in the same order', () async {
@@ -113,17 +114,28 @@ void main() {
       final original = AppData.empty().copyWith(notes: [noteA, noteB]);
 
       await repo.save(original);
-      final loaded = await repo.load();
+      final result = await repo.load();
 
-      expect(loaded!.notes.map((n) => n.id).toList(), equals(['a', 'b']));
+      final loaded = (result as AppDataLoaded).data;
+      expect(loaded.notes.map((n) => n.id).toList(), equals(['a', 'b']));
     });
   });
 
   group('missing file', () {
     test('load() against an empty directory reports the no-data outcome, not a crash', () async {
-      final loaded = await repo.load();
-      expect(loaded, isNull);
+      final result = await repo.load();
+      expect(result, isA<AppDataNotFound>());
     });
+
+    test(
+      'load() against an empty directory writes nothing and renames nothing',
+      () async {
+        await repo.load();
+
+        final entries = await tempDir.list().toList();
+        expect(entries, isEmpty);
+      },
+    );
   });
 
   group('backup fallback', () {
@@ -139,12 +151,101 @@ void main() {
         final primary = File('${tempDir.path}/appdata.json');
         await primary.writeAsString('not json');
 
-        final loaded = await repo.load();
+        final result = await repo.load();
 
-        expect(loaded, isNotNull);
-        expect(loaded!.deviceLabel, equals('first-save'));
+        expect(result, isA<AppDataLoaded>());
+        expect(
+          (result as AppDataLoaded).data.deviceLabel,
+          equals('first-save'),
+        );
       },
     );
+  });
+
+  group('quarantine', () {
+    test(
+      'primary undecodable with a healthy backup: load() returns the loaded '
+      'outcome carrying the backup document, and the primary is renamed to '
+      'a quarantine file starting appdata.corrupt. and ending .json',
+      () async {
+        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+        final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+
+        await repo.save(first);
+        await repo.save(second);
+
+        final primary = File('${tempDir.path}/appdata.json');
+        await primary.writeAsString('not json');
+
+        final result = await repo.load();
+
+        expect(result, isA<AppDataLoaded>());
+        expect(
+          (result as AppDataLoaded).data.deviceLabel,
+          equals('first-save'),
+        );
+
+        expect(await primary.exists(), isFalse);
+        final quarantineFiles = await tempDir
+            .list()
+            .where(
+              (e) =>
+                  e is File &&
+                  e.uri.pathSegments.last.startsWith('appdata.corrupt.') &&
+                  e.uri.pathSegments.last.endsWith('.json'),
+            )
+            .toList();
+        expect(quarantineFiles, hasLength(1));
+      },
+    );
+
+    test('primary undecodable with no backup: load() returns the undecodable '
+        'outcome, no appdata.json remains, and the quarantine file holds the '
+        'original bytes byte-for-byte', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      const originalBytes = 'not json at all, {"truncated": tr';
+      await primary.writeAsString(originalBytes);
+
+      final result = await repo.load();
+
+      expect(result, isA<AppDataUndecodable>());
+      final quarantinePath = (result as AppDataUndecodable).quarantinePath;
+
+      expect(await primary.exists(), isFalse);
+      final quarantineFile = File(quarantinePath);
+      expect(await quarantineFile.exists(), isTrue);
+      expect(await quarantineFile.readAsString(), equals(originalBytes));
+
+      final remainingAppdataJson = await tempDir
+          .list()
+          .where((e) => e.uri.pathSegments.last == 'appdata.json')
+          .toList();
+      expect(remainingAppdataJson, isEmpty);
+    });
+
+    test('two successive corrupt loads produce two distinct quarantine files; '
+        'neither overwrites the other', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+
+      await primary.writeAsString('not json (first)');
+      final firstResult = await repo.load() as AppDataUndecodable;
+
+      await primary.writeAsString('not json (second)');
+      final secondResult = await repo.load() as AppDataUndecodable;
+
+      expect(
+        firstResult.quarantinePath,
+        isNot(equals(secondResult.quarantinePath)),
+      );
+      expect(
+        await File(firstResult.quarantinePath).readAsString(),
+        equals('not json (first)'),
+      );
+      expect(
+        await File(secondResult.quarantinePath).readAsString(),
+        equals('not json (second)'),
+      );
+    });
   });
 
   group('migration', () {
@@ -170,6 +271,46 @@ void main() {
       expect(data.notes, isEmpty);
       expect(data.deviceLabel, equals(''));
       expect(data.schemaVersion, equals(1));
+    });
+
+    test('migrateRaw on a map whose schemaVersion is 2 throws the typed '
+        'forward-version error and does not mutate the input map', () {
+      final input = <String, dynamic>{'schemaVersion': 2, 'foo': 'bar'};
+      final inputSnapshot = Map<String, dynamic>.from(input);
+
+      expect(
+        () => migrateRaw(input),
+        throwsA(
+          isA<SchemaTooNewException>()
+              .having((e) => e.found, 'found', 2)
+              .having((e) => e.supported, 'supported', 1),
+        ),
+      );
+      expect(input, equals(inputSnapshot));
+    });
+
+    test('load() against a primary stamped schemaVersion 2 reports the '
+        'forward-version outcome, quarantines the file, and does NOT fall '
+        'through to a fresh empty document', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      await primary.writeAsString(
+        jsonEncode({
+          'schemaVersion': 2,
+          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+          'settings': <String, dynamic>{},
+        }),
+      );
+
+      final result = await repo.load();
+
+      expect(result, isA<AppDataSchemaTooNew>());
+      final schemaTooNew = result as AppDataSchemaTooNew;
+      expect(schemaTooNew.found, equals(2));
+      expect(schemaTooNew.supported, equals(1));
+
+      expect(await primary.exists(), isFalse);
+      final quarantineFile = File(schemaTooNew.quarantinePath);
+      expect(await quarantineFile.exists(), isTrue);
     });
   });
 
@@ -436,10 +577,11 @@ void main() {
         final repo = AppDataRepository(tempDir);
         await File('${tempDir.path}/appdata.json').writeAsString(fixtureBytes);
 
-        final loaded = await repo.load();
+        final result = await repo.load();
 
-        expect(loaded, isNotNull);
-        expect(loaded!.deviceLabel, equals('Redmi Note 12'));
+        expect(result, isA<AppDataLoaded>());
+        final loaded = (result as AppDataLoaded).data;
+        expect(loaded.deviceLabel, equals('Redmi Note 12'));
         expect(loaded.vehicles, hasLength(1));
         expect(loaded.items, hasLength(2));
         expect(loaded.logs, hasLength(1));
