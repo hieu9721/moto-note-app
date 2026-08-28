@@ -64,7 +64,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Toolchain absent:** `flutter` and `dart` are not on PATH on this machine, and `flutter create` has not been run. Phase 1 must install the SDKs before anything else. (Node.js 24 and git are present.)
+- **Android toolchain incomplete:** Flutter 3.47.2 / Dart 3.13.2 (stable) is installed at `C:Users
+guyeAppDataLocallutter` and is on the machine PATH. Android SDK 36.1.0 is present, but `cmdline-tools` is missing, the SDK licences are unaccepted, and no Android device or emulator is connected (only Windows/Chrome/Edge targets are visible). `flutter create` has not been run. Phase 1 must close these before its success criterion 1 can be met. (Node.js 24 and git are present.)
 - **Open question, Phase 2 (deferred by the user):** the onboarding item-selection defaults have two incompatible definitions — §8.2/§6 say 8 pre-checked of 15, Appendix A's `defaultOn` flags yield 11 of 20 for scooter. Both variants preserved; resolve during `/gsd-discuss-phase 2`. See `.planning/INGEST-CONFLICTS.md`.
 - **Open question, Phase 2:** the ODO estimation error threshold named in the v1.0 success metric is not defined anywhere in the source; it must be decided and documented before Phase 6's soak can measure against it.
 - **Phase 5 risk (§15 R6):** a missing SHA-1 fingerprint makes Google sign-in fail *silently*; all three keys (debug, release, Play App Signing) must be registered and tested on a `--release` build.
