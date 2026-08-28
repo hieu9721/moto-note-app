@@ -50,12 +50,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Scaffold, resolve the §3.1 dependency set, and prove end to end that the state document round-trips through an atomic write
+- [x] 01-01-PLAN.md — Scaffold, resolve the §3.1 dependency set, and prove end to end that the state document round-trips through an atomic write
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -163,7 +163,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Toolchain, Scaffold & Data Layer | 0/5 | Planned | - |
+| 1. Toolchain, Scaffold & Data Layer | 1/5 | In Progress|  |
 | 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |

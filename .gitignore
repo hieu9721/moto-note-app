@@ -51,4 +51,6 @@ Thumbs.db
 .claude/settings.local.json
 .claude/hooks/node_modules/
 .claude/gsd-install-state.json
+.claude/worktrees/
 .gsd/
+.planning/milestone.lock
