@@ -35,7 +35,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **DATA-05**: `migrateRaw` runs before `AppData.fromJson` on both locally loaded and Drive-restored documents, and only ever adds fields — never renames, never deletes. *(§4.4)*
 - [ ] **DATA-06**: Every state change goes through `_mutate`, which sets `updatedAt`, saves to disk, reschedules notifications and schedules a debounced backup — with no path that mutates state while skipping any of them. *(§5.2)*
 - [ ] **DATA-07**: `hydrate()` runs once at startup before the UI renders and routes to onboarding when no data exists. *(§5.2)*
-- [ ] **DATA-08**: Receipt photos are written to the app directory with only their paths stored in the document. *(§4.3)*
+- [x] **DATA-08**: Receipt photos are written to the app directory with only their paths stored in the document. *(§4.3)*
 - [ ] **DATA-09**: One vehicle with ~15 maintenance items and a few hundred logs keeps the document under 200 KB and entirely in RAM. *(§2)*
 
 ### Catalog & Oil Presets
@@ -200,7 +200,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | DATA-05 | Phase 1 | Pending |
 | DATA-06 | Phase 1 | Pending |
 | DATA-07 | Phase 1 | Pending |
-| DATA-08 | Phase 1 | Pending |
+| DATA-08 | Phase 1 | Complete |
 | DATA-09 | Phase 1 | Pending |
 | CAT-01 | Phase 2 | Pending |
 | CAT-02 | Phase 2 | Pending |
