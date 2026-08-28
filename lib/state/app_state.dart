@@ -138,12 +138,15 @@ class AppNotifier extends Notifier<AppData> {
   ///    overlapping calls can never interleave their writes to
   ///    `appdata.json.tmp` (T-01-11 / G-01-5).
   /// 2. Persist before assign (P1-D-06, inverting §5.2's order) — `next` is
-  ///    computed and saved to disk before `state` is ever touched. A failed
-  ///    save leaves `state` untouched and rethrows to the caller (T-01-12);
-  ///    memory and disk never diverge silently.
-  /// 3. Ordered — after the assignment, the notification reschedule is
-  ///    awaited, then the debounced backup is scheduled. Both are inert in
-  ///    Phase 1 and both are still called every time.
+  ///    computed and saved to disk before `state` is ever touched. The
+  ///    future this method returns rejects IF AND ONLY IF the transform or
+  ///    the save fails; a failed save leaves `state` untouched and rethrows
+  ///    to the caller (T-01-12), so memory and disk never diverge silently.
+  /// 3. Ordered — after the assignment, `state = next` has already
+  ///    committed the mutation, so no later step can report it as a
+  ///    failure (G-01-W3). The notification reschedule and the debounced
+  ///    backup are each run behind their own [runReportingFailure] boundary
+  ///    and are still called every time.
   /// 4. Sole writer — this is the only member of [AppNotifier] that assigns
   ///    `state`. Every future operation (`addOdoReading`, `addServiceLog`,
   ///    ...) goes through this method; none of them exist yet (Phases 2/3).
@@ -155,8 +158,16 @@ class AppNotifier extends Notifier<AppData> {
       final next = f(state).copyWith(updatedAt: DateTime.now());
       await _repo.save(next);
       state = next;
-      await ref.read(notificationSchedulerProvider).rescheduleAll(state);
-      ref.read(backupServiceProvider).scheduleDebounced();
+      await runReportingFailure(
+        () => ref.read(notificationSchedulerProvider).rescheduleAll(state),
+        onError: (e) =>
+            _log('rescheduleAll failed after a successful save: $e'),
+      );
+      await runReportingFailure(
+        () async => ref.read(backupServiceProvider).scheduleDebounced(),
+        onError: (e) =>
+            _log('scheduleDebounced failed after a successful save: $e'),
+      );
     });
   }
 

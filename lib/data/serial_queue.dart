@@ -28,3 +28,22 @@ class SerialQueue {
     return resultFuture;
   }
 }
+
+/// The post-persist failure boundary (G-01-W3 / WR-03): runs [effect], an
+/// operation whose failure must be REPORTED rather than PROPAGATED, so a
+/// side effect that runs after an operation has already committed can never
+/// masquerade as a failure of that operation. [effect] is awaited inside a
+/// `try`, so both an asynchronous throw (after [effect]'s first `await`) and
+/// a synchronous throw (before [effect] returns any future at all) are
+/// caught the same way. Kept pure Dart — no Flutter import, no logging
+/// framework, no `print` — the caller decides how to report [onError].
+Future<void> runReportingFailure(
+  Future<void> Function() effect, {
+  required void Function(Object error) onError,
+}) async {
+  try {
+    await effect();
+  } catch (e) {
+    onError(e);
+  }
+}
