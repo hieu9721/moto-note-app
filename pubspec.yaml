@@ -1,0 +1,63 @@
+name: motonote
+description: "App ghi chú + nhắc bảo trì xe máy · Không tài khoản · Lưu máy · Backup Google Drive"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+# Dependency versions are the live-verified set from 01-RESEARCH.md § Standard Stack,
+# NOT the stale §3.1 pins (P1-D-04, SETUP-03). Re-check with `flutter pub outdated`
+# before writing code against them — see the SUMMARY for this plan's check.
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State & routing
+  flutter_riverpod: ^3.4.2
+  go_router: ^18.0.0
+
+  # Model & serialize
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+
+  # Storage
+  path_provider: ^2.1.6
+
+  # Notifications (Phase 4)
+  flutter_local_notifications: ^22.3.0
+  timezone: ^0.11.1
+  flutter_timezone: ^5.1.0
+  permission_handler: ^13.0.1
+
+  # Google Drive (Phase 5)
+  google_sign_in: ^7.2.0
+  googleapis: ^17.0.0
+  extension_google_sign_in_as_googleapis_auth: ^3.0.0
+
+  # Utilities
+  intl: ^0.20.3
+  share_plus: ^13.3.0
+  device_info_plus: ^13.2.0
+  android_intent_plus: ^6.1.0
+  uuid: ^4.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  # Required for `dart test` to run test/domain/ and test/data/ — flutter_test alone
+  # cannot run those under the plain Dart runtime (D-31, SETUP-02).
+  test: ^1.31.1
+  flutter_lints: ^6.0.0
+  build_runner: ^2.16.0
+  freezed: ^4.0.0
+  json_serializable: ^6.14.1
+
+# Works around permission_handler_android 14.0.0's compileSdk 37 requirement, which
+# this Android SDK installation cannot satisfy (01-RESEARCH.md Pitfall 1).
+dependency_overrides:
+  permission_handler_android: 13.0.1
+
+flutter:
+  uses-material-design: true

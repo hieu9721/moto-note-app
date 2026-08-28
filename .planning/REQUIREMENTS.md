@@ -19,10 +19,10 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Toolchain & Scaffold
 
-- [ ] **SETUP-01**: The Flutter and Dart SDKs are installed and `flutter doctor` reports a working Android toolchain on the development machine. *(§13 Tuần 0–1; neither SDK is currently on PATH)*
+- [x] **SETUP-01**: The Flutter and Dart SDKs are installed and `flutter doctor` reports a working Android toolchain on the development machine. *(§13 Tuần 0–1; neither SDK is currently on PATH)*
 - [ ] **SETUP-02**: The `motonote` Flutter project exists with the §12 directory layout, and `lib/domain/` imports no `package:flutter/...` symbol, so its tests run under plain `dart test`. *(§12)*
-- [ ] **SETUP-03**: The dependencies listed in §3.1 resolve at versions checked with `flutter pub outdated`, with the `google_sign_in` and `freezed` CHANGELOGs read before any code is written against them. *(§3.1, §15 R7)*
-- [ ] **SETUP-04**: `flutter analyze` reports no warnings and `dart format .` produces no changes, with `prefer_const_constructors` enabled in the lint config. *(§14.2, §14.3)*
+- [x] **SETUP-03**: The dependencies listed in §3.1 resolve at versions checked with `flutter pub outdated`, with the `google_sign_in` and `freezed` CHANGELOGs read before any code is written against them. *(§3.1, §15 R7)*
+- [x] **SETUP-04**: `flutter analyze` reports no warnings and `dart format .` produces no changes, with `prefer_const_constructors` enabled in the lint config. *(§14.2, §14.3)*
 - [ ] **SETUP-05**: `dart run build_runner build --delete-conflicting-outputs` regenerates every freezed / `json_serializable` file from a clean checkout. *(§3.2, §4.2)*
 - [ ] **SETUP-06**: `flutter run --release` installs and starts the app on a real low-end Android device (3–4 GB RAM) without crashing. *(§14.3, Appendix B Kỹ thuật)*
 
@@ -187,10 +187,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 1 | Pending |
+| SETUP-01 | Phase 1 | Complete |
 | SETUP-02 | Phase 1 | Pending |
-| SETUP-03 | Phase 1 | Pending |
-| SETUP-04 | Phase 1 | Pending |
+| SETUP-03 | Phase 1 | Complete |
+| SETUP-04 | Phase 1 | Complete |
 | SETUP-05 | Phase 1 | Pending |
 | SETUP-06 | Phase 1 | Pending |
 | DATA-01 | Phase 1 | Pending |
@@ -275,6 +275,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | REL-10 | Phase 6 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 86 total
 - Mapped to phases: 86
 - Unmapped: 0 ✓
