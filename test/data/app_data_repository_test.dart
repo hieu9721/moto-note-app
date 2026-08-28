@@ -987,4 +987,51 @@ void main() {
       },
     );
   });
+
+  group('post-persist failure boundary (G-01-W3)', () {
+    test(
+      'an effect that throws ASYNCHRONOUSLY (after an await) is reported, '
+      'not propagated',
+      () async {
+        Object? capturedError;
+
+        await runReportingFailure(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 1));
+          throw StateError('async boom');
+        }, onError: (error) => capturedError = error);
+
+        expect(capturedError, isA<StateError>());
+      },
+    );
+
+    test(
+      'an effect that throws SYNCHRONOUSLY, before its first await, is also '
+      'reported, not propagated',
+      () async {
+        Object? capturedError;
+
+        await runReportingFailure(() async {
+          throw StateError('sync boom');
+        }, onError: (error) => capturedError = error);
+
+        expect(capturedError, isA<StateError>());
+      },
+    );
+
+    test(
+      'an effect that succeeds completes normally and the error callback is '
+      'never invoked',
+      () async {
+        var effectRan = false;
+        Object? capturedError;
+
+        await runReportingFailure(() async {
+          effectRan = true;
+        }, onError: (error) => capturedError = error);
+
+        expect(effectRan, isTrue);
+        expect(capturedError, isNull);
+      },
+    );
+  });
 }
