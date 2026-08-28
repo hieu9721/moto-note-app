@@ -1034,4 +1034,39 @@ void main() {
       },
     );
   });
+
+  group('updatedAt is UTC (G-01-W5)', () {
+    test('AppData.empty() stamps updatedAt as a UTC instant', () {
+      final data = AppData.empty();
+
+      expect(data.updatedAt.isUtc, isTrue);
+    });
+
+    test(
+      'the persisted updatedAt string ends with Z — the bytes Phase 5 will '
+      'compare',
+      () async {
+        await repo.save(AppData.empty());
+
+        final primary = File('${tempDir.path}/appdata.json');
+        final decoded =
+            jsonDecode(await primary.readAsString()) as Map<String, dynamic>;
+
+        expect(decoded['updatedAt'], endsWith('Z'));
+      },
+    );
+
+    test(
+      'a document round-tripped through save() and load() comes back with '
+      'updatedAt.isUtc true',
+      () async {
+        await repo.save(AppData.empty());
+
+        final result = await repo.load();
+
+        expect(result, isA<AppDataLoaded>());
+        expect((result as AppDataLoaded).data.updatedAt.isUtc, isTrue);
+      },
+    );
+  });
 }
