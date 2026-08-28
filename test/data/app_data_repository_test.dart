@@ -19,6 +19,41 @@ import 'package:motonote/domain/models/service_log.dart';
 import 'package:motonote/domain/models/vehicle.dart';
 import 'package:test/test.dart';
 
+/// Asserts every key path present in [fixtureValue] is also present in
+/// [reEncodedValue] with an equal value — a superset check, not equality.
+/// A future version may legitimately ADD keys to the re-encode (D-21); this
+/// never removes or renames one, and that is the failure this helper exists
+/// to catch (P1-D-12). Kept as a small test-local helper rather than a new
+/// production utility (§12 forbids a `utils/` directory of small files).
+void assertNoFieldLost(dynamic fixtureValue, dynamic reEncodedValue, String path) {
+  if (fixtureValue is Map) {
+    expect(reEncodedValue, isA<Map>(), reason: 'expected a map at $path');
+    final reEncodedMap = reEncodedValue as Map;
+    for (final key in fixtureValue.keys) {
+      expect(
+        reEncodedMap.containsKey(key),
+        isTrue,
+        reason: 'key "$key" from the fixture is missing at $path — a field '
+            'was renamed or deleted',
+      );
+      assertNoFieldLost(fixtureValue[key], reEncodedMap[key], '$path.$key');
+    }
+  } else if (fixtureValue is List) {
+    expect(reEncodedValue, isA<List>(), reason: 'expected a list at $path');
+    final reEncodedList = reEncodedValue as List;
+    expect(
+      reEncodedList.length,
+      equals(fixtureValue.length),
+      reason: 'list length changed at $path',
+    );
+    for (var i = 0; i < fixtureValue.length; i++) {
+      assertNoFieldLost(fixtureValue[i], reEncodedList[i], '$path[$i]');
+    }
+  } else {
+    expect(reEncodedValue, equals(fixtureValue), reason: 'value changed at $path');
+  }
+}
+
 void main() {
   late Directory tempDir;
   late AppDataRepository repo;
@@ -297,5 +332,124 @@ void main() {
       expect(data.items, isEmpty);
       expect(data.logs, isEmpty);
     });
+  });
+
+  group('P1-D-12 fixture — no field lost', () {
+    // Loaded once per test (not setUpAll) — keeps each test independent and
+    // the failure message local to the assertion that trips.
+    Map<String, dynamic> readFixture() {
+      final raw = File('test/fixtures/appdata_v1.json').readAsStringSync();
+      return jsonDecode(raw) as Map<String, dynamic>;
+    }
+
+    test(
+      'the committed appdata_v1.json fixture is already stamped schemaVersion 1, '
+      'and migrateRaw returns it stamped 1',
+      () {
+        final fixture = readFixture();
+        final migrated = migrateRaw(fixture);
+
+        expect(fixture['schemaVersion'], equals(1));
+        expect(migrated['schemaVersion'], equals(1));
+      },
+    );
+
+    test(
+      'the fixture round-trips through migrateRaw and AppData.fromJson with '
+      'a representative scalar from every model reading back at its fixture '
+      'value, including at least one nullable field per model',
+      () {
+        final fixture = readFixture();
+        final data = AppData.fromJson(migrateRaw(fixture));
+
+        // AppData
+        expect(data.deviceLabel, equals('Redmi Note 12'));
+
+        // Vehicle — plate is nullable
+        expect(data.vehicles, hasLength(1));
+        expect(data.vehicles.first.plate, equals('29H1-12345'));
+        expect(data.vehicles.first.avgDailyKmSource, equals(AvgKmSource.computed));
+
+        // MaintenanceItem — oilGrade is nullable
+        expect(data.items, hasLength(2));
+        expect(data.items.first.oilGrade, equals(OilGrade.semiSynthetic));
+        expect(data.items.first.baselineIsGuess, isFalse);
+        expect(data.items.last.intervalMonths, isNull);
+
+        // ServiceLog — shopName is nullable
+        expect(data.logs, hasLength(1));
+        expect(data.logs.first.shopName, equals('Tiệm Anh Ba'));
+
+        // ServiceLogEntry — partSpec is nullable
+        expect(data.logs.first.entries, hasLength(2));
+        expect(data.logs.first.entries.last.partSpec, equals('OEM'));
+        expect(data.logs.first.entries.last.resetsCycle, isFalse);
+
+        // OdoReading — two different OdoSource values
+        expect(data.odoReadings, hasLength(2));
+        expect(data.odoReadings.first.source, equals(OdoSource.service));
+        expect(data.odoReadings.last.source, equals(OdoSource.manual));
+
+        // Note — title is nullable, one pinned
+        expect(data.notes, hasLength(2));
+        expect(data.notes.first.title, equals('Ghi chú bảo dưỡng'));
+        expect(data.notes.first.pinned, isTrue);
+        expect(data.notes.last.vehicleId, isNull);
+
+        // Settings — lastBackupError is nullable
+        expect(data.settings.leadDays, equals(14));
+        expect(data.settings.lastBackupError, equals('Network timeout'));
+      },
+    );
+
+    test(
+      'the re-encode is a superset of the fixture — no key present in the '
+      'fixture is absent or renamed in the re-encode, and no fixture value '
+      'changed',
+      () {
+        final fixture = readFixture();
+        final data = AppData.fromJson(migrateRaw(fixture));
+
+        // Route through jsonEncode/jsonDecode (not data.toJson() directly) —
+        // this is the real save() path (§5.1), and it's what normalizes
+        // nested Freezed model instances (vehicles, items, logs, entries,
+        // odoReadings, notes) into plain Maps for comparison.
+        final reEncoded =
+            jsonDecode(jsonEncode(data.toJson())) as Map<String, dynamic>;
+
+        assertNoFieldLost(fixture, reEncoded, 'appdata_v1.json');
+      },
+    );
+
+    test(
+      'the fixture loads through the full repository path — written to a '
+      'temp directory as appdata.json and read back by load()',
+      () async {
+        final fixtureBytes = File('test/fixtures/appdata_v1.json').readAsStringSync();
+
+        final tempDir = await Directory.systemTemp.createTemp(
+          'motonote_fixture_test_',
+        );
+        try {
+          final repo = AppDataRepository(tempDir);
+          await File('${tempDir.path}/appdata.json').writeAsString(fixtureBytes);
+
+          final loaded = await repo.load();
+
+          expect(loaded, isNotNull);
+          expect(loaded!.deviceLabel, equals('Redmi Note 12'));
+          expect(loaded.vehicles, hasLength(1));
+          expect(loaded.items, hasLength(2));
+          expect(loaded.logs, hasLength(1));
+          expect(loaded.odoReadings, hasLength(2));
+          expect(loaded.notes, hasLength(2));
+          expect(loaded.schemaVersion, equals(1));
+        } finally {
+          if (await tempDir.exists()) {
+            await tempDir.delete(recursive: true);
+          }
+        }
+      },
+    );
   });
 }
