@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -68,7 +68,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 01-05-PLAN.md — One serialised mutation funnel, hydrate before render, the two inert service seams, and the three device criteria recorded as pending UAT
+- [x] 01-05-PLAN.md — One serialised mutation funnel, hydrate before render, the two inert service seams, and the three device criteria recorded as pending UAT
 
 **Notes**: Toolchain is ready — Flutter 3.47.2 / Dart 3.13.2 stable, Android SDK 36.1.0 with `cmdline-tools` and licences accepted; `flutter doctor` passes the Android check. `flutter create` has not been run, so scaffolding is part of this phase. Criterion 1 still needs a **real** low-end Android device (3–4 GB RAM) with USB debugging — none is connected, and an emulator does not satisfy it. §3.1's version pins are reference points only; verify with `flutter pub outdated` and read the `google_sign_in` and `freezed` CHANGELOGs first (§15 R7).
 
@@ -163,7 +163,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Toolchain, Scaffold & Data Layer | 4/5 | In Progress|  |
+| 1. Toolchain, Scaffold & Data Layer | 5/5 | In Progress|  |
 | 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
