@@ -1,0 +1,27 @@
+{
+  "source_path": "D:/Projects/moto-note/motonote-v3-flutter.md",
+  "type": "SPEC",
+  "confidence": "medium",
+  "manifest_override": false,
+  "title": "MotoNote - Architecture & Plan (Flutter)",
+  "summary": "Architecture, data model, and implementation plan for MotoNote, an offline Flutter motorcycle maintenance-reminder app with Google Drive backup.",
+  "scope": [
+    "Flutter",
+    "Riverpod",
+    "appdata.json local JSON document storage",
+    "Google Drive appDataFolder backup",
+    "flutter_local_notifications",
+    "due engine / ODO estimation",
+    "data model",
+    "screens and navigation",
+    "project structure",
+    "implementation plan",
+    "risks",
+    "parts and oil catalog",
+    "release checklist"
+  ],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": "Vietnamese-language document. Competing signals: section 1 'Chot phuong an' (locked decisions) plus trade-off rationale (Flutter vs React Native, dropping Google Maps import) reads ADR-like, but there is no Status field and it contains many decisions rather than one. Dominant content is technical specification (data model, local storage format, backup protocol, notification scheduling, screens, project structure) plus an implementation plan, so classified SPEC. Header notes v3.0 supersedes v2.0 (React Native); no linked file path given, so cross_refs empty."
+}
