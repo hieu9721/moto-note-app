@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 
-**Plans:** 5/6 plans executed
+**Plans:** 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -72,7 +72,7 @@ Plans:
 
 **Wave 5** *(gap closure — blocked on Wave 4 completion and on UAT diagnosis)*
 
-- [ ] 01-06-PLAN.md — Gap closure for G-01-5 / G-01-W3 / G-01-W5: extract the mutation serialisation into a pure-Dart `SerialQueue` so DATA-03's ordering is testable under plain `dart test`, give the post-persist side effects a failure boundary that cannot reject the caller, and stamp `updatedAt` in UTC at every write site
+- [x] 01-06-PLAN.md — Gap closure for G-01-5 / G-01-W3 / G-01-W5: extract the mutation serialisation into a pure-Dart `SerialQueue` so DATA-03's ordering is testable under plain `dart test`, give the post-persist side effects a failure boundary that cannot reject the caller, and stamp `updatedAt` in UTC at every write site
 
 **Notes**: Toolchain is ready — Flutter 3.47.2 / Dart 3.13.2 stable, Android SDK 36.1.0 with `cmdline-tools` and licences accepted; `flutter doctor` passes the Android check. `flutter create` has not been run, so scaffolding is part of this phase. Criterion 1 still needs a **real** low-end Android device (3–4 GB RAM) with USB debugging — none is connected, and an emulator does not satisfy it. §3.1's version pins are reference points only; verify with `flutter pub outdated` and read the `google_sign_in` and `freezed` CHANGELOGs first (§15 R7).
 
@@ -167,7 +167,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Toolchain, Scaffold & Data Layer | 5/5 | In Progress|  |
+| 1. Toolchain, Scaffold & Data Layer | 6/6 | In Progress|  |
 | 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
