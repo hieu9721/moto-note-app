@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-06-20T09:00:00.000Z",
+  "deviceLabel": "Redmi Note 12",
+  "vehicles": [
+    {
+      "id": "veh-1",
+      "name": "Winner X",
+      "type": "manual",
+      "plate": "29H1-12345",
+      "brand": "Honda",
+      "model": "Winner X",
+      "year": 2022,
+      "photoPath": "receipts/vehicle-veh-1.jpg",
+      "currentOdoKm": 15234,
+      "odoUpdatedAt": "2026-06-01T00:00:00.000Z",
+      "avgDailyKm": 22.5,
+      "avgDailyKmSource": "computed",
+      "createdAt": "2025-01-15T00:00:00.000Z"
+    }
+  ],
+  "items": [
+    {
+      "id": "item-1",
+      "vehicleId": "veh-1",
+      "catalogCode": "engine_oil",
+      "name": "Thay nhớt",
+      "intervalKm": 3000,
+      "intervalMonths": 6,
+      "enabled": false,
+      "lastServiceOdo": 12000,
+      "lastServiceDate": "2026-03-01T00:00:00.000Z",
+      "baselineIsGuess": false,
+      "partBrand": "Motul",
+      "partSpec": "5100 10W-40",
+      "oilGrade": "semiSynthetic",
+      "lastCostVnd": 250000,
+      "notes": "Đổi loại nhớt bán tổng hợp"
+    },
+    {
+      "id": "item-2",
+      "vehicleId": "veh-1",
+      "catalogCode": "air_filter",
+      "name": "Lọc gió",
+      "intervalKm": 8000,
+      "intervalMonths": null,
+      "enabled": true,
+      "lastServiceOdo": null,
+      "lastServiceDate": null,
+      "baselineIsGuess": true,
+      "partBrand": null,
+      "partSpec": null,
+      "oilGrade": null,
+      "lastCostVnd": null,
+      "notes": null
+    }
+  ],
+  "logs": [
+    {
+      "id": "log-1",
+      "vehicleId": "veh-1",
+      "date": "2026-03-01T00:00:00.000Z",
+      "odoKm": 12000,
+      "shopName": "Tiệm Anh Ba",
+      "totalCostVnd": 300000,
+      "note": "Thay nhớt và lọc gió",
+      "photoPaths": ["receipts/log-1-receipt.jpg"],
+      "entries": [
+        {
+          "itemId": "item-1",
+          "costVnd": 250000,
+          "partBrand": "Motul",
+          "partSpec": "5100 10W-40",
+          "resetsCycle": true
+        },
+        {
+          "itemId": "item-2",
+          "costVnd": 50000,
+          "partBrand": "Filto",
+          "partSpec": "OEM",
+          "resetsCycle": false
+        }
+      ]
+    }
+  ],
+  "odoReadings": [
+    {
+      "id": "odo-1",
+      "vehicleId": "veh-1",
+      "odoKm": 12000,
+      "date": "2026-03-01T00:00:00.000Z",
+      "source": "service"
+    },
+    {
+      "id": "odo-2",
+      "vehicleId": "veh-1",
+      "odoKm": 15234,
+      "date": "2026-06-01T00:00:00.000Z",
+      "source": "manual"
+    }
+  ],
+  "notes": [
+    {
+      "id": "note-1",
+      "vehicleId": "veh-1",
+      "itemId": "item-1",
+      "title": "Ghi chú bảo dưỡng",
+      "body": "Đã thay nhớt đúng hẹn",
+      "pinned": true,
+      "createdAt": "2026-03-01T09:00:00.000Z",
+      "updatedAt": "2026-03-01T09:00:00.000Z"
+    },
+    {
+      "id": "note-2",
+      "vehicleId": null,
+      "itemId": null,
+      "title": null,
+      "body": "Note thường, không ghim",
+      "pinned": false,
+      "createdAt": "2026-04-01T09:00:00.000Z",
+      "updatedAt": "2026-04-01T09:00:00.000Z"
+    }
+  ],
+  "settings": {
+    "notificationsEnabled": false,
+    "odoReminderEnabled": false,
+    "odoReminderDayOfMonth": 15,
+    "notifyHour": 20,
+    "leadDays": 14,
+    "driveBackupEnabled": true,
+    "lastBackupAt": "2026-06-15T08:00:00.000Z",
+    "lastBackupError": "Network timeout",
+    "googleEmail": "user@gmail.com",
+    "lastNotificationFiredAt": "2026-06-20T08:00:00.000Z"
+  }
+}
