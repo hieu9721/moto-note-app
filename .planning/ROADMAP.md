@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 
-**Plans:** 1/5 plans executed
+**Plans:** 3/5 plans executed
 
 Plans:
 **Wave 1**
@@ -59,8 +59,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-02-PLAN.md — Android build target: frozen identity, minSdk 26, core library desugaring, and the Auto Backup exclusion that keeps receipt photos on the device
-- [ ] 01-03-PLAN.md — The remaining §4.2 models, the complete root document, and the committed fixture that turns the additive-only rule into a red test
+- [x] 01-02-PLAN.md — Android build target: frozen identity, minSdk 26, core library desugaring, and the Auto Backup exclusion that keeps receipt photos on the device
+- [x] 01-03-PLAN.md — The remaining §4.2 models, the complete root document, and the committed fixture that turns the additive-only rule into a red test
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -163,7 +163,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Toolchain, Scaffold & Data Layer | 1/5 | In Progress|  |
+| 1. Toolchain, Scaffold & Data Layer | 3/5 | In Progress|  |
 | 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
