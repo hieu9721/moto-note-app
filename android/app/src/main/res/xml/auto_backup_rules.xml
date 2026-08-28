@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy Auto Backup exclusion (API <=30, still reachable since minSdk=26).
+  Excludes the DATA-08 receipt-photo directory so Android's OS-level Auto
+  Backup never uploads receipt photos to the user's Google Account — D-20
+  says this must never happen, while BKP-13 still wants allowBackup="true"
+  as a free safety net for appdata.json itself.
+
+  Path must match getApplicationDocumentsDirectory()'s Android resolution:
+  Context.getDir("flutter", MODE_PRIVATE) -> {dataDir}/app_flutter/ [VERIFIED:
+  flutter/engine shell/platform/android/io/flutter/util/PathUtils.java], plus
+  the kReceiptsDirName segment from lib/data/receipt_storage.dart.
+-->
+<full-backup-content>
+    <exclude domain="file" path="app_flutter/receipts/"/>
+</full-backup-content>
