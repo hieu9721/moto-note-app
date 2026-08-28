@@ -12,7 +12,10 @@ import 'package:motonote/data/app_data_repository.dart';
 import 'package:motonote/data/migrations.dart';
 import 'package:motonote/domain/id.dart';
 import 'package:motonote/domain/models/app_data.dart';
+import 'package:motonote/domain/models/maintenance_item.dart';
 import 'package:motonote/domain/models/misc.dart';
+import 'package:motonote/domain/models/service_log.dart';
+import 'package:motonote/domain/models/vehicle.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -123,5 +126,175 @@ void main() {
       expect(data.deviceLabel, equals(''));
       expect(data.schemaVersion, equals(1));
     });
+  });
+
+  group('§4.2 models — Vehicle, MaintenanceItem, ServiceLog(Entry)', () {
+    test('Vehicle round-trips through its own toJson/fromJson unchanged', () {
+      final vehicle = Vehicle(
+        id: newId(),
+        name: 'Winner X',
+        type: VehicleType.manual,
+        plate: '29H1-12345',
+        brand: 'Honda',
+        model: 'Winner X',
+        year: 2022,
+        photoPath: 'receipts/vehicle_photo.jpg',
+        currentOdoKm: 12345,
+        odoUpdatedAt: DateTime(2026, 1, 1),
+        avgDailyKm: 22.5,
+        avgDailyKmSource: AvgKmSource.computed,
+        createdAt: DateTime(2025, 1, 1),
+      );
+
+      final roundTripped = Vehicle.fromJson(vehicle.toJson());
+
+      expect(roundTripped, equals(vehicle));
+    });
+
+    test(
+      'a Vehicle JSON map omitting avgDailyKmSource decodes with the value '
+      'user (the @Default), not null',
+      () {
+        final json = <String, dynamic>{
+          'id': newId(),
+          'name': 'Wave Alpha',
+          'type': 'underbone',
+          'currentOdoKm': 1000,
+          'odoUpdatedAt': DateTime(2026, 1, 1).toIso8601String(),
+          'avgDailyKm': 10.0,
+          'createdAt': DateTime(2026, 1, 1).toIso8601String(),
+        };
+
+        final vehicle = Vehicle.fromJson(json);
+
+        expect(vehicle.avgDailyKmSource, equals(AvgKmSource.user));
+      },
+    );
+
+    test(
+      'MaintenanceItem round-trips through its own toJson/fromJson unchanged',
+      () {
+        final item = MaintenanceItem(
+          id: newId(),
+          vehicleId: newId(),
+          catalogCode: 'engine_oil',
+          name: 'Thay nhớt',
+          intervalKm: 3000,
+          intervalMonths: 6,
+          enabled: false,
+          lastServiceOdo: 9000,
+          lastServiceDate: DateTime(2026, 1, 1),
+          baselineIsGuess: false,
+          partBrand: 'Motul',
+          partSpec: '5100 10W-40',
+          oilGrade: OilGrade.semiSynthetic,
+          lastCostVnd: 250000,
+          notes: 'Ghi chú',
+        );
+
+        final roundTripped = MaintenanceItem.fromJson(item.toJson());
+
+        expect(roundTripped, equals(item));
+      },
+    );
+
+    test(
+      'a MaintenanceItem JSON map omitting enabled and baselineIsGuess '
+      'decodes with both true',
+      () {
+        final json = <String, dynamic>{
+          'id': newId(),
+          'vehicleId': newId(),
+          'catalogCode': 'engine_oil',
+          'name': 'Thay nhớt',
+        };
+
+        final item = MaintenanceItem.fromJson(json);
+
+        expect(item.enabled, isTrue);
+        expect(item.baselineIsGuess, isTrue);
+      },
+    );
+
+    test(
+      'ServiceLogEntry round-trips through its own toJson/fromJson unchanged',
+      () {
+        final entry = ServiceLogEntry(
+          itemId: newId(),
+          costVnd: 150000,
+          partBrand: 'Motul',
+          partSpec: '5100 10W-40',
+          resetsCycle: false,
+        );
+
+        final roundTripped = ServiceLogEntry.fromJson(entry.toJson());
+
+        expect(roundTripped, equals(entry));
+      },
+    );
+
+    test(
+      'a ServiceLogEntry JSON map omitting resetsCycle decodes with it true',
+      () {
+        final json = <String, dynamic>{'itemId': newId()};
+
+        final entry = ServiceLogEntry.fromJson(json);
+
+        expect(entry.resetsCycle, isTrue);
+      },
+    );
+
+    test('ServiceLog round-trips through its own toJson/fromJson unchanged', () {
+      final log = ServiceLog(
+        id: newId(),
+        vehicleId: newId(),
+        date: DateTime(2026, 1, 1),
+        odoKm: 12000,
+        shopName: 'Tiệm Anh Ba',
+        totalCostVnd: 300000,
+        note: 'Thay nhớt + lọc gió',
+        photoPaths: ['receipts/log1.jpg'],
+        entries: [ServiceLogEntry(itemId: newId(), resetsCycle: true)],
+      );
+
+      final roundTripped = ServiceLog.fromJson(log.toJson());
+
+      expect(roundTripped, equals(log));
+    });
+
+    test(
+      'a ServiceLog JSON map omitting photoPaths and entries decodes with '
+      'both as empty lists',
+      () {
+        final json = <String, dynamic>{
+          'id': newId(),
+          'vehicleId': newId(),
+          'date': DateTime(2026, 1, 1).toIso8601String(),
+          'odoKm': 5000,
+        };
+
+        final log = ServiceLog.fromJson(json);
+
+        expect(log.photoPaths, isEmpty);
+        expect(log.entries, isEmpty);
+      },
+    );
+
+    test(
+      'AppData.fromJson accepts a map whose vehicles, items and logs keys '
+      'are absent and yields empty lists for all three',
+      () {
+        final raw = <String, dynamic>{
+          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+          'settings': <String, dynamic>{},
+        };
+
+        final data = AppData.fromJson(migrateRaw(raw));
+
+        expect(data.vehicles, isEmpty);
+        expect(data.items, isEmpty);
+        expect(data.logs, isEmpty);
+      },
+    );
   });
 }
