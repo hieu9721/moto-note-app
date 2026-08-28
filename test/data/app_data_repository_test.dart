@@ -11,6 +11,7 @@ import 'dart:io';
 
 import 'package:motonote/data/app_data_repository.dart';
 import 'package:motonote/data/migrations.dart';
+import 'package:motonote/data/serial_queue.dart';
 import 'package:motonote/domain/id.dart';
 import 'package:motonote/domain/models/app_data.dart';
 import 'package:motonote/domain/models/maintenance_item.dart';
@@ -880,5 +881,110 @@ void main() {
 
       expect(bytes.length, lessThan(1024));
     });
+  });
+
+  group('serial queue ordering (DATA-03, G-01-5)', () {
+    test(
+      'two enqueues issued without awaiting the first apply in issue order',
+      () async {
+        final queue = SerialQueue();
+        final order = <String>[];
+
+        final firstFuture = queue.enqueue(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          order.add('first');
+        });
+        final secondFuture = queue.enqueue(() async {
+          order.add('second');
+        });
+
+        await Future.wait([firstFuture, secondFuture]);
+
+        expect(order, equals(['first', 'second']));
+      },
+    );
+
+    test(
+      "the second task observes the first task's committed result — "
+      'neither change is lost (DATA-03)',
+      () async {
+        final queue = SerialQueue();
+        var value = 'v0';
+
+        final firstFuture = queue.enqueue(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+          value = '$value+a';
+        });
+        final secondFuture = queue.enqueue(() async {
+          value = '$value+b';
+        });
+
+        await Future.wait([firstFuture, secondFuture]);
+
+        expect(value, equals('v0+a+b'));
+      },
+    );
+
+    test(
+      'the future returned to the caller still rejects on its own failure',
+      () async {
+        final queue = SerialQueue();
+
+        final future = queue.enqueue(() async {
+          throw StateError('boom');
+        });
+
+        await expectLater(future, throwsA(isA<StateError>()));
+      },
+    );
+
+    test(
+      'a failing task does not poison the chain — the next task still '
+      'completes normally',
+      () async {
+        final queue = SerialQueue();
+
+        final failingFuture = queue.enqueue(() async {
+          throw StateError('boom');
+        });
+        final failureExpectation = expectLater(
+          failingFuture,
+          throwsA(isA<StateError>()),
+        );
+
+        var flagSet = false;
+        final secondFuture = queue.enqueue(() async {
+          flagSet = true;
+        });
+
+        await secondFuture;
+        await failureExpectation;
+
+        expect(flagSet, isTrue);
+      },
+    );
+
+    test(
+      'ten enqueues issued in a tight loop without awaiting each one run in '
+      'strict issue order',
+      () async {
+        final queue = SerialQueue();
+        final order = <int>[];
+
+        final futures = <Future<void>>[];
+        for (var i = 0; i < 10; i++) {
+          final delayMs = 10 - i;
+          futures.add(
+            queue.enqueue(() async {
+              await Future<void>.delayed(Duration(milliseconds: delayMs));
+              order.add(i);
+            }),
+          );
+        }
+        await Future.wait(futures);
+
+        expect(order, equals(List<int>.generate(10, (i) => i)));
+      },
+    );
   });
 }
