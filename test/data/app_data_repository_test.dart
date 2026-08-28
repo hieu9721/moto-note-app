@@ -31,28 +31,25 @@ void main() {
   });
 
   group('round-trip', () {
-    test(
-      'a document with one Note and non-default Settings round-trips through save/load',
-      () async {
-        final note = Note(
-          id: newId(),
-          title: 'Thay nhớt',
-          body: 'Đã thay nhớt Motul 5100 10W-40',
-          pinned: true,
-          createdAt: DateTime(2026, 1, 1),
-          updatedAt: DateTime(2026, 1, 1),
-        );
-        final original = AppData.empty().copyWith(
-          notes: [note],
-          settings: const Settings(leadDays: 14, notifyHour: 20),
-        );
+    test('a document with one Note and non-default Settings round-trips through save/load', () async {
+      final note = Note(
+        id: newId(),
+        title: 'Thay nhớt',
+        body: 'Đã thay nhớt Motul 5100 10W-40',
+        pinned: true,
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      );
+      final original = AppData.empty().copyWith(
+        notes: [note],
+        settings: const Settings(leadDays: 14, notifyHour: 20),
+      );
 
-        await repo.save(original);
-        final loaded = await repo.load();
+      await repo.save(original);
+      final loaded = await repo.load();
 
-        expect(loaded, equals(original));
-      },
-    );
+      expect(loaded, equals(original));
+    });
 
     test('notes list [A, B] round-trips in the same order', () async {
       final noteA = Note(
@@ -75,13 +72,10 @@ void main() {
   });
 
   group('missing file', () {
-    test(
-      'load() against an empty directory reports the no-data outcome, not a crash',
-      () async {
-        final loaded = await repo.load();
-        expect(loaded, isNull);
-      },
-    );
+    test('load() against an empty directory reports the no-data outcome, not a crash', () async {
+      final loaded = await repo.load();
+      expect(loaded, isNull);
+    });
   });
 
   group('backup fallback', () {
@@ -114,23 +108,20 @@ void main() {
       },
     );
 
-    test(
-      'a minimal map with only updatedAt and settings decodes tolerantly — '
-      'every @Default([]) list arrives empty, never null',
-      () {
-        final raw = <String, dynamic>{
-          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
-          'settings': <String, dynamic>{},
-        };
+    test('a minimal map with only updatedAt and settings decodes tolerantly — '
+        'every @Default([]) list arrives empty, never null', () {
+      final raw = <String, dynamic>{
+        'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+        'settings': <String, dynamic>{},
+      };
 
-        final migrated = migrateRaw(raw);
-        final data = AppData.fromJson(migrated);
+      final migrated = migrateRaw(raw);
+      final data = AppData.fromJson(migrated);
 
-        expect(data.odoReadings, isEmpty);
-        expect(data.notes, isEmpty);
-        expect(data.deviceLabel, equals(''));
-        expect(data.schemaVersion, equals(1));
-      },
-    );
+      expect(data.odoReadings, isEmpty);
+      expect(data.notes, isEmpty);
+      expect(data.deviceLabel, equals(''));
+      expect(data.schemaVersion, equals(1));
+    });
   });
 }
