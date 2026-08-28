@@ -63,6 +63,187 @@ void assertNoFieldLost(
   }
 }
 
+/// DATA-09 fixed reference points — a real Vietnamese shop name / part spec
+/// / note body per §4.2 example, cycled by index. No `Random`, no
+/// `DateTime.now()`, no `newId()` anywhere in this factory: the whole point
+/// of the size-budget assertion is that it never drifts between runs.
+const _shopNames = [
+  'Tiệm Anh Ba',
+  'Cửa hàng Sửa xe Minh Phát',
+  'Gara Thành Đạt',
+  'Tiệm Sửa xe Hoàng Long',
+  'Trung tâm Bảo dưỡng Yamaha Town',
+];
+
+const _partBrands = ['Motul', 'Castrol', 'Shell', 'Honda Genuine', 'Yamalube'];
+
+const _partSpecs = [
+  '5100 10W-40',
+  '3000 10W-30',
+  'X-Ride 15W-40',
+  'BP 8000 5W-30',
+  'Yamalube 4T 10W-40',
+];
+
+const _noteBodies = [
+  'Đã thay nhớt và lọc gió, xe chạy êm hơn hẳn.',
+  'Kiểm tra lốp trước, còn khoảng 40% gai, để ý thêm 2000km nữa.',
+  'Nhắc thay bugi vào lần bảo dưỡng tới, hiện tại đề hơi khó nổ.',
+  'Đã đăng kiểm xe, hẹn tái khám sau 2 năm.',
+  'Sên dĩa hơi chùng, cần đi chỉnh trong tuần này.',
+];
+
+const _itemCatalogCodes = [
+  'engine_oil',
+  'air_filter',
+  'spark_plug',
+  'brake_pad_front',
+  'brake_pad_rear',
+  'chain_sprocket',
+  'coolant',
+  'brake_fluid',
+  'battery',
+  'tire_front',
+  'tire_rear',
+  'oil_filter',
+  'drive_belt',
+  'valve_clearance',
+  'fuel_filter',
+];
+
+const _itemNames = [
+  'Thay nhớt máy',
+  'Vệ sinh lọc gió',
+  'Thay bugi',
+  'Má phanh trước',
+  'Má phanh sau',
+  'Nhông sên dĩa',
+  'Nước làm mát',
+  'Dầu phanh',
+  'Ắc quy',
+  'Lốp trước',
+  'Lốp sau',
+  'Lọc nhớt',
+  'Dây curoa (xe ga)',
+  'Khe hở xu-páp',
+  'Lọc xăng',
+];
+
+/// DATA-09 synthetic worst case: 1 vehicle, 15 maintenance items, 300
+/// service logs (each with 2 entries) and 300 odo readings — built entirely
+/// from the loop index and a fixed epoch, so the byte count this produces
+/// is deterministic across runs (no `Random`, no `DateTime.now`, no
+/// `newId`).
+AppData buildSyntheticAppData() {
+  final epoch = DateTime.utc(2026, 1, 1);
+  const vehicleId = 'vehicle-0';
+
+  final vehicle = Vehicle(
+    id: vehicleId,
+    name: 'Winner X',
+    type: VehicleType.manual,
+    plate: '29H1-12345',
+    brand: 'Honda',
+    model: 'Winner X',
+    year: 2022,
+    photoPath: 'receipts/vehicle_photo.jpg',
+    currentOdoKm: 18000,
+    odoUpdatedAt: epoch,
+    avgDailyKm: 24.5,
+    avgDailyKmSource: AvgKmSource.computed,
+    createdAt: epoch,
+  );
+
+  final items = List.generate(15, (i) {
+    return MaintenanceItem(
+      id: 'item-$i',
+      vehicleId: vehicleId,
+      catalogCode: _itemCatalogCodes[i],
+      name: _itemNames[i],
+      intervalKm: 3000 + i * 500,
+      intervalMonths: i.isEven ? 6 : null,
+      lastServiceOdo: 15000 + i * 100,
+      lastServiceDate: epoch.add(Duration(days: i * 10)),
+      baselineIsGuess: i.isOdd,
+      partBrand: _partBrands[i % _partBrands.length],
+      partSpec: _partSpecs[i % _partSpecs.length],
+      oilGrade: i % 3 == 0 ? OilGrade.semiSynthetic : null,
+      lastCostVnd: 100000 + i * 15000,
+      notes: 'Ghi chú cho hạng mục bảo dưỡng số $i, theo dõi thêm lần sau.',
+    );
+  });
+
+  final logs = List.generate(300, (i) {
+    final entries = List.generate(2, (j) {
+      final idx = i * 2 + j;
+      return ServiceLogEntry(
+        itemId: 'item-${idx % 15}',
+        costVnd: 50000 + idx * 1000,
+        partBrand: _partBrands[idx % _partBrands.length],
+        partSpec: _partSpecs[idx % _partSpecs.length],
+        resetsCycle: idx.isEven,
+      );
+    });
+    return ServiceLog(
+      id: 'log-$i',
+      vehicleId: vehicleId,
+      date: epoch.add(Duration(days: i)),
+      odoKm: 5000 + i * 40,
+      shopName: _shopNames[i % _shopNames.length],
+      totalCostVnd: 200000 + i * 3000,
+      note: _noteBodies[i % _noteBodies.length],
+      photoPaths: ['receipts/log_$i.jpg'],
+      entries: entries,
+    );
+  });
+
+  final odoReadings = List.generate(300, (i) {
+    return OdoReading(
+      id: 'odo-$i',
+      vehicleId: vehicleId,
+      odoKm: 4000 + i * 45,
+      date: epoch.add(Duration(days: i)),
+      source: i.isEven ? OdoSource.manual : OdoSource.service,
+    );
+  });
+
+  final notes = List.generate(5, (i) {
+    return Note(
+      id: 'note-$i',
+      vehicleId: vehicleId,
+      itemId: i.isEven ? 'item-$i' : null,
+      title: 'Ghi chú số $i',
+      body: _noteBodies[i % _noteBodies.length],
+      pinned: i == 0,
+      createdAt: epoch.add(Duration(days: i)),
+      updatedAt: epoch.add(Duration(days: i)),
+    );
+  });
+
+  final settings = Settings(
+    notificationsEnabled: true,
+    odoReminderEnabled: true,
+    odoReminderDayOfMonth: 5,
+    notifyHour: 20,
+    leadDays: 14,
+    driveBackupEnabled: true,
+    lastBackupAt: epoch,
+    googleEmail: 'nguoi.dung.demo@gmail.com',
+    lastNotificationFiredAt: epoch,
+  );
+
+  return AppData(
+    updatedAt: epoch,
+    deviceLabel: 'Redmi Note 12',
+    vehicles: [vehicle],
+    items: items,
+    logs: logs,
+    odoReadings: odoReadings,
+    notes: notes,
+    settings: settings,
+  );
+}
+
 void main() {
   late Directory tempDir;
   late AppDataRepository repo;
@@ -94,9 +275,10 @@ void main() {
       );
 
       await repo.save(original);
-      final loaded = await repo.load();
+      final result = await repo.load();
 
-      expect(loaded, equals(original));
+      expect(result, isA<AppDataLoaded>());
+      expect((result as AppDataLoaded).data, equals(original));
     });
 
     test('notes list [A, B] round-trips in the same order', () async {
@@ -113,17 +295,28 @@ void main() {
       final original = AppData.empty().copyWith(notes: [noteA, noteB]);
 
       await repo.save(original);
-      final loaded = await repo.load();
+      final result = await repo.load();
 
-      expect(loaded!.notes.map((n) => n.id).toList(), equals(['a', 'b']));
+      final loaded = (result as AppDataLoaded).data;
+      expect(loaded.notes.map((n) => n.id).toList(), equals(['a', 'b']));
     });
   });
 
   group('missing file', () {
     test('load() against an empty directory reports the no-data outcome, not a crash', () async {
-      final loaded = await repo.load();
-      expect(loaded, isNull);
+      final result = await repo.load();
+      expect(result, isA<AppDataNotFound>());
     });
+
+    test(
+      'load() against an empty directory writes nothing and renames nothing',
+      () async {
+        await repo.load();
+
+        final entries = await tempDir.list().toList();
+        expect(entries, isEmpty);
+      },
+    );
   });
 
   group('backup fallback', () {
@@ -139,12 +332,169 @@ void main() {
         final primary = File('${tempDir.path}/appdata.json');
         await primary.writeAsString('not json');
 
-        final loaded = await repo.load();
+        final result = await repo.load();
 
-        expect(loaded, isNotNull);
-        expect(loaded!.deviceLabel, equals('first-save'));
+        expect(result, isA<AppDataLoaded>());
+        expect(
+          (result as AppDataLoaded).data.deviceLabel,
+          equals('first-save'),
+        );
       },
     );
+  });
+
+  group('save', () {
+    test('saving the same document twice leaves appdata.json byte-identical, '
+        'and appdata.backup.json then holds an identical copy', () async {
+      final document = AppData.empty().copyWith(deviceLabel: 'same-twice');
+
+      await repo.save(document);
+      final primary = File('${tempDir.path}/appdata.json');
+      final firstBytes = await primary.readAsBytes();
+
+      await repo.save(document);
+      final secondBytes = await primary.readAsBytes();
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      final backupBytes = await backup.readAsBytes();
+
+      expect(secondBytes, equals(firstBytes));
+      expect(backupBytes, equals(firstBytes));
+    });
+
+    test('saving two different documents leaves appdata.json holding the '
+        'second and appdata.backup.json holding the first, with no '
+        'appdata.json.tmp left behind', () async {
+      final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+      final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+
+      await repo.save(first);
+      await repo.save(second);
+
+      final primary = File('${tempDir.path}/appdata.json');
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      final tmp = File('${tempDir.path}/appdata.json.tmp');
+
+      final primaryData = AppData.fromJson(
+        jsonDecode(await primary.readAsString()) as Map<String, dynamic>,
+      );
+      final backupData = AppData.fromJson(
+        jsonDecode(await backup.readAsString()) as Map<String, dynamic>,
+      );
+
+      expect(primaryData.deviceLabel, equals('second-save'));
+      expect(backupData.deviceLabel, equals('first-save'));
+      expect(await tmp.exists(), isFalse);
+    });
+
+    test(
+      'ten save() calls issued in a tight loop without awaiting each one '
+      'leave an appdata.json that decodes successfully once all complete',
+      () async {
+        final futures = <Future<void>>[];
+        for (var i = 0; i < 10; i++) {
+          futures.add(
+            repo.save(AppData.empty().copyWith(deviceLabel: 'write-$i')),
+          );
+        }
+        await Future.wait(futures);
+
+        final primary = File('${tempDir.path}/appdata.json');
+        final decoded =
+            jsonDecode(await primary.readAsString()) as Map<String, dynamic>;
+        final data = AppData.fromJson(decoded);
+
+        expect(data.deviceLabel, equals('write-9'));
+
+        final tmp = File('${tempDir.path}/appdata.json.tmp');
+        expect(await tmp.exists(), isFalse);
+      },
+    );
+  });
+
+  group('quarantine', () {
+    test(
+      'primary undecodable with a healthy backup: load() returns the loaded '
+      'outcome carrying the backup document, and the primary is renamed to '
+      'a quarantine file starting appdata.corrupt. and ending .json',
+      () async {
+        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+        final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+
+        await repo.save(first);
+        await repo.save(second);
+
+        final primary = File('${tempDir.path}/appdata.json');
+        await primary.writeAsString('not json');
+
+        final result = await repo.load();
+
+        expect(result, isA<AppDataLoaded>());
+        expect(
+          (result as AppDataLoaded).data.deviceLabel,
+          equals('first-save'),
+        );
+
+        expect(await primary.exists(), isFalse);
+        final quarantineFiles = await tempDir
+            .list()
+            .where(
+              (e) =>
+                  e is File &&
+                  e.uri.pathSegments.last.startsWith('appdata.corrupt.') &&
+                  e.uri.pathSegments.last.endsWith('.json'),
+            )
+            .toList();
+        expect(quarantineFiles, hasLength(1));
+      },
+    );
+
+    test('primary undecodable with no backup: load() returns the undecodable '
+        'outcome, no appdata.json remains, and the quarantine file holds the '
+        'original bytes byte-for-byte', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      const originalBytes = 'not json at all, {"truncated": tr';
+      await primary.writeAsString(originalBytes);
+
+      final result = await repo.load();
+
+      expect(result, isA<AppDataUndecodable>());
+      final quarantinePath = (result as AppDataUndecodable).quarantinePath;
+
+      expect(await primary.exists(), isFalse);
+      final quarantineFile = File(quarantinePath);
+      expect(await quarantineFile.exists(), isTrue);
+      expect(await quarantineFile.readAsString(), equals(originalBytes));
+
+      final remainingAppdataJson = await tempDir
+          .list()
+          .where((e) => e.uri.pathSegments.last == 'appdata.json')
+          .toList();
+      expect(remainingAppdataJson, isEmpty);
+    });
+
+    test('two successive corrupt loads produce two distinct quarantine files; '
+        'neither overwrites the other', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+
+      await primary.writeAsString('not json (first)');
+      final firstResult = await repo.load() as AppDataUndecodable;
+
+      await primary.writeAsString('not json (second)');
+      final secondResult = await repo.load() as AppDataUndecodable;
+
+      expect(
+        firstResult.quarantinePath,
+        isNot(equals(secondResult.quarantinePath)),
+      );
+      expect(
+        await File(firstResult.quarantinePath).readAsString(),
+        equals('not json (first)'),
+      );
+      expect(
+        await File(secondResult.quarantinePath).readAsString(),
+        equals('not json (second)'),
+      );
+    });
   });
 
   group('migration', () {
@@ -170,6 +520,46 @@ void main() {
       expect(data.notes, isEmpty);
       expect(data.deviceLabel, equals(''));
       expect(data.schemaVersion, equals(1));
+    });
+
+    test('migrateRaw on a map whose schemaVersion is 2 throws the typed '
+        'forward-version error and does not mutate the input map', () {
+      final input = <String, dynamic>{'schemaVersion': 2, 'foo': 'bar'};
+      final inputSnapshot = Map<String, dynamic>.from(input);
+
+      expect(
+        () => migrateRaw(input),
+        throwsA(
+          isA<SchemaTooNewException>()
+              .having((e) => e.found, 'found', 2)
+              .having((e) => e.supported, 'supported', 1),
+        ),
+      );
+      expect(input, equals(inputSnapshot));
+    });
+
+    test('load() against a primary stamped schemaVersion 2 reports the '
+        'forward-version outcome, quarantines the file, and does NOT fall '
+        'through to a fresh empty document', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      await primary.writeAsString(
+        jsonEncode({
+          'schemaVersion': 2,
+          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+          'settings': <String, dynamic>{},
+        }),
+      );
+
+      final result = await repo.load();
+
+      expect(result, isA<AppDataSchemaTooNew>());
+      final schemaTooNew = result as AppDataSchemaTooNew;
+      expect(schemaTooNew.found, equals(2));
+      expect(schemaTooNew.supported, equals(1));
+
+      expect(await primary.exists(), isFalse);
+      final quarantineFile = File(schemaTooNew.quarantinePath);
+      expect(await quarantineFile.exists(), isTrue);
     });
   });
 
@@ -436,10 +826,11 @@ void main() {
         final repo = AppDataRepository(tempDir);
         await File('${tempDir.path}/appdata.json').writeAsString(fixtureBytes);
 
-        final loaded = await repo.load();
+        final result = await repo.load();
 
-        expect(loaded, isNotNull);
-        expect(loaded!.deviceLabel, equals('Redmi Note 12'));
+        expect(result, isA<AppDataLoaded>());
+        final loaded = (result as AppDataLoaded).data;
+        expect(loaded.deviceLabel, equals('Redmi Note 12'));
         expect(loaded.vehicles, hasLength(1));
         expect(loaded.items, hasLength(2));
         expect(loaded.logs, hasLength(1));
@@ -451,6 +842,43 @@ void main() {
           await tempDir.delete(recursive: true);
         }
       }
+    });
+  });
+
+  group('size budget', () {
+    test('a synthetic document of 1 vehicle, 15 maintenance items and 300 '
+        'service logs encodes to strictly fewer than 204800 bytes', () {
+      final data = buildSyntheticAppData();
+      final bytes = utf8.encode(jsonEncode(data.toJson()));
+
+      // DATA-09: the plan requires the measured byte count recorded in
+      // the SUMMARY — printed here so it can be captured from test output.
+      // ignore: avoid_print
+      print('DATA-09 synthetic document size: ${bytes.length} bytes');
+
+      expect(bytes.length, lessThan(204800));
+    });
+
+    test('the synthetic document produces exactly the same byte count on a '
+        'second construction — no random source, no wall-clock timestamp', () {
+      final firstSize = utf8
+          .encode(jsonEncode(buildSyntheticAppData().toJson()))
+          .length;
+      final secondSize = utf8
+          .encode(jsonEncode(buildSyntheticAppData().toJson()))
+          .length;
+
+      expect(secondSize, equals(firstSize));
+    });
+
+    test('an empty document encodes to under one kilobyte', () {
+      final empty = AppData(
+        updatedAt: DateTime.utc(2026, 1, 1),
+        settings: const Settings(),
+      );
+      final bytes = utf8.encode(jsonEncode(empty.toJson()));
+
+      expect(bytes.length, lessThan(1024));
     });
   });
 }
