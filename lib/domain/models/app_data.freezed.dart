@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AppData {
 
- int get schemaVersion; DateTime get updatedAt; String get deviceLabel; List<OdoReading> get odoReadings; List<Note> get notes; Settings get settings;
+ int get schemaVersion; DateTime get updatedAt; String get deviceLabel; List<Vehicle> get vehicles; List<MaintenanceItem> get items; List<ServiceLog> get logs; List<OdoReading> get odoReadings; List<Note> get notes; Settings get settings;
 /// Create a copy of AppData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $AppDataCopyWith<AppData> get copyWith => _$AppDataCopyWithImpl<AppData>(this as
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppData&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deviceLabel, deviceLabel) || other.deviceLabel == deviceLabel)&&const DeepCollectionEquality().equals(other.odoReadings, odoReadings)&&const DeepCollectionEquality().equals(other.notes, notes)&&(identical(other.settings, settings) || other.settings == settings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AppData&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deviceLabel, deviceLabel) || other.deviceLabel == deviceLabel)&&const DeepCollectionEquality().equals(other.vehicles, vehicles)&&const DeepCollectionEquality().equals(other.items, items)&&const DeepCollectionEquality().equals(other.logs, logs)&&const DeepCollectionEquality().equals(other.odoReadings, odoReadings)&&const DeepCollectionEquality().equals(other.notes, notes)&&(identical(other.settings, settings) || other.settings == settings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,updatedAt,deviceLabel,const DeepCollectionEquality().hash(odoReadings),const DeepCollectionEquality().hash(notes),settings);
+int get hashCode => Object.hash(runtimeType,schemaVersion,updatedAt,deviceLabel,const DeepCollectionEquality().hash(vehicles),const DeepCollectionEquality().hash(items),const DeepCollectionEquality().hash(logs),const DeepCollectionEquality().hash(odoReadings),const DeepCollectionEquality().hash(notes),settings);
 
 @override
 String toString() {
-  return 'AppData(schemaVersion: $schemaVersion, updatedAt: $updatedAt, deviceLabel: $deviceLabel, odoReadings: $odoReadings, notes: $notes, settings: $settings)';
+  return 'AppData(schemaVersion: $schemaVersion, updatedAt: $updatedAt, deviceLabel: $deviceLabel, vehicles: $vehicles, items: $items, logs: $logs, odoReadings: $odoReadings, notes: $notes, settings: $settings)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $AppDataCopyWith<$Res>  {
   factory $AppDataCopyWith(AppData value, $Res Function(AppData) _then) = _$AppDataCopyWithImpl;
 @useResult
 $Res call({
- int schemaVersion, DateTime updatedAt, String deviceLabel, List<OdoReading> odoReadings, List<Note> notes, Settings settings
+ int schemaVersion, DateTime updatedAt, String deviceLabel, List<Vehicle> vehicles, List<MaintenanceItem> items, List<ServiceLog> logs, List<OdoReading> odoReadings, List<Note> notes, Settings settings
 });
 
 
@@ -66,12 +66,15 @@ class _$AppDataCopyWithImpl<$Res>
 
 /// Create a copy of AppData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? updatedAt = null,Object? deviceLabel = null,Object? odoReadings = null,Object? notes = null,Object? settings = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? updatedAt = null,Object? deviceLabel = null,Object? vehicles = null,Object? items = null,Object? logs = null,Object? odoReadings = null,Object? notes = null,Object? settings = null,}) {
   return _then(AppData(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,deviceLabel: null == deviceLabel ? _self.deviceLabel : deviceLabel // ignore: cast_nullable_to_non_nullable
-as String,odoReadings: null == odoReadings ? _self.odoReadings : odoReadings // ignore: cast_nullable_to_non_nullable
+as String,vehicles: null == vehicles ? _self.vehicles : vehicles // ignore: cast_nullable_to_non_nullable
+as List<Vehicle>,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as List<MaintenanceItem>,logs: null == logs ? _self.logs : logs // ignore: cast_nullable_to_non_nullable
+as List<ServiceLog>,odoReadings: null == odoReadings ? _self.odoReadings : odoReadings // ignore: cast_nullable_to_non_nullable
 as List<OdoReading>,notes: null == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as List<Note>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as Settings,
@@ -168,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<Vehicle> vehicles,  List<MaintenanceItem> items,  List<ServiceLog> logs,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AppData() when $default != null:
-return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoReadings,_that.notes,_that.settings);case _:
+return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.vehicles,_that.items,_that.logs,_that.odoReadings,_that.notes,_that.settings);case _:
   return orElse();
 
 }
@@ -189,10 +192,10 @@ return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoR
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<Vehicle> vehicles,  List<MaintenanceItem> items,  List<ServiceLog> logs,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)  $default,) {final _that = this;
 switch (_that) {
 case _AppData():
-return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoReadings,_that.notes,_that.settings);case _:
+return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.vehicles,_that.items,_that.logs,_that.odoReadings,_that.notes,_that.settings);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -209,10 +212,10 @@ return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoR
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  DateTime updatedAt,  String deviceLabel,  List<Vehicle> vehicles,  List<MaintenanceItem> items,  List<ServiceLog> logs,  List<OdoReading> odoReadings,  List<Note> notes,  Settings settings)?  $default,) {final _that = this;
 switch (_that) {
 case _AppData() when $default != null:
-return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoReadings,_that.notes,_that.settings);case _:
+return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.vehicles,_that.items,_that.logs,_that.odoReadings,_that.notes,_that.settings);case _:
   return null;
 
 }
@@ -224,12 +227,33 @@ return $default(_that.schemaVersion,_that.updatedAt,_that.deviceLabel,_that.odoR
 @JsonSerializable()
 
 class _AppData implements AppData {
-  const _AppData({this.schemaVersion = kSchemaVersion, required this.updatedAt, this.deviceLabel = '',  List<OdoReading> odoReadings = const [],  List<Note> notes = const [], required this.settings}): _odoReadings = odoReadings,_notes = notes;
+  const _AppData({this.schemaVersion = kSchemaVersion, required this.updatedAt, this.deviceLabel = '',  List<Vehicle> vehicles = const [],  List<MaintenanceItem> items = const [],  List<ServiceLog> logs = const [],  List<OdoReading> odoReadings = const [],  List<Note> notes = const [], required this.settings}): _vehicles = vehicles,_items = items,_logs = logs,_odoReadings = odoReadings,_notes = notes;
   factory _AppData.fromJson(Map<String, dynamic> json) => _$AppDataFromJson(json);
 
 @override@JsonKey() final  int schemaVersion;
 @override final  DateTime updatedAt;
 @override@JsonKey() final  String deviceLabel;
+ final  List<Vehicle> _vehicles;
+@override@JsonKey() List<Vehicle> get vehicles {
+  if (_vehicles is EqualUnmodifiableListView) return _vehicles;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_vehicles);
+}
+
+ final  List<MaintenanceItem> _items;
+@override@JsonKey() List<MaintenanceItem> get items {
+  if (_items is EqualUnmodifiableListView) return _items;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_items);
+}
+
+ final  List<ServiceLog> _logs;
+@override@JsonKey() List<ServiceLog> get logs {
+  if (_logs is EqualUnmodifiableListView) return _logs;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_logs);
+}
+
  final  List<OdoReading> _odoReadings;
 @override@JsonKey() List<OdoReading> get odoReadings {
   if (_odoReadings is EqualUnmodifiableListView) return _odoReadings;
@@ -259,16 +283,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppData&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deviceLabel, deviceLabel) || other.deviceLabel == deviceLabel)&&const DeepCollectionEquality().equals(other._odoReadings, _odoReadings)&&const DeepCollectionEquality().equals(other._notes, _notes)&&(identical(other.settings, settings) || other.settings == settings));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AppData&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt)&&(identical(other.deviceLabel, deviceLabel) || other.deviceLabel == deviceLabel)&&const DeepCollectionEquality().equals(other._vehicles, _vehicles)&&const DeepCollectionEquality().equals(other._items, _items)&&const DeepCollectionEquality().equals(other._logs, _logs)&&const DeepCollectionEquality().equals(other._odoReadings, _odoReadings)&&const DeepCollectionEquality().equals(other._notes, _notes)&&(identical(other.settings, settings) || other.settings == settings));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,updatedAt,deviceLabel,const DeepCollectionEquality().hash(_odoReadings),const DeepCollectionEquality().hash(_notes),settings);
+int get hashCode => Object.hash(runtimeType,schemaVersion,updatedAt,deviceLabel,const DeepCollectionEquality().hash(_vehicles),const DeepCollectionEquality().hash(_items),const DeepCollectionEquality().hash(_logs),const DeepCollectionEquality().hash(_odoReadings),const DeepCollectionEquality().hash(_notes),settings);
 
 @override
 String toString() {
-  return 'AppData(schemaVersion: $schemaVersion, updatedAt: $updatedAt, deviceLabel: $deviceLabel, odoReadings: $odoReadings, notes: $notes, settings: $settings)';
+  return 'AppData(schemaVersion: $schemaVersion, updatedAt: $updatedAt, deviceLabel: $deviceLabel, vehicles: $vehicles, items: $items, logs: $logs, odoReadings: $odoReadings, notes: $notes, settings: $settings)';
 }
 
 
@@ -279,7 +303,7 @@ abstract mixin class _$AppDataCopyWith<$Res> implements $AppDataCopyWith<$Res> {
   factory _$AppDataCopyWith(_AppData value, $Res Function(_AppData) _then) = __$AppDataCopyWithImpl;
 @override @useResult
 $Res call({
- int schemaVersion, DateTime updatedAt, String deviceLabel, List<OdoReading> odoReadings, List<Note> notes, Settings settings
+ int schemaVersion, DateTime updatedAt, String deviceLabel, List<Vehicle> vehicles, List<MaintenanceItem> items, List<ServiceLog> logs, List<OdoReading> odoReadings, List<Note> notes, Settings settings
 });
 
 
@@ -296,12 +320,15 @@ class __$AppDataCopyWithImpl<$Res>
 
 /// Create a copy of AppData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? updatedAt = null,Object? deviceLabel = null,Object? odoReadings = null,Object? notes = null,Object? settings = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? updatedAt = null,Object? deviceLabel = null,Object? vehicles = null,Object? items = null,Object? logs = null,Object? odoReadings = null,Object? notes = null,Object? settings = null,}) {
   return _then(_AppData(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,deviceLabel: null == deviceLabel ? _self.deviceLabel : deviceLabel // ignore: cast_nullable_to_non_nullable
-as String,odoReadings: null == odoReadings ? _self._odoReadings : odoReadings // ignore: cast_nullable_to_non_nullable
+as String,vehicles: null == vehicles ? _self._vehicles : vehicles // ignore: cast_nullable_to_non_nullable
+as List<Vehicle>,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as List<MaintenanceItem>,logs: null == logs ? _self._logs : logs // ignore: cast_nullable_to_non_nullable
+as List<ServiceLog>,odoReadings: null == odoReadings ? _self._odoReadings : odoReadings // ignore: cast_nullable_to_non_nullable
 as List<OdoReading>,notes: null == notes ? _self._notes : notes // ignore: cast_nullable_to_non_nullable
 as List<Note>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
 as Settings,
