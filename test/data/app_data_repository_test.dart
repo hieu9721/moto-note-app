@@ -6,6 +6,7 @@
 // 'migration') so plans 01-03 and 01-04 can append their own groups without
 // touching these.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:motonote/data/app_data_repository.dart';
@@ -151,25 +152,22 @@ void main() {
       expect(roundTripped, equals(vehicle));
     });
 
-    test(
-      'a Vehicle JSON map omitting avgDailyKmSource decodes with the value '
-      'user (the @Default), not null',
-      () {
-        final json = <String, dynamic>{
-          'id': newId(),
-          'name': 'Wave Alpha',
-          'type': 'underbone',
-          'currentOdoKm': 1000,
-          'odoUpdatedAt': DateTime(2026, 1, 1).toIso8601String(),
-          'avgDailyKm': 10.0,
-          'createdAt': DateTime(2026, 1, 1).toIso8601String(),
-        };
+    test('a Vehicle JSON map omitting avgDailyKmSource decodes with the value '
+        'user (the @Default), not null', () {
+      final json = <String, dynamic>{
+        'id': newId(),
+        'name': 'Wave Alpha',
+        'type': 'underbone',
+        'currentOdoKm': 1000,
+        'odoUpdatedAt': DateTime(2026, 1, 1).toIso8601String(),
+        'avgDailyKm': 10.0,
+        'createdAt': DateTime(2026, 1, 1).toIso8601String(),
+      };
 
-        final vehicle = Vehicle.fromJson(json);
+      final vehicle = Vehicle.fromJson(json);
 
-        expect(vehicle.avgDailyKmSource, equals(AvgKmSource.user));
-      },
-    );
+      expect(vehicle.avgDailyKmSource, equals(AvgKmSource.user));
+    });
 
     test(
       'MaintenanceItem round-trips through its own toJson/fromJson unchanged',
@@ -198,23 +196,20 @@ void main() {
       },
     );
 
-    test(
-      'a MaintenanceItem JSON map omitting enabled and baselineIsGuess '
-      'decodes with both true',
-      () {
-        final json = <String, dynamic>{
-          'id': newId(),
-          'vehicleId': newId(),
-          'catalogCode': 'engine_oil',
-          'name': 'Thay nhớt',
-        };
+    test('a MaintenanceItem JSON map omitting enabled and baselineIsGuess '
+        'decodes with both true', () {
+      final json = <String, dynamic>{
+        'id': newId(),
+        'vehicleId': newId(),
+        'catalogCode': 'engine_oil',
+        'name': 'Thay nhớt',
+      };
 
-        final item = MaintenanceItem.fromJson(json);
+      final item = MaintenanceItem.fromJson(json);
 
-        expect(item.enabled, isTrue);
-        expect(item.baselineIsGuess, isTrue);
-      },
-    );
+      expect(item.enabled, isTrue);
+      expect(item.baselineIsGuess, isTrue);
+    });
 
     test(
       'ServiceLogEntry round-trips through its own toJson/fromJson unchanged',
@@ -244,57 +239,63 @@ void main() {
       },
     );
 
-    test('ServiceLog round-trips through its own toJson/fromJson unchanged', () {
-      final log = ServiceLog(
-        id: newId(),
-        vehicleId: newId(),
-        date: DateTime(2026, 1, 1),
-        odoKm: 12000,
-        shopName: 'Tiệm Anh Ba',
-        totalCostVnd: 300000,
-        note: 'Thay nhớt + lọc gió',
-        photoPaths: ['receipts/log1.jpg'],
-        entries: [ServiceLogEntry(itemId: newId(), resetsCycle: true)],
-      );
+    test(
+      'ServiceLog round-trips through its own toJson/fromJson unchanged',
+      () {
+        final log = ServiceLog(
+          id: newId(),
+          vehicleId: newId(),
+          date: DateTime(2026, 1, 1),
+          odoKm: 12000,
+          shopName: 'Tiệm Anh Ba',
+          totalCostVnd: 300000,
+          note: 'Thay nhớt + lọc gió',
+          photoPaths: ['receipts/log1.jpg'],
+          entries: [ServiceLogEntry(itemId: newId(), resetsCycle: true)],
+        );
 
-      final roundTripped = ServiceLog.fromJson(log.toJson());
+        // ServiceLog nests ServiceLogEntry objects in `entries`. toJson() does
+        // not call ServiceLogEntry.toJson() on each item without
+        // `explicitToJson: true` — Dart's jsonEncode() does that recursively
+        // via its default toEncodable, which is the real save()/load() path
+        // (§5.1). Route through the same jsonEncode/jsonDecode cycle here so
+        // the test matches production, rather than calling fromJson(toJson())
+        // directly with unencoded nested objects.
+        final roundTripped = ServiceLog.fromJson(
+          jsonDecode(jsonEncode(log.toJson())) as Map<String, dynamic>,
+        );
 
-      expect(roundTripped, equals(log));
+        expect(roundTripped, equals(log));
+      },
+    );
+
+    test('a ServiceLog JSON map omitting photoPaths and entries decodes with '
+        'both as empty lists', () {
+      final json = <String, dynamic>{
+        'id': newId(),
+        'vehicleId': newId(),
+        'date': DateTime(2026, 1, 1).toIso8601String(),
+        'odoKm': 5000,
+      };
+
+      final log = ServiceLog.fromJson(json);
+
+      expect(log.photoPaths, isEmpty);
+      expect(log.entries, isEmpty);
     });
 
-    test(
-      'a ServiceLog JSON map omitting photoPaths and entries decodes with '
-      'both as empty lists',
-      () {
-        final json = <String, dynamic>{
-          'id': newId(),
-          'vehicleId': newId(),
-          'date': DateTime(2026, 1, 1).toIso8601String(),
-          'odoKm': 5000,
-        };
+    test('AppData.fromJson accepts a map whose vehicles, items and logs keys '
+        'are absent and yields empty lists for all three', () {
+      final raw = <String, dynamic>{
+        'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+        'settings': <String, dynamic>{},
+      };
 
-        final log = ServiceLog.fromJson(json);
+      final data = AppData.fromJson(migrateRaw(raw));
 
-        expect(log.photoPaths, isEmpty);
-        expect(log.entries, isEmpty);
-      },
-    );
-
-    test(
-      'AppData.fromJson accepts a map whose vehicles, items and logs keys '
-      'are absent and yields empty lists for all three',
-      () {
-        final raw = <String, dynamic>{
-          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
-          'settings': <String, dynamic>{},
-        };
-
-        final data = AppData.fromJson(migrateRaw(raw));
-
-        expect(data.vehicles, isEmpty);
-        expect(data.items, isEmpty);
-        expect(data.logs, isEmpty);
-      },
-    );
+      expect(data.vehicles, isEmpty);
+      expect(data.items, isEmpty);
+      expect(data.logs, isEmpty);
+    });
   });
 }
