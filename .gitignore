@@ -1,0 +1,53 @@
+# ---- Flutter / Dart ----
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+*.g.dart
+*.freezed.dart
+coverage/
+
+# Android
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+android/app/google-services.json
+**/android/**/gradle-wrapper.jar
+*.iml
+
+# iOS / macOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/Flutter/ephemeral/
+ios/Runner/GoogleService-Info.plist
+**/*.mobileprovision
+**/*.p12
+DerivedData/
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+*client_secret*.json
+
+# ---- Editors / OS ----
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+.DS_Store
+Thumbs.db
+
+# ---- GSD (local-only state) ----
+.claude/settings.local.json
+.claude/hooks/node_modules/
+.claude/gsd-install-state.json
