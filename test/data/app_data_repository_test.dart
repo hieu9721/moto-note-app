@@ -904,26 +904,23 @@ void main() {
       },
     );
 
-    test(
-      "the second task observes the first task's committed result — "
-      'neither change is lost (DATA-03)',
-      () async {
-        final queue = SerialQueue();
-        var value = 'v0';
+    test("the second task observes the first task's committed result — "
+        'neither change is lost (DATA-03)', () async {
+      final queue = SerialQueue();
+      var value = 'v0';
 
-        final firstFuture = queue.enqueue(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 20));
-          value = '$value+a';
-        });
-        final secondFuture = queue.enqueue(() async {
-          value = '$value+b';
-        });
+      final firstFuture = queue.enqueue(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        value = '$value+a';
+      });
+      final secondFuture = queue.enqueue(() async {
+        value = '$value+b';
+      });
 
-        await Future.wait([firstFuture, secondFuture]);
+      await Future.wait([firstFuture, secondFuture]);
 
-        expect(value, equals('v0+a+b'));
-      },
-    );
+      expect(value, equals('v0+a+b'));
+    });
 
     test(
       'the future returned to the caller still rejects on its own failure',
@@ -938,101 +935,86 @@ void main() {
       },
     );
 
-    test(
-      'a failing task does not poison the chain — the next task still '
-      'completes normally',
-      () async {
-        final queue = SerialQueue();
+    test('a failing task does not poison the chain — the next task still '
+        'completes normally', () async {
+      final queue = SerialQueue();
 
-        final failingFuture = queue.enqueue(() async {
-          throw StateError('boom');
-        });
-        final failureExpectation = expectLater(
-          failingFuture,
-          throwsA(isA<StateError>()),
+      final failingFuture = queue.enqueue(() async {
+        throw StateError('boom');
+      });
+      final failureExpectation = expectLater(
+        failingFuture,
+        throwsA(isA<StateError>()),
+      );
+
+      var flagSet = false;
+      final secondFuture = queue.enqueue(() async {
+        flagSet = true;
+      });
+
+      await secondFuture;
+      await failureExpectation;
+
+      expect(flagSet, isTrue);
+    });
+
+    test('ten enqueues issued in a tight loop without awaiting each one run in '
+        'strict issue order', () async {
+      final queue = SerialQueue();
+      final order = <int>[];
+
+      final futures = <Future<void>>[];
+      for (var i = 0; i < 10; i++) {
+        final delayMs = 10 - i;
+        futures.add(
+          queue.enqueue(() async {
+            await Future<void>.delayed(Duration(milliseconds: delayMs));
+            order.add(i);
+          }),
         );
+      }
+      await Future.wait(futures);
 
-        var flagSet = false;
-        final secondFuture = queue.enqueue(() async {
-          flagSet = true;
-        });
-
-        await secondFuture;
-        await failureExpectation;
-
-        expect(flagSet, isTrue);
-      },
-    );
-
-    test(
-      'ten enqueues issued in a tight loop without awaiting each one run in '
-      'strict issue order',
-      () async {
-        final queue = SerialQueue();
-        final order = <int>[];
-
-        final futures = <Future<void>>[];
-        for (var i = 0; i < 10; i++) {
-          final delayMs = 10 - i;
-          futures.add(
-            queue.enqueue(() async {
-              await Future<void>.delayed(Duration(milliseconds: delayMs));
-              order.add(i);
-            }),
-          );
-        }
-        await Future.wait(futures);
-
-        expect(order, equals(List<int>.generate(10, (i) => i)));
-      },
-    );
+      expect(order, equals(List<int>.generate(10, (i) => i)));
+    });
   });
 
   group('post-persist failure boundary (G-01-W3)', () {
-    test(
-      'an effect that throws ASYNCHRONOUSLY (after an await) is reported, '
-      'not propagated',
-      () async {
-        Object? capturedError;
+    test('an effect that throws ASYNCHRONOUSLY (after an await) is reported, '
+        'not propagated', () async {
+      Object? capturedError;
 
-        await runReportingFailure(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 1));
-          throw StateError('async boom');
-        }, onError: (error) => capturedError = error);
+      await runReportingFailure(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+        throw StateError('async boom');
+      }, onError: (error) => capturedError = error);
 
-        expect(capturedError, isA<StateError>());
-      },
-    );
+      expect(capturedError, isA<StateError>());
+    });
 
-    test(
-      'an effect that throws SYNCHRONOUSLY, before its first await, is also '
-      'reported, not propagated',
-      () async {
-        Object? capturedError;
+    test('an effect that throws SYNCHRONOUSLY, before its first await, is also '
+        'reported, not propagated', () async {
+      Object? capturedError;
 
-        await runReportingFailure(() async {
-          throw StateError('sync boom');
-        }, onError: (error) => capturedError = error);
+      await runReportingFailure(() async {
+        throw StateError('sync boom');
+      }, onError: (error) => capturedError = error);
 
-        expect(capturedError, isA<StateError>());
-      },
-    );
+      expect(capturedError, isA<StateError>());
+    });
 
-    test(
-      'an effect that succeeds completes normally and the error callback is '
-      'never invoked',
-      () async {
-        var effectRan = false;
-        Object? capturedError;
+    test('an effect that succeeds completes normally and the error callback is '
+        'never invoked', () async {
+      var effectRan = false;
+      Object? capturedError;
 
-        await runReportingFailure(() async {
-          effectRan = true;
-        }, onError: (error) => capturedError = error);
+      await runReportingFailure(() async {
+        effectRan = true;
+      }, onError: (error) => capturedError = error);
 
-        expect(effectRan, isTrue);
-        expect(capturedError, isNull);
-      },
-    );
+      expect(effectRan, isTrue);
+      expect(capturedError, isNull);
+    });
   });
 
   group('updatedAt is UTC (G-01-W5)', () {
@@ -1042,31 +1024,25 @@ void main() {
       expect(data.updatedAt.isUtc, isTrue);
     });
 
-    test(
-      'the persisted updatedAt string ends with Z — the bytes Phase 5 will '
-      'compare',
-      () async {
-        await repo.save(AppData.empty());
+    test('the persisted updatedAt string ends with Z — the bytes Phase 5 will '
+        'compare', () async {
+      await repo.save(AppData.empty());
 
-        final primary = File('${tempDir.path}/appdata.json');
-        final decoded =
-            jsonDecode(await primary.readAsString()) as Map<String, dynamic>;
+      final primary = File('${tempDir.path}/appdata.json');
+      final decoded =
+          jsonDecode(await primary.readAsString()) as Map<String, dynamic>;
 
-        expect(decoded['updatedAt'], endsWith('Z'));
-      },
-    );
+      expect(decoded['updatedAt'], endsWith('Z'));
+    });
 
-    test(
-      'a document round-tripped through save() and load() comes back with '
-      'updatedAt.isUtc true',
-      () async {
-        await repo.save(AppData.empty());
+    test('a document round-tripped through save() and load() comes back with '
+        'updatedAt.isUtc true', () async {
+      await repo.save(AppData.empty());
 
-        final result = await repo.load();
+      final result = await repo.load();
 
-        expect(result, isA<AppDataLoaded>());
-        expect((result as AppDataLoaded).data.updatedAt.isUtc, isTrue);
-      },
-    );
+      expect(result, isA<AppDataLoaded>());
+      expect((result as AppDataLoaded).data.updatedAt.isUtc, isTrue);
+    });
   });
 }

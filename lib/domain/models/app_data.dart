@@ -37,5 +37,5 @@ abstract class AppData with _$AppData {
       _$AppDataFromJson(json);
 
   factory AppData.empty() =>
-      AppData(updatedAt: DateTime.now(), settings: const Settings());
+      AppData(updatedAt: DateTime.now().toUtc(), settings: const Settings());
 }

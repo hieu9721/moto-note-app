@@ -155,7 +155,7 @@ class AppNotifier extends Notifier<AppData> {
   ///    method's decision to make.
   Future<void> _mutate(AppData Function(AppData) f) {
     return _mutations.enqueue(() async {
-      final next = f(state).copyWith(updatedAt: DateTime.now());
+      final next = f(state).copyWith(updatedAt: DateTime.now().toUtc());
       await _repo.save(next);
       state = next;
       await runReportingFailure(
