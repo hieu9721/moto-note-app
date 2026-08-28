@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../backup/backup_service.dart';
 import '../data/app_data_repository.dart';
+import '../data/serial_queue.dart';
 import '../domain/models/app_data.dart';
 import '../notifications/notification_service.dart';
 
@@ -56,14 +57,13 @@ enum HydrateOutcome {
 class AppNotifier extends Notifier<AppData> {
   late final AppDataRepository _repo;
 
-  /// P1-D-06/T-01-11: chains every [_mutate] call onto the previous one, so
-  /// only one mutation is ever in flight against `appdata.json.tmp`. Mirrors
-  /// the pattern `AppDataRepository._lastWrite` already uses: the future
-  /// returned to the caller propagates a failure normally, while the future
-  /// stored back into this field swallows it. A bare
-  /// `_lastMutation = _lastMutation.then(...)` would instead leave a failed
-  /// future in the chain and poison every mutation after it.
-  Future<void> _lastMutation = Future.value();
+  /// P1-D-06/T-01-11: serialises every [_mutate] call, so only one mutation
+  /// is ever in flight against `appdata.json.tmp`. G-01-5: the serialisation
+  /// mechanism itself is delegated to [SerialQueue], a pure-Dart class that
+  /// can be tested under plain `dart test` — this field used to hold the
+  /// future chain directly, which entangled the ordering property with
+  /// `flutter_riverpod` and left DATA-03 with zero automated coverage.
+  final SerialQueue _mutations = SerialQueue();
 
   @override
   AppData build() {
@@ -134,15 +134,19 @@ class AppNotifier extends Notifier<AppData> {
   /// The single funnel every state change passes through (DATA-06). Five
   /// properties all matter here:
   ///
-  /// 1. Serialised — chained onto [_lastMutation] so two overlapping calls
-  ///    can never interleave their writes to `appdata.json.tmp` (T-01-11).
+  /// 1. Serialised — delegated to [_mutations] (a [SerialQueue]) so two
+  ///    overlapping calls can never interleave their writes to
+  ///    `appdata.json.tmp` (T-01-11 / G-01-5).
   /// 2. Persist before assign (P1-D-06, inverting §5.2's order) — `next` is
-  ///    computed and saved to disk before `state` is ever touched. A failed
-  ///    save leaves `state` untouched and rethrows to the caller (T-01-12);
-  ///    memory and disk never diverge silently.
-  /// 3. Ordered — after the assignment, the notification reschedule is
-  ///    awaited, then the debounced backup is scheduled. Both are inert in
-  ///    Phase 1 and both are still called every time.
+  ///    computed and saved to disk before `state` is ever touched. The
+  ///    future this method returns rejects IF AND ONLY IF the transform or
+  ///    the save fails; a failed save leaves `state` untouched and rethrows
+  ///    to the caller (T-01-12), so memory and disk never diverge silently.
+  /// 3. Ordered — after the assignment, `state = next` has already
+  ///    committed the mutation, so no later step can report it as a
+  ///    failure (G-01-W3). The notification reschedule and the debounced
+  ///    backup are each run behind their own [runReportingFailure] boundary
+  ///    and are still called every time.
   /// 4. Sole writer — this is the only member of [AppNotifier] that assigns
   ///    `state`. Every future operation (`addOdoReading`, `addServiceLog`,
   ///    ...) goes through this method; none of them exist yet (Phases 2/3).
@@ -150,15 +154,21 @@ class AppNotifier extends Notifier<AppData> {
   ///    and still writes. Whether anything "really" changed is not this
   ///    method's decision to make.
   Future<void> _mutate(AppData Function(AppData) f) {
-    final resultFuture = _lastMutation.then((_) async {
-      final next = f(state).copyWith(updatedAt: DateTime.now());
+    return _mutations.enqueue(() async {
+      final next = f(state).copyWith(updatedAt: DateTime.now().toUtc());
       await _repo.save(next);
       state = next;
-      await ref.read(notificationSchedulerProvider).rescheduleAll(state);
-      ref.read(backupServiceProvider).scheduleDebounced();
+      await runReportingFailure(
+        () => ref.read(notificationSchedulerProvider).rescheduleAll(state),
+        onError: (e) =>
+            _log('rescheduleAll failed after a successful save: $e'),
+      );
+      await runReportingFailure(
+        () async => ref.read(backupServiceProvider).scheduleDebounced(),
+        onError: (e) =>
+            _log('scheduleDebounced failed after a successful save: $e'),
+      );
     });
-    _lastMutation = resultFuture.catchError((_) {});
-    return resultFuture;
   }
 
   void _log(String message) {
