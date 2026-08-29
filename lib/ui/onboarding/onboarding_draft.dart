@@ -12,11 +12,31 @@
 // the catalog entry's own 2000/3 defaults — the interval swap is applied
 // here, at the single commit point, never by mutating the catalog or the
 // draft mid-flow.
+//
+// §6.1 (plan 05): [lastOilChoice] drives the same commit-time application
+// for the `engine_oil` row's `lastServiceDate`/`lastServiceOdo` baseline —
+// asked for engine oil alone, never for any other selected item.
 import '../../domain/catalog.dart';
 import '../../domain/id.dart';
 import '../../domain/models/maintenance_item.dart';
 import '../../domain/models/vehicle.dart';
 import '../../domain/oil_presets.dart';
+
+/// §6.1's four last-oil-change answers. `dontRemember` is also the safe
+/// fallback [buildSelectedItems] applies when the user reaches the flow's
+/// end without answering — silence, never a guessed reminder.
+enum LastOilChoice { under1Month, oneToThreeMonths, over3Months, dontRemember }
+
+/// §6.1's day-offset table, keyed by [LastOilChoice]. `null` for
+/// [LastOilChoice.dontRemember] — that answer leaves the baseline at "now"
+/// with no offset, not a zero-day offset (the distinction matters only as
+/// documentation; the arithmetic already treats them identically).
+int? _daysBackFor(LastOilChoice choice) => switch (choice) {
+  LastOilChoice.under1Month => 15,
+  LastOilChoice.oneToThreeMonths => 60,
+  LastOilChoice.over3Months => 100,
+  LastOilChoice.dontRemember => null,
+};
 
 class OnboardingDraft {
   VehicleType? type;
@@ -26,19 +46,26 @@ class OnboardingDraft {
   double? avgDailyKm;
   Set<String> selectedCodes = {};
   OilGrade? oilGrade;
+  LastOilChoice? lastOilChoice;
 
   /// Maps [selectedCodes] through `kCatalog` to `MaintenanceItem` rows.
   /// Per P2-D-05, codes NOT in [selectedCodes] produce no row at all — an
   /// unchecked catalog entry is never created, not even with
   /// `enabled: false`.
   ///
-  /// Every selected item is seeded with a "không nhớ" baseline
-  /// (§6.1's default for every non-oil item; plan 05 adds the
-  /// engine-oil-only step-6 override): `lastServiceDate` is the commit
-  /// timestamp, `lastServiceOdo` is the current ODO reading, and
-  /// `baselineIsGuess` is true.
+  /// Every selected item is seeded with a "không nhớ" baseline by default
+  /// (§6.1's default for every non-oil item): `lastServiceDate` is the
+  /// commit timestamp, `lastServiceOdo` is the current ODO reading, and
+  /// `baselineIsGuess` is true. The `engine_oil` row alone is overridden by
+  /// [lastOilChoice] per the §6.1 table — asked for engine oil alone,
+  /// because §6.1 is explicit that asking about every item is the fastest
+  /// way to make someone abandon onboarding.
   List<MaintenanceItem> buildSelectedItems(String vehicleId) {
     final now = DateTime.now().toUtc();
+    final choice = lastOilChoice ?? LastOilChoice.dontRemember;
+    final odo = currentOdoKm ?? 0;
+    final avg = avgDailyKm ?? 0.0;
+
     return kCatalog.where((entry) => selectedCodes.contains(entry.code)).map((
       entry,
     ) {
@@ -48,6 +75,28 @@ class OnboardingDraft {
       final isEngineOilWithGrade =
           entry.code == 'engine_oil' && oilGrade != null;
       final preset = isEngineOilWithGrade ? kOilPresets[oilGrade] : null;
+
+      // Default "không nhớ" baseline for every item.
+      var lastServiceDate = now;
+      var lastServiceOdo = odo;
+
+      if (entry.code == 'engine_oil') {
+        final daysBack = _daysBackFor(choice);
+        if (daysBack != null) {
+          lastServiceDate = now.subtract(Duration(days: daysBack));
+          // §6.1: ODO − days × avgDailyKm, rounded to an int before
+          // subtracting (lastServiceOdo is an int, avgDailyKm a double),
+          // then floored at 0 — a nearly-new bike (ODO 500, 45 km/day,
+          // "Trên 3 tháng") would otherwise get lastServiceOdo = -4000,
+          // making kmLeft exceed the interval and progress negative, so
+          // the item would silently never come due.
+          final computedOdo = odo - (daysBack * avg).round();
+          lastServiceOdo = computedOdo < 0 ? 0 : computedOdo;
+        }
+        // LastOilChoice.dontRemember: lastServiceDate/lastServiceOdo stay
+        // at the "không nhớ" default already set above.
+      }
+
       return MaintenanceItem(
         id: newId(),
         vehicleId: vehicleId,
@@ -56,8 +105,8 @@ class OnboardingDraft {
         intervalKm: preset?.km ?? entry.intervalKm,
         intervalMonths: preset?.months ?? entry.intervalMonths,
         enabled: true,
-        lastServiceOdo: currentOdoKm,
-        lastServiceDate: now,
+        lastServiceOdo: lastServiceOdo,
+        lastServiceDate: lastServiceDate,
         baselineIsGuess: true,
         oilGrade: entry.code == 'engine_oil' ? oilGrade : null,
       );

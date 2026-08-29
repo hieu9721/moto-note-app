@@ -104,8 +104,15 @@ class _PostOnboardingPlaceholder extends ConsumerWidget {
 
 /// One row: the item's name plus its §9.5-honest due line. An estimated
 /// figure carries the "khoảng" hedge; a guessed baseline additionally
-/// carries the "chưa có mốc thật" marker (02-CONTEXT.md's badge text).
-/// Only a non-estimate result gets a definite "Còn N ngày" line.
+/// carries the "chưa có mốc thật" marker (02-CONTEXT.md's badge text). Only
+/// a non-estimate result gets a definite "Còn N ngày" line.
+///
+/// Plan 05 (02-05-PLAN.md Task 2 acceptance criteria): the engine-oil row's
+/// guessed baseline also carries §6.1's full prompt string verbatim —
+/// "Bạn vừa thay nhớt? Ghi lại để app tính đúng" — so a user who set up
+/// with "Không nhớ" or any of the day-offset guesses sees the SAME
+/// invitation to log a real reading that Phase 3's home cards will show.
+/// Neither string is reworded here.
 class _DueItemTile extends StatelessWidget {
   const _DueItemTile({required this.dueItem});
 
@@ -119,7 +126,14 @@ class _DueItemTile extends StatelessWidget {
         ? 'Còn khoảng ${due.daysLeft} ngày'
               '${item.baselineIsGuess ? ' · chưa có mốc thật' : ''}'
         : 'Còn ${due.daysLeft} ngày';
+    final showOilPrompt =
+        item.catalogCode == 'engine_oil' && item.baselineIsGuess;
 
-    return ListTile(title: Text(item.name), subtitle: Text(label));
+    return ListTile(
+      title: Text(item.name),
+      subtitle: showOilPrompt
+          ? Text('$label\nBạn vừa thay nhớt? Ghi lại để app tính đúng')
+          : Text(label),
+    );
   }
 }

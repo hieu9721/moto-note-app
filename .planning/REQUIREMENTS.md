@@ -47,10 +47,10 @@ cross-platform; only the release and verification surface is Android-only.
 ### Onboarding
 
 - [x] **ONB-01**: First run shows the welcome screen "MotoNote · Nhắc bảo dưỡng xe máy" offering the two paths "Khôi phục từ Google Drive" and "Bắt đầu mới". *(§6)*
-- [ ] **ONB-02**: "Bắt đầu mới" runs six steps — vehicle type (Tay ga / Xe số / Côn tay), name and plate (skippable), current ODO plus average km per day, maintenance-item selection, oil grade, and when the oil was last changed. *(§6)*
+- [x] **ONB-02**: "Bắt đầu mới" runs six steps — vehicle type (Tay ga / Xe số / Côn tay), name and plate (skippable), current ODO plus average km per day, maintenance-item selection, oil grade, and when the oil was last changed. *(§6)*
 - [x] **ONB-03**: The item-selection screen shows the header "Theo dõi những gì? / Chọn sau cũng được.", pre-checks the important items, and collapses the remainder into an `ExpansionTile` row "▸ N hạng mục nâng cao". *(§8.2; the exact default set is an open question on Phase 2 — see INGEST-CONFLICTS.md)*
-- [ ] **ONB-04**: Step 6 seeds the engine-oil baseline from "Dưới 1 tháng" (−15 days), "1–3 tháng" (−60 days), "Trên 3 tháng" (−100 days) or "Không nhớ" (today), each computing `lastServiceOdo` as ODO − days × avgDaily and setting `baselineIsGuess = true`; it is asked for engine oil only and every other item defaults to "không nhớ". *(§6.1)*
-- [ ] **ONB-05**: Completing setup creates the vehicle and its enabled maintenance items, lands the user on the home screen, and the created data survives a force-stop of the app. *(§6, §13 Tuần 1)*
+- [x] **ONB-04**: Step 6 seeds the engine-oil baseline from "Dưới 1 tháng" (−15 days), "1–3 tháng" (−60 days), "Trên 3 tháng" (−100 days) or "Không nhớ" (today), each computing `lastServiceOdo` as ODO − days × avgDaily and setting `baselineIsGuess = true`; it is asked for engine oil only and every other item defaults to "không nhớ". *(§6.1)*
+- [x] **ONB-05**: Completing setup creates the vehicle and its enabled maintenance items, lands the user on the home screen, and the created data survives a force-stop of the app. *(§6, §13 Tuần 1)*
 
 ### ODO Estimation
 
@@ -206,10 +206,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | CAT-02 | Phase 2 | Complete |
 | CAT-03 | Phase 2 | Complete |
 | ONB-01 | Phase 2 | Complete |
-| ONB-02 | Phase 2 | Pending |
+| ONB-02 | Phase 2 | Complete |
 | ONB-03 | Phase 2 | Complete |
-| ONB-04 | Phase 2 | Pending |
-| ONB-05 | Phase 2 | Pending |
+| ONB-04 | Phase 2 | Complete |
+| ONB-05 | Phase 2 | Complete |
 | ODO-01 | Phase 2 | Complete |
 | ODO-02 | Phase 2 | Pending |
 | ODO-03 | Phase 2 | Pending |
