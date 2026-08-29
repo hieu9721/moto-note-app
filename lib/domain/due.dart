@@ -5,11 +5,23 @@
 //
 // 1. `now` defaults to `DateTime.now().toUtc()`, not bare `DateTime.now()`.
 //    Phase 1 stores every persisted wall-clock timestamp in UTC
-//    (app_data.dart:40, app_state.dart:158); comparing a local `now` against
-//    a UTC `odoUpdatedAt` would reintroduce an off-by-a-day error near
-//    midnight (02-RESEARCH.md Pitfall 2). Asia/Ho_Chi_Minh has no DST, so
-//    anchoring to UTC is correctness-neutral provided it is applied on both
-//    sides of every comparison — which is the point.
+//    (app_data.dart:40, app_state.dart:158), so every ELAPSED-DURATION
+//    measure here (`daysSinceOdo`, `estimateOdo`) compares UTC against UTC.
+//
+//    But a CALENDAR DAY is not a duration — it is a local-civil concept, and
+//    "is it due today?" is a question about the user's calendar, not UTC's.
+//    An earlier revision of this file anchored the calendar-day comparison to
+//    UTC too, on the reasoning that Asia/Ho_Chi_Minh has no DST so a uniform
+//    UTC anchor is "correctness-neutral provided it is applied on both sides".
+//    That reasoning is wrong, and measurably so: at UTC+7 the local civil date
+//    runs AHEAD of the UTC date between 00:00 and 07:00 local every single
+//    day, so an item due on the 1st reported `daysLeft == 1` / `dueSoon` to a
+//    Vietnamese user for the first seven hours OF the day it came due,
+//    flipping to `dueToday` only at 07:00 local. For an app whose entire
+//    promise is reminding someone on the RIGHT DAY, that is the bug the
+//    promise is made of. `_dateOnly` therefore resolves to the LOCAL civil
+//    date, and `dueByTime` is built from `lastServiceDate`'s local civil
+//    components for the same reason. Found by plan 02-04's test suite.
 // 2. The `estOdo` line calls `estimateOdo(vehicle, now: n)` (odo.dart)
 //    instead of repeating the two-line calculation (02-RESEARCH.md
 //    Pattern 3).
@@ -89,7 +101,9 @@ DueResult? computeDue(
 
   DateTime? dueByTime;
   if (item.intervalMonths != null && item.lastServiceDate != null) {
-    final d = item.lastServiceDate!;
+    // Local civil components: the anniversary a user means by "three months
+    // after I changed the oil" is a date on their calendar, not on UTC's.
+    final d = item.lastServiceDate!.toLocal();
     dueByTime = DateTime(d.year, d.month + item.intervalMonths!, d.day);
     final p = _timeProgress(d, dueByTime, n);
     if (p > progress) progress = p;
@@ -134,7 +148,17 @@ DueResult? computeDue(
   );
 }
 
-DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
+/// The LOCAL civil date `d` falls on, at midnight. `toLocal()` first is the
+/// whole point: a UTC-anchored instant carries UTC's calendar date, which at
+/// UTC+7 is the previous day for the first seven hours of every local day.
+/// Both sides of every calendar-day comparison go through here, so the
+/// normalisation stays symmetric — a 23-hour gap still must not read as one
+/// day (§9.3's own Dart-trap callout; CLAUDE.md flags the same truncation
+/// twice).
+DateTime _dateOnly(DateTime d) {
+  final l = d.toLocal();
+  return DateTime(l.year, l.month, l.day);
+}
 
 /// Locked implementation of the time-axis progress fraction (02-RESEARCH.md
 /// Assumptions Log A4 — the source document names `_timeProgress` but never

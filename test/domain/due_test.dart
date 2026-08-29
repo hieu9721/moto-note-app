@@ -565,6 +565,83 @@ void main() {
       expect(result46, isNotNull);
       expect(result46!.isEstimate, isTrue);
     });
+
+    // Regression. Before the fix this file's own suite provoked, `_dateOnly`
+    // read `now`'s UTC calendar date, so at UTC+7 an item due on the 1st
+    // reported daysLeft == 1 / dueSoon for the first SEVEN HOURS of the day
+    // it came due, flipping to dueToday only at 07:00 local. "Reminds you on
+    // the right day" is the product, so this is pinned at the exact boundary.
+    //
+    // Deliberately offset-independent: every instant below is built from a
+    // LOCAL wall clock and converted with .toUtc(), so the case proves the
+    // same property on a UTC machine, in Hanoi, or anywhere else — rather
+    // than silently passing only where the author happened to sit.
+    test('"hôm nay" theo ngày lịch địa phương, không theo ngày UTC', () {
+      // Serviced at local midday on 1/6 — midday so the local calendar date
+      // is unambiguous at any UTC offset. Time axis only: no intervalKm, so
+      // the km axis never activates and dueByTime alone drives the result.
+      final serviced = DateTime(2026, 6, 1, 12).toUtc();
+      final vehicleTz = Vehicle(
+        id: 'vtz',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 10000,
+        odoUpdatedAt: serviced,
+        avgDailyKm: 20,
+        createdAt: serviced,
+      );
+      final itemTz = MaintenanceItem(
+        id: 'itz',
+        vehicleId: 'vtz',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalMonths: 3,
+        lastServiceDate: serviced,
+        baselineIsGuess: false,
+      );
+
+      // One minute BEFORE local midnight on the due date: still tomorrow.
+      final justBefore = computeDue(
+        itemTz,
+        vehicleTz,
+        7,
+        now: DateTime(2026, 8, 31, 23, 59).toUtc(),
+      );
+      expect(justBefore, isNotNull);
+      expect(justBefore!.daysLeft, equals(1));
+      expect(justBefore.status, equals(DueStatus.dueSoon));
+
+      // One minute AFTER local midnight — the moment the user's calendar day
+      // becomes the due date. This is the assertion that failed before the
+      // fix: it reported daysLeft == 1 / dueSoon, because 00:01 local is
+      // still the previous day in UTC at any positive offset.
+      final justAfter = computeDue(
+        itemTz,
+        vehicleTz,
+        7,
+        now: DateTime(2026, 9, 1, 0, 1).toUtc(),
+      );
+      expect(justAfter, isNotNull);
+      expect(justAfter!.daysLeft, equals(0));
+      expect(justAfter.status, equals(DueStatus.dueToday));
+
+      // And it must STAY dueToday across the whole local day, not flip at
+      // some hour tied to the machine's offset.
+      for (final hour in [3, 6, 7, 12, 23]) {
+        final atHour = computeDue(
+          itemTz,
+          vehicleTz,
+          7,
+          now: DateTime(2026, 9, 1, hour).toUtc(),
+        );
+        expect(
+          atHour!.daysLeft,
+          equals(0),
+          reason: 'daysLeft phải là 0 lúc $hour:00 giờ địa phương ngày đến hạn',
+        );
+        expect(atHour.status, equals(DueStatus.dueToday));
+      }
+    });
   });
 
   group('_timeProgress (khoá theo A4)', () {
