@@ -33,15 +33,17 @@ All three must hold together for 1.0 to count as done:
 
 ### Validated
 
-(None yet — ship to validate.)
+- ✓ Flutter toolchain, project scaffold per §12, and a single-JSON-document data layer with atomic
+  writes, a fallback copy, corrupt-file quarantine, and additive-only migrations — **Phase 1**.
+  Verified on real hardware (SM-A066B, 3.43 GB RAM): `appdata.json` survives a force-stop and a
+  device reboot byte-identically, and the §5.1 write ordering was observed on-device — the backup
+  copy holds the *previous target* content, never the tmp file.
 
 ### Active
 
 Full requirement list with IDs and source traceability: `.planning/REQUIREMENTS.md` (86 v1 requirements).
 Summarised by capability:
 
-- [ ] Flutter toolchain, project scaffold per §12, and a single-JSON-document data layer with atomic
-      writes, a fallback copy, and additive-only migrations
 - [ ] Six-step onboarding, the 24-entry parts catalog, oil-grade presets, and the pure-Dart due /
       ODO-estimation engines with their two test files
 - [ ] Home screen, ODO update sheet, service logging with part-spec memory, item history, and notes
@@ -197,6 +199,18 @@ Full text with source line references: `.planning/intel/decisions.md`.
 
 ## Open Questions
 
+Both questions below were **resolved in `.planning/phases/02-onboarding-catalog-estimation-engines/02-CONTEXT.md`**
+during `/gsd-discuss-phase 2` and are kept here only as a record of what was decided and why:
+
+- ✓ **Onboarding default item set → P2-D-01.** `defaultOn` in `kCatalog` is the single source of
+  truth for which items are pre-checked; §8.2's "8 of 15" reading is superseded. This also resolves
+  the one WARNING in `.planning/INGEST-CONFLICTS.md`.
+- ✓ **ODO estimation error threshold → P2-D-09.** Defined as **±7 days of due-date error**, which is
+  what Phase 6's one-month soak (REL-08) now measures against.
+
+<details>
+<summary>Original wording of both questions</summary>
+
 - **Onboarding default item set (deferred by the user, do not resolve unilaterally).** §8.2 and §6 specify
   8 pre-checked items out of 15 with a stated "6–8" principle, while Appendix A's `defaultOn` flags
   filtered by `appliesTo` yield 11 of 20 for scooter, 11 of 17 for underbone and 12 of 19 for manual — and
@@ -207,5 +221,7 @@ Full text with source line references: `.planning/intel/decisions.md`.
   the documented threshold", but the source document never defines one. It must be decided and written
   down in Phase 2 so Phase 6's one-month soak has something to measure against.
 
+</details>
+
 ---
-*Last updated: 2026-08-28 after ingesting motonote-v3-flutter.md via /gsd-ingest-docs*
+*Last updated: 2026-08-29 after Phase 1*

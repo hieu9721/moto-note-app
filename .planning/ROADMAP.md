@@ -29,7 +29,7 @@ is in 1.0.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Toolchain, Scaffold & Data Layer** - Flutter installed, project created per §12, and one JSON document that survives a force-stop
+- [x] **Phase 1: Toolchain, Scaffold & Data Layer** - Flutter installed, project created per §12, and one JSON document that survives a force-stop (completed 2026-08-29)
 - [ ] **Phase 2: Onboarding, Catalog & Estimation Engines** - A bike set up in six steps, and the pure-Dart engines that know when each item is due
 - [ ] **Phase 3: Home, Logging & Notes** - Usable for real on the developer's own bike
 - [ ] **Phase 4: Local Notifications** - The right reminder on the right day, even on a Xiaomi
@@ -50,7 +50,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A document written to `appdata.json` is still intact after a force-stop and after a device reboot, and a deliberately corrupted primary file loads from `appdata.backup.json` instead of losing data.
   4. A JSON document stamped with an older `schemaVersion` loads through `migrateRaw` with no field lost and no crash.
 
-**Plans:** 6/6 plans executed
+**Plans:** 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -167,7 +167,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Toolchain, Scaffold & Data Layer | 6/6 | In Progress|  |
+| 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
