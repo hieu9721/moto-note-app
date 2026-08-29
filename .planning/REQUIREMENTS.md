@@ -46,7 +46,7 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Onboarding
 
-- [ ] **ONB-01**: First run shows the welcome screen "MotoNote · Nhắc bảo dưỡng xe máy" offering the two paths "Khôi phục từ Google Drive" and "Bắt đầu mới". *(§6)*
+- [x] **ONB-01**: First run shows the welcome screen "MotoNote · Nhắc bảo dưỡng xe máy" offering the two paths "Khôi phục từ Google Drive" and "Bắt đầu mới". *(§6)*
 - [ ] **ONB-02**: "Bắt đầu mới" runs six steps — vehicle type (Tay ga / Xe số / Côn tay), name and plate (skippable), current ODO plus average km per day, maintenance-item selection, oil grade, and when the oil was last changed. *(§6)*
 - [ ] **ONB-03**: The item-selection screen shows the header "Theo dõi những gì? / Chọn sau cũng được.", pre-checks the important items, and collapses the remainder into an `ExpansionTile` row "▸ N hạng mục nâng cao". *(§8.2; the exact default set is an open question on Phase 2 — see INGEST-CONFLICTS.md)*
 - [ ] **ONB-04**: Step 6 seeds the engine-oil baseline from "Dưới 1 tháng" (−15 days), "1–3 tháng" (−60 days), "Trên 3 tháng" (−100 days) or "Không nhớ" (today), each computing `lastServiceOdo` as ODO − days × avgDaily and setting `baselineIsGuess = true`; it is asked for engine oil only and every other item defaults to "không nhớ". *(§6.1)*
@@ -54,7 +54,7 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### ODO Estimation
 
-- [ ] **ODO-01**: Estimated ODO = last entered ODO + average km per day × days since that entry. *(§9.1)*
+- [x] **ODO-01**: Estimated ODO = last entered ODO + average km per day × days since that entry. *(§9.1)*
 - [ ] **ODO-02**: `refineAvgDailyKm` returns unchanged for a null previous reading, an interval under 14 days or a negative km delta; adopts the first real measurement outright when the source is `user`; then smooths as 0.7 × measured + 0.3 × previous; and clamps the result to [0.5, 400] with source `computed`. *(§9.2)*
 - [ ] **ODO-03**: `addOdoReading` appends an `OdoReading` and updates the vehicle's `currentOdoKm`, `odoUpdatedAt`, `avgDailyKm` and `avgDailyKmSource`. *(§5.2)*
 - [ ] **ODO-04**: The ODO update modal sheet prefills the estimated value, shows "Lần trước: 18.420 (10 ngày)", uses a self-drawn 12-cell numeric keypad rather than the system keyboard, and blocks a value lower than the previous reading unless the user confirms the odometer was replaced. *(§11.2)*
@@ -66,7 +66,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **DUE-03**: Status resolves to `overdue` below zero days left, `dueToday` at zero, `dueSoon` within `leadDays` or at progress ≥ 0.9, and `ok` otherwise. *(§9.3)*
 - [ ] **DUE-04**: Dates are normalised to start-of-day before subtracting so a 23-hour gap does not drift a day, and `avgDailyKm <= 0` is floored to 0.5 so nothing divides by zero. *(§9.3, §14.2)*
 - [ ] **DUE-05**: `isEstimate` is true when the ODO is more than 45 days old or the item's baseline is a setup guess. *(§9.3)*
-- [ ] **DUE-06**: `dueItemsProvider` computes and caches due status per vehicle sorted by `daysLeft` ascending; widgets never compute item status themselves. *(§5.3)*
+- [x] **DUE-06**: `dueItemsProvider` computes and caches due status per vehicle sorted by `daysLeft` ascending; widgets never compute item status themselves. *(§5.3)*
 - [ ] **DUE-07**: `test/domain/due_test.dart` and `test/domain/odo_test.dart` cover every case listed in §9.6 and pass under plain `dart test`, with no mocks and no widget tests. *(§9.6)*
 
 ### Home & Navigation
@@ -205,12 +205,12 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | CAT-01 | Phase 2 | Pending |
 | CAT-02 | Phase 2 | Pending |
 | CAT-03 | Phase 2 | Pending |
-| ONB-01 | Phase 2 | Pending |
+| ONB-01 | Phase 2 | Complete |
 | ONB-02 | Phase 2 | Pending |
 | ONB-03 | Phase 2 | Pending |
 | ONB-04 | Phase 2 | Pending |
 | ONB-05 | Phase 2 | Pending |
-| ODO-01 | Phase 2 | Pending |
+| ODO-01 | Phase 2 | Complete |
 | ODO-02 | Phase 2 | Pending |
 | ODO-03 | Phase 2 | Pending |
 | DUE-01 | Phase 2 | Pending |
@@ -218,7 +218,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | DUE-03 | Phase 2 | Pending |
 | DUE-04 | Phase 2 | Pending |
 | DUE-05 | Phase 2 | Pending |
-| DUE-06 | Phase 2 | Pending |
+| DUE-06 | Phase 2 | Complete |
 | DUE-07 | Phase 2 | Pending |
 | HOME-01 | Phase 3 | Pending |
 | HOME-02 | Phase 3 | Pending |

@@ -10,8 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../backup/backup_service.dart';
 import '../data/app_data_repository.dart';
 import '../data/serial_queue.dart';
+import '../domain/id.dart';
 import '../domain/models/app_data.dart';
+import '../domain/models/maintenance_item.dart';
+import '../domain/models/vehicle.dart';
 import '../notifications/notification_service.dart';
+import '../ui/onboarding/onboarding_draft.dart';
 
 /// Supplies the [AppDataRepository]. P1-D-11 injects the `Directory` through
 /// the repository's constructor instead of resolving it internally, so this
@@ -167,6 +171,34 @@ class AppNotifier extends Notifier<AppData> {
         () async => ref.read(backupServiceProvider).scheduleDebounced(),
         onError: (e) =>
             _log('scheduleDebounced failed after a successful save: $e'),
+      );
+    });
+  }
+
+  /// ONB-05: the six-step onboarding flow's single commit point. Builds one
+  /// [Vehicle] plus the selected [MaintenanceItem] rows (P2-D-05 — only
+  /// checked catalog codes, via [OnboardingDraft.buildSelectedItems]) and
+  /// commits both through exactly one [_mutate] call — the same call shape
+  /// [hydrate] already uses above. Appending (`[...current.vehicles,
+  /// vehicle]`), never replacing: `AppData.vehicles` is a list of vehicles
+  /// and Phase 6's SET-01 manages several.
+  Future<void> completeOnboarding(OnboardingDraft draft) {
+    return _mutate((current) {
+      final vehicle = Vehicle(
+        id: newId(),
+        name: draft.name ?? '', // ONB-02: name/plate is skippable
+        type: draft.type!,
+        plate: draft.plate,
+        currentOdoKm: draft.currentOdoKm!,
+        odoUpdatedAt: DateTime.now().toUtc(),
+        avgDailyKm: draft.avgDailyKm!,
+        avgDailyKmSource: AvgKmSource.user, // P2-D-06
+        createdAt: DateTime.now().toUtc(),
+      );
+      final items = draft.buildSelectedItems(vehicle.id);
+      return current.copyWith(
+        vehicles: [...current.vehicles, vehicle],
+        items: [...current.items, ...items],
       );
     });
   }

@@ -1,6 +1,6 @@
 // lib/domain/models/misc.dart — transcribed verbatim from §4.2's "misc.dart"
-// block: OdoSource, OdoReading, Note, Settings. Pure Dart (D-31) — no
-// package:flutter/... import.
+// block: OdoSource, OdoReading, Note, Settings. Pure Dart (D-31) — this
+// directory must never import the Flutter SDK.
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'misc.freezed.dart';
