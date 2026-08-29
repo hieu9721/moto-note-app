@@ -12,12 +12,12 @@
 //
 // Both numeric fields are parsed with an explicit, locale-independent
 // approach (T-02-03): Vietnamese formats thousands with `.` and decimals
-// with `,`, so a locale-aware parse of "18.420" could silently read as
-// 18.42. The odometer strips every non-digit character before
-// `int.tryParse`; the exact-average field accepts either `.` or `,` as its
-// decimal mark before `double.tryParse`. Neither field uses `NumberFormat`
-// or `clamp` — out-of-range input is rejected with a visible message, not
-// coerced into range (P2-D-08, T-02-02).
+// with `,`, so a locale-aware number-formatting parse of "18.420" could
+// silently read as 18.42. The odometer strips every non-digit character
+// before `int.tryParse`; the exact-average field accepts either `.` or `,`
+// as its decimal mark before `double.tryParse`. Neither field's parse goes
+// through `intl`, and no out-of-range input is coerced into range —
+// rejected with a visible message instead (P2-D-08, T-02-02).
 //
 // Reads its initial state from `draft` in `initState`, never from empty —
 // going back to this step and forward again preserves the odometer text
