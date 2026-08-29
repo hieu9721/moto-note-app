@@ -89,15 +89,15 @@ Plans:
   4. `dart test test/domain/` passes every case listed in §9.6 — including the 23-hour no-drift case, the `avgDailyKm = 0` guard, and the under-14-day and negative-delta skips in `refineAvgDailyKm`.
   5. For a bike that has sat unused for months, the due date comes from the time axis rather than the km axis.
 
-**Plans:** 1/5 plans executed
+**Plans:** 4/5 plans executed
 
 Plans:
 **Wave 1**
 
 - [x] 02-01-PLAN.md — Tracer: one maintenance item end to end — welcome → type → ODO → single-`_mutate` commit → `computeDue` → a real due date on screen
-- [ ] 02-02-PLAN.md — *(wave 2)* The other 23 Phụ lục A entries, `kOilPresets`, the `iconKey` map that keeps `lib/domain/` Flutter-free, and steps 4 and 5
-- [ ] 02-03-PLAN.md — *(wave 2)* `refineAvgDailyKm` with the five §9.6 cases, `latestReadingFor`, and `addOdoReading`
-- [ ] 02-04-PLAN.md — *(wave 2)* `due_test.dart`: the six remaining §9.6 cases plus the six §9.6 leaves out — the status ladder, the axis tie-break, the guessed baseline, and `_timeProgress`'s locked formula
+- [x] 02-02-PLAN.md — *(wave 2)* The other 23 Phụ lục A entries, `kOilPresets`, the `iconKey` map that keeps `lib/domain/` Flutter-free, and steps 4 and 5
+- [x] 02-03-PLAN.md — *(wave 2)* `refineAvgDailyKm` with the five §9.6 cases, `latestReadingFor`, and `addOdoReading`
+- [x] 02-04-PLAN.md — *(wave 2)* `due_test.dart`: the six remaining §9.6 cases plus the six §9.6 leaves out — the status ladder, the axis tie-break, the guessed baseline, and `_timeProgress`'s locked formula
 - [ ] 02-05-PLAN.md — *(wave 3)* Steps 2, 3 and 6 — the P2-D-07 bands, the P2-D-08 bound, the §6.1 baseline table, and the force-stop UAT on real hardware
 
 **Wave 2** *(blocked on Wave 1 completion; 02-02, 02-03 and 02-04 have no file overlap and run in parallel)*
@@ -182,7 +182,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
-| 2. Onboarding, Catalog & Estimation Engines | 1/5 | In Progress|  |
+| 2. Onboarding, Catalog & Estimation Engines | 4/5 | In Progress|  |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
