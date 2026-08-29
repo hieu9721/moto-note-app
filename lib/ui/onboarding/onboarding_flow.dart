@@ -61,12 +61,32 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       _error = null;
     });
 
-    await ref.read(appProvider.notifier).completeOnboarding(_draft);
-
-    if (!context.mounted) return;
-    // No further navigation is needed here: `main.dart` watches
-    // `appProvider`'s vehicles list and swaps the whole app away from
-    // onboarding the instant `completeOnboarding` returns.
+    try {
+      await ref.read(appProvider.notifier).completeOnboarding(_draft);
+      if (!mounted) return;
+      // `main.dart` watches `appProvider`'s vehicles list and its `home:`
+      // has already swapped away from onboarding by the time this await
+      // resolves — but `WelcomeScreen` reached this screen via
+      // `Navigator.push`, so THIS route is still sitting on top of that
+      // already-updated home route and must be popped explicitly, or the
+      // user is stranded looking at a dead screen (on-device tracer
+      // verification caught this — see 02-01-SUMMARY.md). A single pop
+      // dismisses the whole flow regardless of how many internal steps it
+      // grows to in plan 05 — no nested Navigator is introduced here.
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Không thể lưu thông tin xe. Vui lòng thử lại.';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+        });
+      }
+    }
   }
 
   @override
