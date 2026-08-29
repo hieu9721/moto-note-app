@@ -1,11 +1,11 @@
 // lib/ui/onboarding/onboarding_flow.dart — ConsumerStatefulWidget owning
 // exactly one `OnboardingDraft` instance. Plan 02-01 rendered a single page
 // (vehicle-type + ODO) to prove the tracer slice end to end; this plan
-// (02-02) adds oil grade (step 5) as a simple forward-only `_step` index.
-// Task 3 of this same plan inserts item selection (step 4) between them.
-// Plan 05 replaces this index with the full six-step `PageView`/
-// `IndexedStack` flow, its shared progress bar, and the "Quay lại"/
-// "Tiếp tục" bottom action row (steps 2, 3, 6 do not exist yet).
+// (02-02) adds two more steps — item selection (step 4) and oil grade
+// (step 5) — as a simple forward-only `_step` index. Plan 05 replaces this
+// index with the full six-step `PageView`/`IndexedStack` flow, its shared
+// progress bar, and the "Quay lại"/"Tiếp tục" bottom action row (steps 2,
+// 3, 6 do not exist yet).
 //
 // "Tiếp tục" on the LAST step is the ONE commit point of the whole flow: it
 // calls `AppNotifier.completeOnboarding`, the only legal persistence path
@@ -14,9 +14,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
 import '../../state/app_state.dart';
 import 'onboarding_draft.dart';
+import 'step4_items.dart';
 import 'step5_oil_grade.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
@@ -32,20 +34,24 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   bool _submitting = false;
   String? _error;
 
-  /// 0 = vehicle-type + ODO (plan 02-01), 1 = oil grade (step 5, the
-  /// current final step — commits on "Tiếp tục"). Task 3 of this plan
-  /// inserts item selection between them.
+  /// 0 = vehicle-type + ODO (plan 02-01), 1 = item selection (step 4),
+  /// 2 = oil grade (step 5, the current final step — commits on
+  /// "Tiếp tục").
   int _step = 0;
+
+  /// Tracks which [VehicleType] step 4's `draft.selectedCodes` was last
+  /// seeded for, so re-entering step 4 for the SAME type never clobbers a
+  /// user's manual toggles, but changing type re-seeds from the new type's
+  /// `defaultOn` set.
+  VehicleType? _step4SeededType;
 
   @override
   void initState() {
     super.initState();
     _draft = OnboardingDraft()
-      // Seeded here until plan 05 (P2-D-07's avg-km/day bands) and task 3
-      // of this plan (step 4's item-selection screen) replace these —
-      // functionality gaps, not architectural ones.
-      ..avgDailyKm = 20.0
-      ..selectedCodes = {'engine_oil'};
+      // Seeded here until plan 05 (P2-D-07's avg-km/day bands) replaces
+      // this — a functionality gap, not an architectural one.
+      ..avgDailyKm = 20.0;
   }
 
   @override
@@ -54,7 +60,16 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     super.dispose();
   }
 
-  void _goToStep5() {
+  void _seedStep4IfNeeded() {
+    if (_step4SeededType == _draft.type) return;
+    _draft.selectedCodes = catalogFor(_draft.type!)
+        .where((e) => e.defaultOn)
+        .map((e) => e.code)
+        .toSet();
+    _step4SeededType = _draft.type;
+  }
+
+  void _goToStep4() {
     final odo = int.tryParse(_odoController.text);
     if (_draft.type == null || odo == null) {
       setState(() {
@@ -63,9 +78,23 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       return;
     }
     _draft.currentOdoKm = odo;
+    _seedStep4IfNeeded();
     setState(() {
       _error = null;
       _step = 1;
+    });
+  }
+
+  void _goToStep5() {
+    if (_draft.selectedCodes.isEmpty) {
+      setState(() {
+        _error = 'Vui lòng chọn ít nhất một hạng mục.';
+      });
+      return;
+    }
+    setState(() {
+      _error = null;
+      _step = 2;
     });
   }
 
@@ -106,10 +135,18 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   void _onContinuePressed() {
     switch (_step) {
       case 0:
+        _goToStep4();
+      case 1:
         _goToStep5();
       default:
         _submit();
     }
+  }
+
+  bool get _continueEnabled {
+    if (_submitting) return false;
+    if (_step == 1) return _draft.selectedCodes.isNotEmpty;
+    return true;
   }
 
   Widget _buildStep0() {
@@ -161,6 +198,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   Widget build(BuildContext context) {
     final Widget body = switch (_step) {
       0 => _buildStep0(),
+      1 => Step4Items(draft: _draft, onChanged: () => setState(() {})),
       _ => Step5OilGrade(draft: _draft, onChanged: () => setState(() {})),
     };
 
@@ -173,15 +211,12 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.red),
-                ),
+                child: Text(_error!, style: const TextStyle(color: Colors.red)),
               ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: FilledButton(
-                onPressed: _submitting ? null : _onContinuePressed,
+                onPressed: _continueEnabled ? _onContinuePressed : null,
                 child: const Text('Tiếp tục'),
               ),
             ),
