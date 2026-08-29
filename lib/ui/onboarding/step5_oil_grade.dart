@@ -30,6 +30,23 @@ class Step5OilGrade extends StatelessWidget {
 
   static final _kmFormat = NumberFormat('#,##0', 'vi_VN');
 
+  /// The grade label as it reads INSIDE the confirmation sentence, which
+  /// already supplies the word "nhớt" ahead of it.
+  ///
+  /// The three §8.3 labels are not parallel: "Bán tổng hợp" and "Tổng hợp
+  /// toàn phần" are bare grade names, but "Nhớt khoáng" carries the noun
+  /// itself, so a plain `label.toLowerCase()` produced "Với nhớt nhớt
+  /// khoáng" — broken Vietnamese, shown to exactly the third of users who
+  /// pick the cheapest oil. It survived every automated gate because §8.3
+  /// quotes only the semi-synthetic sentence, so that was the only variant
+  /// anything asserted on; it was caught by reading the real screen on a
+  /// device. The radio label itself is unchanged — it stays "Nhớt khoáng"
+  /// per Phụ lục A.
+  static String _sentencePhrase(String label) {
+    final lower = label.toLowerCase();
+    return lower.startsWith('nhớt ') ? lower.substring(5) : lower;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedGrade = draft.oilGrade;
@@ -70,7 +87,7 @@ class Step5OilGrade extends StatelessWidget {
           if (preset != null) ...[
             const SizedBox(height: 16),
             Text(
-              'Với nhớt ${preset.label.toLowerCase()}, app sẽ nhắc bạn mỗi '
+              'Với nhớt ${_sentencePhrase(preset.label)}, app sẽ nhắc bạn mỗi '
               '~${_kmFormat.format(preset.km)} km hoặc ${preset.months} '
               'tháng.',
               style: const TextStyle(fontSize: 16),
