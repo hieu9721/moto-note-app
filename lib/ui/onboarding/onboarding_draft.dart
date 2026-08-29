@@ -6,10 +6,17 @@
 //
 // The full field set is declared now so later plans (02, 05) only fill in
 // UI for fields this plan already reserves.
+//
+// CAT-03 (plan 02): when [oilGrade] is set, [buildSelectedItems] applies
+// `kOilPresets[oilGrade]`'s km/months to the `engine_oil` row instead of
+// the catalog entry's own 2000/3 defaults — the interval swap is applied
+// here, at the single commit point, never by mutating the catalog or the
+// draft mid-flow.
 import '../../domain/catalog.dart';
 import '../../domain/id.dart';
 import '../../domain/models/maintenance_item.dart';
 import '../../domain/models/vehicle.dart';
+import '../../domain/oil_presets.dart';
 
 class OnboardingDraft {
   VehicleType? type;
@@ -32,22 +39,28 @@ class OnboardingDraft {
   /// `baselineIsGuess` is true.
   List<MaintenanceItem> buildSelectedItems(String vehicleId) {
     final now = DateTime.now().toUtc();
-    return kCatalog
-        .where((entry) => selectedCodes.contains(entry.code))
-        .map(
-          (entry) => MaintenanceItem(
-            id: newId(),
-            vehicleId: vehicleId,
-            catalogCode: entry.code,
-            name: entry.nameVi,
-            intervalKm: entry.intervalKm,
-            intervalMonths: entry.intervalMonths,
-            enabled: true,
-            lastServiceOdo: currentOdoKm,
-            lastServiceDate: now,
-            baselineIsGuess: true,
-          ),
-        )
-        .toList();
+    return kCatalog.where((entry) => selectedCodes.contains(entry.code)).map((
+      entry,
+    ) {
+      // CAT-03: the engine-oil row's interval is REPLACED by the
+      // selected grade's preset, never accumulated — always derived
+      // from the current [oilGrade], not the catalog entry's defaults.
+      final isEngineOilWithGrade =
+          entry.code == 'engine_oil' && oilGrade != null;
+      final preset = isEngineOilWithGrade ? kOilPresets[oilGrade] : null;
+      return MaintenanceItem(
+        id: newId(),
+        vehicleId: vehicleId,
+        catalogCode: entry.code,
+        name: entry.nameVi,
+        intervalKm: preset?.km ?? entry.intervalKm,
+        intervalMonths: preset?.months ?? entry.intervalMonths,
+        enabled: true,
+        lastServiceOdo: currentOdoKm,
+        lastServiceDate: now,
+        baselineIsGuess: true,
+        oilGrade: entry.code == 'engine_oil' ? oilGrade : null,
+      );
+    }).toList();
   }
 }

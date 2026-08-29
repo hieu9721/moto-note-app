@@ -1,20 +1,23 @@
 // lib/ui/onboarding/onboarding_flow.dart — ConsumerStatefulWidget owning
-// exactly one `OnboardingDraft` instance and a `PageController`. This plan
-// (02-01) renders ONE page — the step-1 vehicle-type picker plus a numeric
-// ODO field — to prove the tracer slice end to end. `_steps` is a list so
-// plan 02 (steps 2, 4) and plan 05 (steps 3, 5, 6) insert their step
-// widgets without restructuring this orchestrator.
+// exactly one `OnboardingDraft` instance. Plan 02-01 rendered a single page
+// (vehicle-type + ODO) to prove the tracer slice end to end; this plan
+// (02-02) adds oil grade (step 5) as a simple forward-only `_step` index.
+// Task 3 of this same plan inserts item selection (step 4) between them.
+// Plan 05 replaces this index with the full six-step `PageView`/
+// `IndexedStack` flow, its shared progress bar, and the "Quay lại"/
+// "Tiếp tục" bottom action row (steps 2, 3, 6 do not exist yet).
 //
-// "Tiếp tục" is the ONE commit point of the whole flow: it calls
-// `AppNotifier.completeOnboarding`, which is the only legal persistence
-// path (DATA-06). No step widget may reach the repository directly or
-// persist anything on its own.
+// "Tiếp tục" on the LAST step is the ONE commit point of the whole flow: it
+// calls `AppNotifier.completeOnboarding`, the only legal persistence path
+// (DATA-06). No step widget may reach the repository directly or persist
+// anything on its own.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/vehicle.dart';
 import '../../state/app_state.dart';
 import 'onboarding_draft.dart';
+import 'step5_oil_grade.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
@@ -29,13 +32,18 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   bool _submitting = false;
   String? _error;
 
+  /// 0 = vehicle-type + ODO (plan 02-01), 1 = oil grade (step 5, the
+  /// current final step — commits on "Tiếp tục"). Task 3 of this plan
+  /// inserts item selection between them.
+  int _step = 0;
+
   @override
   void initState() {
     super.initState();
     _draft = OnboardingDraft()
-      // Seeded here until plan 05 (P2-D-07's avg-km/day bands) and plan 02
-      // (step 4's item-selection screen) replace these — functionality
-      // gaps, not architectural ones.
+      // Seeded here until plan 05 (P2-D-07's avg-km/day bands) and task 3
+      // of this plan (step 4's item-selection screen) replace these —
+      // functionality gaps, not architectural ones.
       ..avgDailyKm = 20.0
       ..selectedCodes = {'engine_oil'};
   }
@@ -46,7 +54,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _goToStep5() {
     final odo = int.tryParse(_odoController.text);
     if (_draft.type == null || odo == null) {
       setState(() {
@@ -55,7 +63,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       return;
     }
     _draft.currentOdoKm = odo;
+    setState(() {
+      _error = null;
+      _step = 1;
+    });
+  }
 
+  Future<void> _submit() async {
     setState(() {
       _submitting = true;
       _error = null;
@@ -89,61 +103,89 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     }
   }
 
+  void _onContinuePressed() {
+    switch (_step) {
+      case 0:
+        _goToStep5();
+      default:
+        _submit();
+    }
+  }
+
+  Widget _buildStep0() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Loại xe của bạn?',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          RadioGroup<VehicleType>(
+            groupValue: _draft.type,
+            onChanged: (v) => setState(() => _draft.type = v),
+            child: const Column(
+              children: [
+                RadioListTile<VehicleType>(
+                  title: Text('Tay ga'),
+                  value: VehicleType.scooter,
+                ),
+                RadioListTile<VehicleType>(
+                  title: Text('Xe số'),
+                  value: VehicleType.underbone,
+                ),
+                RadioListTile<VehicleType>(
+                  title: Text('Côn tay'),
+                  value: VehicleType.manual,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Số km hiện tại',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          TextField(
+            controller: _odoController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(suffixText: 'km'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final Widget body = switch (_step) {
+      0 => _buildStep0(),
+      _ => Step5OilGrade(draft: _draft, onChanged: () => setState(() {})),
+    };
+
     return Scaffold(
       appBar: AppBar(title: const Text('Thiết lập xe')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text(
-                'Loại xe của bạn?',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              RadioGroup<VehicleType>(
-                groupValue: _draft.type,
-                onChanged: (v) => setState(() => _draft.type = v),
-                child: const Column(
-                  children: [
-                    RadioListTile<VehicleType>(
-                      title: Text('Tay ga'),
-                      value: VehicleType.scooter,
-                    ),
-                    RadioListTile<VehicleType>(
-                      title: Text('Xe số'),
-                      value: VehicleType.underbone,
-                    ),
-                    RadioListTile<VehicleType>(
-                      title: Text('Côn tay'),
-                      value: VehicleType.manual,
-                    ),
-                  ],
+        child: Column(
+          children: [
+            Expanded(child: body),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.red),
                 ),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Số km hiện tại',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              TextField(
-                controller: _odoController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(suffixText: 'km'),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 8),
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-              ],
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _submitting ? null : _submit,
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: FilledButton(
+                onPressed: _submitting ? null : _onContinuePressed,
                 child: const Text('Tiếp tục'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
