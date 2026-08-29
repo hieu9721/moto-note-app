@@ -60,3 +60,28 @@ These items from plan 02-05's own 13-step checklist were not:
 
 **What promoting it looks like:** run them during `/gsd-verify-work 02`, which is where UAT
 belongs. One human finger settles the first item in about five seconds.
+
+---
+
+## From Phase 03 — Home, Logging & Notes
+
+### BL-03 — Receipt photos in the service-log sheet
+
+**Raised:** 2026-08-29, during `/gsd-discuss-phase 3` (recorded as P3-D-17 in `03-CONTEXT.md`).
+
+The storage half already exists: DATA-08 shipped in Phase 1, `lib/data/receipt_storage.dart`
+writes into the app directory, and `ServiceLog.photoPaths` is a live field on the model. The
+service-log sheet built in Phase 3 is the only place a receipt photo would ever be attached.
+
+**Why deferred:** no requirement in `.planning/REQUIREMENTS.md` covers photo capture. Adding it
+pulls in a camera/gallery permission prompt, a picker, a full-screen viewer and a delete path —
+four pieces of UI, none of them requirement-backed, into a phase that already carries fourteen
+requirements. This is exactly the shape D-34 and §13.2 exist to stop.
+
+**What promoting it looks like:** give it a requirement id (PHOTO-01 or similar), decide where the
+permission prompt sits and what happens when it is denied, and decide whether a deleted log removes
+its photo files. D-20 stands regardless of when it lands: photo paths are stored in the document,
+the image files themselves are never backed up to Drive, and the restore screen must say so.
+
+**Natural moment to do it:** Phase 6, alongside the other polish work — or post-1.0, next to the
+fuel log (D-36).
