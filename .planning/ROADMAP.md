@@ -89,12 +89,12 @@ Plans:
   4. `dart test test/domain/` passes every case listed in §9.6 — including the 23-hour no-drift case, the `avgDailyKm = 0` guard, and the under-14-day and negative-delta skips in `refineAvgDailyKm`.
   5. For a bike that has sat unused for months, the due date comes from the time axis rather than the km axis.
 
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Tracer: one maintenance item end to end — welcome → type → ODO → single-`_mutate` commit → `computeDue` → a real due date on screen
+- [x] 02-01-PLAN.md — Tracer: one maintenance item end to end — welcome → type → ODO → single-`_mutate` commit → `computeDue` → a real due date on screen
 - [ ] 02-02-PLAN.md — *(wave 2)* The other 23 Phụ lục A entries, `kOilPresets`, the `iconKey` map that keeps `lib/domain/` Flutter-free, and steps 4 and 5
 - [ ] 02-03-PLAN.md — *(wave 2)* `refineAvgDailyKm` with the five §9.6 cases, `latestReadingFor`, and `addOdoReading`
 - [ ] 02-04-PLAN.md — *(wave 2)* `due_test.dart`: the six remaining §9.6 cases plus the six §9.6 leaves out — the status ladder, the axis tie-break, the guessed baseline, and `_timeProgress`'s locked formula
@@ -182,7 +182,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
-| 2. Onboarding, Catalog & Estimation Engines | 0/5 | Planned | - |
+| 2. Onboarding, Catalog & Estimation Engines | 1/5 | In Progress|  |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
