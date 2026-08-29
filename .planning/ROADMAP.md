@@ -89,12 +89,26 @@ Plans:
   4. `dart test test/domain/` passes every case listed in §9.6 — including the 23-hour no-drift case, the `avgDailyKm = 0` guard, and the under-14-day and negative-delta skips in `refineAvgDailyKm`.
   5. For a bike that has sat unused for months, the due date comes from the time axis rather than the km axis.
 
-**Plans**: TBD
-**UI hint**: yes
-**Open questions**:
+**Plans:** 5 plans
 
-  1. *(Deferred by the user at ingest — do not resolve unilaterally; surface both variants during `/gsd-discuss-phase 2`.)* The onboarding item-selection defaults have two incompatible definitions in the source. §8.2 states the principle "mặc định tích sẵn 6–8 hạng mục quan trọng nhất" and its mockup pre-checks exactly 8 of 15 items for a scooter, with a collapsed "▸ 7 hạng mục nâng cao" row; §6 step 4 repeats "(8 mục tích sẵn)". Appendix A's `defaultOn` flags filtered by `appliesTo` instead yield 11 pre-checked of 20 applicable for scooter, 11 of 17 for underbone and 12 of 19 for manual — and `battery` (Ắc quy) is listed inside §8.2's advanced group while carrying `defaultOn: true` in Appendix A (as do brake_pad_r and insurance). Both variants are preserved verbatim in `.planning/intel/constraints.md` under "Item-selection screen rules" and "Catalog data (Appendix A)". Full detail: `.planning/INGEST-CONFLICTS.md`.
-  2. The v1.0 success metric requires ODO estimation error to stay "within the documented threshold", but the source document never defines one. Decide the threshold and write it down in this phase so Phase 6's one-month soak has something to measure against.
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Tracer: one maintenance item end to end — welcome → type → ODO → single-`_mutate` commit → `computeDue` → a real due date on screen
+- [ ] 02-02-PLAN.md — *(wave 2)* The other 23 Phụ lục A entries, `kOilPresets`, the `iconKey` map that keeps `lib/domain/` Flutter-free, and steps 4 and 5
+- [ ] 02-03-PLAN.md — *(wave 2)* `refineAvgDailyKm` with the five §9.6 cases, `latestReadingFor`, and `addOdoReading`
+- [ ] 02-04-PLAN.md — *(wave 2)* `due_test.dart`: the six remaining §9.6 cases plus the six §9.6 leaves out — the status ladder, the axis tie-break, the guessed baseline, and `_timeProgress`'s locked formula
+- [ ] 02-05-PLAN.md — *(wave 3)* Steps 2, 3 and 6 — the P2-D-07 bands, the P2-D-08 bound, the §6.1 baseline table, and the force-stop UAT on real hardware
+
+**Wave 2** *(blocked on Wave 1 completion; 02-02, 02-03 and 02-04 have no file overlap and run in parallel)*
+
+**Wave 3** *(blocked on 02-02 and 02-03)*
+
+**UI hint**: yes
+**Open questions** *(both RESOLVED in `02-CONTEXT.md` — kept for the audit trail)*:
+
+  1. **RESOLVED by P2-D-01** in favour of Appendix A: `defaultOn` is the single source of truth, giving scooter 20/11/9, underbone 17/11/6, manual 19/12/7. *(Deferred by the user at ingest.)* The onboarding item-selection defaults have two incompatible definitions in the source. §8.2 states the principle "mặc định tích sẵn 6–8 hạng mục quan trọng nhất" and its mockup pre-checks exactly 8 of 15 items for a scooter, with a collapsed "▸ 7 hạng mục nâng cao" row; §6 step 4 repeats "(8 mục tích sẵn)". Appendix A's `defaultOn` flags filtered by `appliesTo` instead yield 11 pre-checked of 20 applicable for scooter, 11 of 17 for underbone and 12 of 19 for manual — and `battery` (Ắc quy) is listed inside §8.2's advanced group while carrying `defaultOn: true` in Appendix A (as do brake_pad_r and insurance). Both variants are preserved verbatim in `.planning/intel/constraints.md` under "Item-selection screen rules" and "Catalog data (Appendix A)". Full detail: `.planning/INGEST-CONFLICTS.md`.
+  2. **RESOLVED by P2-D-09/P2-D-10**: the threshold is ±7 days of due-date drift, computed as `|estimated ODO − actual ODO| / avgDailyKm` and anchored to the `leadDays` default of 7; Phase 6 measures it offline by recomputing from `OdoReading` history, with no schema field and no in-app measurement feature. The v1.0 success metric requires ODO estimation error to stay "within the documented threshold", but the source document never defines one.
 
 ### Phase 3: Home, Logging & Notes
 
@@ -168,7 +182,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
-| 2. Onboarding, Catalog & Estimation Engines | 0/TBD | Not started | - |
+| 2. Onboarding, Catalog & Estimation Engines | 0/5 | Planned | - |
 | 3. Home, Logging & Notes | 0/TBD | Not started | - |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
