@@ -5,12 +5,20 @@
 // inserts name/plate (step 2), ODO + average km/day (step 3) and the
 // last-oil-change question (step 6), moving the temporary ODO field off
 // step 1 and replacing plan 01's hardcoded `avgDailyKm = 20.0` seed with
-// real UI (P2-D-07's bands plus the P2-D-08 exact-entry escape).
+// real UI (P2-D-07's bands plus the P2-D-08 exact-entry escape), and adds
+// the shared six-step chrome (02-UI-SPEC.md "Shared step chrome"): a
+// progress bar, and a "Quay lại"/"Tiếp tục" bottom action row.
 //
 // "Tiếp tục" on the LAST step is the ONE commit point of the whole flow: it
-// calls `AppNotifier.completeOnboarding`, the only legal persistence path
-// (DATA-06). No step widget may reach the repository directly or persist
-// anything on its own.
+// calls the `AppNotifier` method this widget owns exclusively (see
+// `_submit` below), the only legal persistence path (DATA-06). No step
+// widget may reach the repository directly or persist anything on its own.
+// Going back a step and forward again preserves every
+// value already entered — `_draft` is owned by this widget for the whole
+// flow and step widgets read it on build rather than starting empty
+// (ONB-02); the one deliberate exception is `_seedStep4IfNeeded`, which
+// re-seeds `draft.selectedCodes` only when the vehicle type actually
+// changes, since the applicable catalog differs per type.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -70,6 +78,17 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
 
     try {
       await ref.read(appProvider.notifier).completeOnboarding(_draft);
+      // Post-await context guard (CLAUDE.md known trap: BuildContext used
+      // after an await). `mounted` (the State getter) is the canonical
+      // equivalent of `context.mounted` for a State's own context; it is
+      // used here INSTEAD OF the literal `context.mounted` because, for
+      // this exact try/catch/finally control-flow shape, `context.mounted`
+      // is flagged by `use_build_context_synchronously` as an "unrelated"
+      // guard (re-confirmed by `flutter analyze` this session — a real
+      // exit-1 failure, not a hypothetical), while `mounted` satisfies the
+      // lint and is functionally identical (both read the same underlying
+      // `State._element != null`). See 02-01-SUMMARY.md's "Decisions Made"
+      // for the original on-device finding this preserves.
       if (!mounted) return;
       // `main.dart` watches `appProvider`'s vehicles list and its `home:`
       // has already swapped away from onboarding by the time this await
@@ -111,6 +130,13 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
     setState(() {
       _error = null;
       _step += 1;
+    });
+  }
+
+  void _goBack() {
+    setState(() {
+      _error = null;
+      _step -= 1;
     });
   }
 
@@ -176,11 +202,19 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
 
   @override
   Widget build(BuildContext context) {
+    const totalSteps = 6;
     return Scaffold(
       appBar: AppBar(title: const Text('Thiết lập xe')),
       body: SafeArea(
         child: Column(
           children: [
+            // Shared step chrome (02-UI-SPEC.md): the bar alone signals
+            // progress — 1/6 on the first step, filled in `colorScheme
+            // .primary`, the one non-CTA accent use permitted.
+            LinearProgressIndicator(
+              value: (_step + 1) / totalSteps,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             Expanded(child: _buildStepBody()),
             if (_error != null)
               Padding(
@@ -194,9 +228,26 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
               ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: FilledButton(
-                onPressed: _continueEnabled ? _onContinuePressed : null,
-                child: const Text('Tiếp tục'),
+              child: Row(
+                children: [
+                  // "Quay lại" is hidden on step 1 only, and deliberately
+                  // NOT accent-colored — two teal buttons on one row would
+                  // compete with the single CTA that matters.
+                  if (_step > 0)
+                    Expanded(
+                      child: TextButton(
+                        onPressed: _submitting ? null : _goBack,
+                        child: const Text('Quay lại'),
+                      ),
+                    ),
+                  if (_step > 0) const SizedBox(width: 16),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _continueEnabled ? _onContinuePressed : null,
+                      child: const Text('Tiếp tục'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
