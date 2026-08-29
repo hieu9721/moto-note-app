@@ -2,10 +2,10 @@
 // exactly one `OnboardingDraft` instance. Plan 02-01 rendered a single page
 // (vehicle-type + ODO) to prove the tracer slice end to end; plan 02-02
 // added item selection (step 4) and oil grade (step 5). This plan (02-05)
-// inserts name/plate (step 2) and ODO + average km/day (step 3) between
-// vehicle-type and item selection, moving the temporary ODO field off step
-// 1 and replacing plan 01's hardcoded `avgDailyKm = 20.0` seed with real
-// UI (P2-D-07's bands plus the P2-D-08 exact-entry escape).
+// inserts name/plate (step 2), ODO + average km/day (step 3) and the
+// last-oil-change question (step 6), moving the temporary ODO field off
+// step 1 and replacing plan 01's hardcoded `avgDailyKm = 20.0` seed with
+// real UI (P2-D-07's bands plus the P2-D-08 exact-entry escape).
 //
 // "Tiếp tục" on the LAST step is the ONE commit point of the whole flow: it
 // calls `AppNotifier.completeOnboarding`, the only legal persistence path
@@ -22,6 +22,7 @@ import 'step2_name_plate.dart';
 import 'step3_odo_avgkm.dart';
 import 'step4_items.dart';
 import 'step5_oil_grade.dart';
+import 'step6_last_oil.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
   const OnboardingFlow({super.key});
@@ -36,8 +37,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   String? _error;
 
   /// 0 = vehicle type, 1 = name/plate (plan 05), 2 = ODO + avg km/day
-  /// (plan 05), 3 = item selection, 4 = oil grade — the current final step
-  /// (commits on "Tiếp tục").
+  /// (plan 05), 3 = item selection, 4 = oil grade, 5 = last oil change
+  /// (plan 05) — the final step, which commits on "Tiếp tục".
   int _step = 0;
 
   /// Tracks which [VehicleType] step 4's `draft.selectedCodes` was last
@@ -103,7 +104,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       // when the type actually changed since the last seed.
       _seedStep4IfNeeded();
     }
-    if (_step == 4) {
+    if (_step == 5) {
       _submit();
       return;
     }
@@ -119,7 +120,11 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       0 => _draft.type != null,
       2 => _draft.currentOdoKm != null && _draft.avgDailyKm != null,
       3 => _draft.selectedCodes.isNotEmpty,
-      _ => true, // step 1 (name/plate) is skippable; step 4 gates itself
+      5 => _draft.lastOilChoice != null,
+      // step 1 (name/plate) is skippable; step 4 (oil grade) was never
+      // required to continue in plan 02 — an unpicked grade leaves the
+      // engine-oil item on the catalog's own default interval.
+      _ => true,
     };
   }
 
@@ -164,7 +169,8 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       1 => Step2NamePlate(draft: _draft, onChanged: () => setState(() {})),
       2 => Step3OdoAvgKm(draft: _draft, onChanged: () => setState(() {})),
       3 => Step4Items(draft: _draft, onChanged: () => setState(() {})),
-      _ => Step5OilGrade(draft: _draft, onChanged: () => setState(() {})),
+      4 => Step5OilGrade(draft: _draft, onChanged: () => setState(() {})),
+      _ => Step6LastOil(draft: _draft, onChanged: () => setState(() {})),
     };
   }
 
