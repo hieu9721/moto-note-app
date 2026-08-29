@@ -8,7 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'data/app_data_repository.dart';
+import 'domain/odo.dart';
 import 'state/app_state.dart';
+import 'state/derived.dart';
 import 'theme/app_theme.dart';
 import 'ui/onboarding/welcome_screen.dart';
 
@@ -53,10 +55,71 @@ class MotoNoteApp extends ConsumerWidget {
       title: 'MotoNote',
       theme: appTheme,
       home: hasVehicle
-          ? const Scaffold(
-              body: Center(child: Text('Đã tạo xe. (Phase 3 thay màn hình này)')),
-            )
+          ? const _PostOnboardingPlaceholder()
           : const WelcomeScreen(),
     );
+  }
+}
+
+/// Closes the tracer loop: onboarding wrote a vehicle and its engine-oil
+/// item, `dueItemsProvider` computes their due status, this screen shows
+/// it. Temporary scaffolding, not one of D-33's seven screens — HOME-01
+/// (Phase 3) replaces this widget's whole body with the real `HomeScreen`;
+/// it must not grow a bottom nav or a declarative routing package before
+/// then.
+class _PostOnboardingPlaceholder extends ConsumerWidget {
+  const _PostOnboardingPlaceholder();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(appProvider);
+    final vehicle = data.vehicles.first;
+    final estOdo = estimateOdo(vehicle);
+    final dueItems = ref.watch(dueItemsProvider(vehicle.id));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(vehicle.name.isEmpty ? 'Xe của bạn' : vehicle.name),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // §9.5: an estimated odometer is never shown as a bare number.
+            Text(
+              '~$estOdo km',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (final dueItem in dueItems) _DueItemTile(dueItem: dueItem),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One row: the item's name plus its §9.5-honest due line. An estimated
+/// figure carries the "khoảng" hedge; a guessed baseline additionally
+/// carries the "chưa có mốc thật" marker (02-CONTEXT.md's badge text).
+/// Only a non-estimate result gets a definite "Còn N ngày" line.
+class _DueItemTile extends StatelessWidget {
+  const _DueItemTile({required this.dueItem});
+
+  final DueItem dueItem;
+
+  @override
+  Widget build(BuildContext context) {
+    final due = dueItem.due;
+    final item = dueItem.item;
+    final label = due.isEstimate
+        ? 'Còn khoảng ${due.daysLeft} ngày'
+              '${item.baselineIsGuess ? ' · chưa có mốc thật' : ''}'
+        : 'Còn ${due.daysLeft} ngày';
+
+    return ListTile(title: Text(item.name), subtitle: Text(label));
   }
 }
