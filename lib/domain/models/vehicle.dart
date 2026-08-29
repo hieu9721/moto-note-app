@@ -1,6 +1,6 @@
 // lib/domain/models/vehicle.dart — transcribed verbatim from §4.2's "vehicle.dart"
-// block: VehicleType, OilGrade, AvgKmSource, Vehicle. Pure Dart (D-31) — no
-// package:flutter/... import.
+// block: VehicleType, OilGrade, AvgKmSource, Vehicle. Pure Dart (D-31) —
+// this directory must never import the Flutter SDK.
 //
 // P2-D-06: avgDailyKm stays a plain `double` with avgDailyKmSource an
 // AvgKmSource — no band enum, no extra field — because Phase 2 stores a

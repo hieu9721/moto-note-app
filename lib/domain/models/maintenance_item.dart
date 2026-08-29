@@ -1,6 +1,6 @@
 // lib/domain/models/maintenance_item.dart — transcribed verbatim from §4.2's
-// "maintenance_item.dart" block: MaintenanceItem. Pure Dart (D-31) — no
-// package:flutter/... import.
+// "maintenance_item.dart" block: MaintenanceItem. Pure Dart (D-31) — this
+// directory must never import the Flutter SDK.
 //
 // Both interval fields are nullable ints because an item may carry only one
 // axis (DUE-02 depends on that nullability). OilGrade is declared in

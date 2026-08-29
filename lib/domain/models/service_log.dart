@@ -1,6 +1,6 @@
 // lib/domain/models/service_log.dart — transcribed verbatim from §4.2's
 // "service_log.dart" block: ServiceLogEntry, ServiceLog. Pure Dart (D-31) —
-// no package:flutter/... import.
+// this directory must never import the Flutter SDK.
 //
 // resetsCycle: false is the inspection-without-replacement case LOG-02 relies
 // on. photoPaths holds local paths only — never backed up (D-20).
