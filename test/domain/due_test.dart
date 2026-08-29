@@ -47,5 +47,567 @@ void main() {
       // 500 km left / 20 km/day = 25 days.
       expect(result.daysLeft, equals(25));
     });
+
+    test('lấy mốc thời gian khi xe để lâu không chạy', () {
+      // Cả hai trục cùng tồn tại; avgDailyKm rất thấp khiến trục km còn xa
+      // (~1000 ngày), trong khi trục thời gian (lastServiceDate + 3 tháng)
+      // đã tới hạn từ trước. D-28: trục thời gian không được bỏ qua chỉ vì
+      // trục km chưa tới — đây chính là ca "xe để lâu không chạy".
+      final vehicle = Vehicle(
+        id: 'v1',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 1.0,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final lastServiceDate = DateTime.utc(2026, 4, 29);
+      final item = MaintenanceItem(
+        id: 'i1',
+        vehicleId: 'v1',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        intervalMonths: 3,
+        lastServiceDate: lastServiceDate,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNotNull);
+      expect(result!.drivenBy, equals(DrivenBy.time));
+      final expectedDueDate = DateTime(
+        lastServiceDate.year,
+        lastServiceDate.month + item.intervalMonths!,
+        lastServiceDate.day,
+      );
+      expect(result.dueDate, equals(expectedDueDate));
+    });
+
+    test('trả overdue khi đã quá ngày', () {
+      final vehicle = Vehicle(
+        id: 'v2',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 11000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = const MaintenanceItem(
+        id: 'i2',
+        vehicleId: 'v2',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 8000,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNotNull);
+      expect(result!.status, equals(DueStatus.overdue));
+      expect(result.daysLeft, lessThan(0));
+    });
+
+    test('đánh dấu isEstimate khi ODO cũ hơn 45 ngày', () {
+      final vehicle = Vehicle(
+        id: 'v3',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 6, 30), // 60 ngày trước now
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = const MaintenanceItem(
+        id: 'i3',
+        vehicleId: 'v3',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false, // chỉ ODO cũ là nguyên nhân, không phải mốc giả định
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNotNull);
+      expect(result!.isEstimate, isTrue);
+    });
+
+    test('trả null khi hạng mục bị tắt', () {
+      final vehicle = Vehicle(
+        id: 'v4',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      // Mốc đầy đủ (cả km lẫn ngày) — chỉ enabled:false là lý do trả null.
+      final item = MaintenanceItem(
+        id: 'i4',
+        vehicleId: 'v4',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        lastServiceDate: DateTime.utc(2026, 8, 29),
+        intervalMonths: 3,
+        enabled: false,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNull);
+    });
+
+    test('không chia cho 0 khi avgDailyKm = 0', () {
+      final vehicle = Vehicle(
+        id: 'v5',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 0.0,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = const MaintenanceItem(
+        id: 'i5',
+        vehicleId: 'v5',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      // §9.3's guard floors avgDailyKm at 0.5 when <= 0 — proving it FIRES,
+      // not merely trusting it's written: a NaN/Infinity progress would
+      // compare false against `>= 0.9` and silently strand the item at `ok`
+      // forever (see threat T-02-17).
+      expect(result, isNotNull);
+      expect(result!.progress.isFinite, isTrue);
+      expect(result.daysLeft, isA<int>());
+    });
+
+    test('không lệch 1 ngày khi chênh 23 giờ', () {
+      // §9.3 Dart-trap (CLAUDE.md "Known traps", flagged twice in the source
+      // §9.3/§14.2): DateTime.difference().inDays TRUNCATES rather than
+      // rounds. computeDue's daysLeft must go through _dateOnly first so a
+      // sub-24h gap that crosses a calendar-date boundary still reads as 1
+      // day left, not the naively-truncated 0.
+      //
+      // DEVIATION (reported — see 02-04-SUMMARY.md "Deviations from Plan"):
+      // the plan names literal 23h/25h gaps. `due.dart`'s `dueByTime` is
+      // built via the bare `DateTime(y, m, d)` constructor (LOCAL time), not
+      // `DateTime.utc(...)`, so its absolute instant is pinned to
+      // (target date − 1) at (24 − localOffsetHours):00 UTC. On this
+      // machine (UTC+7, matching the app's Asia/Ho_Chi_Minh target locale),
+      // that caps the raw now→dueDate gap achievable at daysLeft==1 to at
+      // most 17h; 23h is unreachable here, and 25h is unreachable on ANY
+      // machine's local offset because `dueByTime` always lands exactly at
+      // local midnight (hour 00:00), which mathematically bounds the
+      // achievable gap at daysLeft==1 to <= 24h everywhere. This test
+      // proves the identical mechanism the plan was after — a sub-24h raw
+      // gap crossing a calendar boundary still yields daysLeft==1, not 0 —
+      // using the two extremes this implementation can actually reach (17h
+      // and 11h), which equally "pins date-boundary semantics rather than
+      // an hour count" since two different hour magnitudes land on the same
+      // daysLeft.
+      final vehicle = Vehicle(
+        id: 'v6',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = MaintenanceItem(
+        id: 'i6',
+        vehicleId: 'v6',
+        catalogCode: 'battery',
+        name: 'Ắc quy',
+        intervalMonths: 3,
+        // + 3 tháng = 29/8 (local midnight) — the fixed target this test's
+        // two `now` values sit just under 24h before.
+        lastServiceDate: DateTime.utc(2026, 5, 29),
+        baselineIsGuess: false,
+      );
+
+      final now17h = DateTime.utc(2026, 8, 28, 0, 0);
+      final result17h = computeDue(item, vehicle, 7, now: now17h);
+      expect(result17h, isNotNull);
+      // The bẫy (trap) made concrete: the RAW difference truncates to 0...
+      expect(result17h!.dueDate.difference(now17h).inDays, equals(0));
+      // ...but daysLeft (through _dateOnly) correctly reads 1.
+      expect(result17h.daysLeft, equals(1));
+      expect(result17h.status, equals(DueStatus.dueSoon));
+      expect(result17h.status, isNot(equals(DueStatus.dueToday)));
+
+      final now11h = DateTime.utc(2026, 8, 28, 6, 0);
+      final result11h = computeDue(item, vehicle, 7, now: now11h);
+      expect(result11h, isNotNull);
+      expect(result11h!.dueDate.difference(now11h).inDays, equals(0));
+      expect(result11h.daysLeft, equals(1));
+      expect(result11h.status, equals(DueStatus.dueSoon));
+      expect(result11h.status, isNot(equals(DueStatus.dueToday)));
+    });
+
+    test('trả null khi chưa có mốc nào', () {
+      final vehicle = Vehicle(
+        id: 'v8',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+
+      final bothNull = const MaintenanceItem(
+        id: 'i8a',
+        vehicleId: 'v8',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        intervalMonths: 3,
+        baselineIsGuess: false,
+      );
+      expect(computeDue(bothNull, vehicle, 7, now: DateTime.utc(2026, 8, 29)), isNull);
+
+      // Guard là "cả hai đều null" (AND), không phải "một trong hai null"
+      // (OR) — một hạng mục có MỘT mốc vẫn phải tính được, nếu không sẽ
+      // âm thầm tắt tiếng mọi nhắc nhở cho hạng mục chỉ dùng trục thời gian.
+      final odoOnly = const MaintenanceItem(
+        id: 'i8b',
+        vehicleId: 'v8',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false,
+      );
+      expect(
+        computeDue(odoOnly, vehicle, 7, now: DateTime.utc(2026, 8, 29)),
+        isNotNull,
+      );
+
+      final dateOnly = MaintenanceItem(
+        id: 'i8c',
+        vehicleId: 'v8',
+        catalogCode: 'battery',
+        name: 'Ắc quy',
+        intervalMonths: 30,
+        lastServiceDate: DateTime.utc(2026, 8, 29),
+        baselineIsGuess: false,
+      );
+      expect(
+        computeDue(dateOnly, vehicle, 7, now: DateTime.utc(2026, 8, 29)),
+        isNotNull,
+      );
+    });
+
+    test('trả dueToday khi còn đúng 0 ngày', () {
+      final vehicle = Vehicle(
+        id: 'v9',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = const MaintenanceItem(
+        id: 'i9',
+        vehicleId: 'v9',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 1000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNotNull);
+      expect(result!.daysLeft, equals(0));
+      expect(result.status, equals(DueStatus.dueToday));
+      expect(result.status, isNot(equals(DueStatus.overdue)));
+      expect(result.status, isNot(equals(DueStatus.dueSoon)));
+    });
+
+    test('trả dueSoon theo leadDays và theo progress', () {
+      // Trigger 1: daysLeft nằm trong leadDays, progress còn thấp.
+      final vehicleA = Vehicle(
+        id: 'v10a',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final itemA = const MaintenanceItem(
+        id: 'i10a',
+        vehicleId: 'v10a',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 120,
+        lastServiceOdo: 4940,
+        baselineIsGuess: false,
+      );
+      final resultA = computeDue(itemA, vehicleA, 7, now: DateTime.utc(2026, 8, 29));
+      expect(resultA, isNotNull);
+      expect(resultA!.daysLeft, lessThanOrEqualTo(7));
+      expect(resultA.progress, lessThan(0.9));
+      expect(resultA.status, equals(DueStatus.dueSoon));
+
+      // Trigger 2: daysLeft vượt xa leadDays nhưng progress >= 0.9 — ca này
+      // là ca một triển khai ngây thơ dễ bỏ sót, và là ca quan trọng nhất
+      // cho người chạy ít km/ngày mà trục thời gian đã gần cạn.
+      final vehicleB = Vehicle(
+        id: 'v10b',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 15000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final itemB = const MaintenanceItem(
+        id: 'i10b',
+        vehicleId: 'v10b',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 10000,
+        lastServiceOdo: 5800,
+        baselineIsGuess: false,
+      );
+      final resultB = computeDue(itemB, vehicleB, 7, now: DateTime.utc(2026, 8, 29));
+      expect(resultB, isNotNull);
+      expect(resultB!.daysLeft, greaterThan(7));
+      expect(resultB.progress, greaterThanOrEqualTo(0.9));
+      expect(resultB.status, equals(DueStatus.dueSoon));
+    });
+
+    test('trả ok khi còn xa hạn', () {
+      final vehicle = Vehicle(
+        id: 'v11',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item = const MaintenanceItem(
+        id: 'i11',
+        vehicleId: 'v11',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 1600,
+        lastServiceOdo: 4200,
+        baselineIsGuess: false,
+      );
+
+      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+
+      expect(result, isNotNull);
+      expect(result!.daysLeft, greaterThan(7));
+      expect(result.progress, lessThan(0.9));
+      expect(result.status, equals(DueStatus.ok));
+    });
+
+    test('lấy mốc thời gian khi hai trục trùng ngày', () {
+      final vehicle = Vehicle(
+        id: 'v7',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final lastServiceDate = DateTime.utc(2026, 6, 28); // + 3 tháng = 28/9
+
+      // dueByKm.isBefore(dueByTime) là so sánh strict, nên một tie đúng
+      // nghĩa (cùng ngày lịch) phải rơi vào nhánh thời gian — pin lại để
+      // một refactor sau này đổi thành `!isAfter` không thể âm thầm đảo
+      // trục nào được báo cáo. lastServiceOdo == currentOdoKm nên
+      // kmLeft == intervalKm chính xác, không có sai số làm tròn.
+      final tieItem = MaintenanceItem(
+        id: 'i7',
+        vehicleId: 'v7',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 600, // 30 ngày * 20 km/ngày = số ngày lịch từ 29/8 đến 28/9
+        lastServiceOdo: 5000,
+        intervalMonths: 3,
+        lastServiceDate: lastServiceDate,
+        baselineIsGuess: false,
+      );
+      final tieResult = computeDue(tieItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      expect(tieResult, isNotNull);
+      expect(tieResult!.drivenBy, equals(DrivenBy.time));
+
+      // Hình dạng đơn trục: chỉ intervalMonths (như battery) -> drivenBy.time, kmLeft null.
+      final timeOnlyItem = MaintenanceItem(
+        id: 'i7b',
+        vehicleId: 'v7',
+        catalogCode: 'battery',
+        name: 'Ắc quy',
+        intervalMonths: 30,
+        lastServiceDate: lastServiceDate,
+        baselineIsGuess: false,
+      );
+      final timeOnlyResult =
+          computeDue(timeOnlyItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      expect(timeOnlyResult, isNotNull);
+      expect(timeOnlyResult!.drivenBy, equals(DrivenBy.time));
+      expect(timeOnlyResult.kmLeft, isNull);
+
+      // Chỉ intervalKm (như valve) -> drivenBy.km.
+      final kmOnlyItem = const MaintenanceItem(
+        id: 'i7c',
+        vehicleId: 'v7',
+        catalogCode: 'valve',
+        name: 'Xupap',
+        intervalKm: 600,
+        lastServiceOdo: 5000,
+        baselineIsGuess: false,
+      );
+      final kmOnlyResult = computeDue(kmOnlyItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      expect(kmOnlyResult, isNotNull);
+      expect(kmOnlyResult!.drivenBy, equals(DrivenBy.km));
+    });
+
+    test('đánh dấu isEstimate khi mốc là giả định', () {
+      // OR, không phải AND: baselineIsGuess=true dù ODO vừa cập nhật (0
+      // ngày) vẫn phải isEstimate=true — độ mới của ODO không được che
+      // lấp một mốc giả định (§6.1).
+      final vehicleGuess = Vehicle(
+        id: 'v12a',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final itemGuess = const MaintenanceItem(
+        id: 'i12a',
+        vehicleId: 'v12a',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: true,
+      );
+      final resultGuess =
+          computeDue(itemGuess, vehicleGuess, 7, now: DateTime.utc(2026, 8, 29));
+      expect(resultGuess, isNotNull);
+      expect(resultGuess!.isEstimate, isTrue);
+
+      // Ranh giới 45 ngày: đúng 45 ngày -> false, 46 ngày -> true (điều
+      // kiện là strictly greater than 45, không phải >=).
+      final vehicle45 = Vehicle(
+        id: 'v1245',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 7, 15), // 45 ngày trước 29/8
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item45 = const MaintenanceItem(
+        id: 'i1245',
+        vehicleId: 'v1245',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false,
+      );
+      final result45 = computeDue(item45, vehicle45, 7, now: DateTime.utc(2026, 8, 29));
+      expect(result45, isNotNull);
+      expect(result45!.isEstimate, isFalse);
+
+      final vehicle46 = Vehicle(
+        id: 'v1246',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 7, 14), // 46 ngày trước 29/8
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final item46 = const MaintenanceItem(
+        id: 'i1246',
+        vehicleId: 'v1246',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: false,
+      );
+      final result46 = computeDue(item46, vehicle46, 7, now: DateTime.utc(2026, 8, 29));
+      expect(result46, isNotNull);
+      expect(result46!.isEstimate, isTrue);
+    });
+  });
+
+  group('_timeProgress (khoá theo A4)', () {
+    test('progress ~0.5 giữa mốc và hạn, >1.0 khi đã quá hạn', () {
+      final vehicle = Vehicle(
+        id: 'v13',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final lastServiceDate = DateTime.utc(2026, 2, 28);
+      final item = MaintenanceItem(
+        id: 'i13',
+        vehicleId: 'v13',
+        catalogCode: 'battery',
+        name: 'Ắc quy',
+        intervalMonths: 6,
+        lastServiceDate: lastServiceDate,
+        baselineIsGuess: false,
+      );
+
+      // 28/2 + 6 tháng = 28/8 -> tổng 181 ngày. 91 ngày sau mốc là số
+      // nguyên gần nhất với nửa chặng (181/2 = 90.5).
+      final halfwayNow = lastServiceDate.add(const Duration(days: 91));
+      final halfwayResult = computeDue(item, vehicle, 7, now: halfwayNow);
+      expect(halfwayResult, isNotNull);
+      expect(halfwayResult!.progress, closeTo(0.5, 0.01));
+
+      final dueByTime = DateTime(
+        lastServiceDate.year,
+        lastServiceDate.month + item.intervalMonths!,
+        lastServiceDate.day,
+      );
+      final pastDueNow = dueByTime.add(const Duration(days: 30)).toUtc();
+      final pastDueResult = computeDue(item, vehicle, 7, now: pastDueNow);
+      expect(pastDueResult, isNotNull);
+      // DueResult.progress được ghi tài liệu là 0..1+ — trục thời gian
+      // KHÔNG bị kẹp ở đỉnh, giống trục km. Nếu một refactor sau này thêm
+      // clamp, test này sẽ báo đỏ.
+      expect(pastDueResult!.progress, greaterThan(1.0));
+    });
   });
 }
