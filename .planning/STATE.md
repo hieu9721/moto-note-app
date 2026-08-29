@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 milestone: v1.0
 current_phase: 02
 current_phase_name: Onboarding, Catalog & Estimation Engines
-status: planning
+status: executing
 stopped_at: Phase 01 complete, ready to plan Phase 02
-last_updated: "2026-08-29T10:41:45.032Z"
+last_updated: "2026-08-29T11:41:38.740Z"
 last_activity: 2026-08-29
 last_activity_desc: Phase 01 complete, transitioned to Phase 02
-state_head: d6bbc286f73b5f64a5f2222c8f2b7fc956a7d9eb
+state_head: 63a0ae15b69dc189c130fee321f981e2e857f786
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 6
+  total_plans: 11
   completed_plans: 6
 ---
 
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-08-29)
 
 ## Current Position
 
-Phase: 02 — Onboarding, Catalog & Estimation Engines
+Phase: 02 (Onboarding, Catalog & Estimation Engines) — READY TO EXECUTE
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-29 — Phase 01 complete, transitioned to Phase 02
 
 Progress: [████████████████████] 6/6 plans (Phase 01 of 6 complete)
@@ -80,6 +80,7 @@ None yet.
 - **Three advisory code-review warnings still open** — WR-01, WR-02, WR-04 in `01-REVIEW.md`. Non-blocking, carried forward; `/gsd-code-review 01 --fix` closes them.
 - **Nothing is pushed.** 66 local commits, `origin/main` still at `3b41868`. All of Phase 01 exists only on this machine.
 - **Decision-coverage gate override (Phase 1, 2026-08-28):** `check.decision-coverage-plan` returned `passed: false, reason: "could-not-parse", total: 0` when planning Phase 1. Its parser only extracts `- **D-NN:**` bullets, while `01-CONTEXT.md` deliberately namespaces its decisions as `- **P1-D-01:**` to avoid colliding with PROJECT.md's project-wide `D-01…D-36`. Actual coverage was verified two ways — by `gsd-plan-checker` and by direct grep — and is **13/13**: every `P1-D-01…P1-D-13` is cited in at least one plan body and `must_haves`. The user chose to proceed rather than renaming the ids. Verify-phase should re-surface this; the same mismatch will recur for `P2-D-NN` in Phase 2.
+- **Decision-coverage gate override (Phase 2, 2026-08-29) — the recurrence predicted above.** `check.decision-coverage-plan` returned the identical `passed: false, reason: "could-not-parse", total: 0` when planning Phase 2, for the identical reason: `02-CONTEXT.md` namespaces its decisions as `- **P2-D-01:**`. Coverage was verified two ways — by `gsd-plan-checker` (VERIFICATION PASSED, 0 blockers) and by direct grep — and is **10/10**: P2-D-01 (02-02, 02-05), P2-D-02/03/04 (02-02), P2-D-05 (02-01, 02-02), P2-D-06 (02-01, 02-05), P2-D-07 (02-01, 02-05), P2-D-08 (02-01, 02-03, 02-05), P2-D-09 (02-01), P2-D-10 (02-01, 02-03). The user again chose to proceed rather than renaming the ids or disabling `workflow.context_coverage_gate`. Verify-phase should re-surface this. **This is now a standing pattern, not an incident** — it will recur for every `PN-D-NN` phase unless the gate's parser learns the namespace or the convention changes.
 
 ## Deferred Items
 
@@ -106,9 +107,11 @@ Session notes:
 - Phase 01 closed by `/gsd-verify-work 01`: UAT test 6 (the `build_runner` interrupt backstop) was
   run and passed, `01-SECURITY.md` was produced by `/gsd-secure-phase 01` (19 threats, 0 open,
   4 documented accepted risks), and `01-VERIFICATION.md` was canonicalised to `passed`.
+
 - `.planning/config.json` now sets `build_command: flutter analyze` and `test_command: dart test`,
   which fixes the anti-pattern where the post-merge gate detected no command on this Flutter
   project and silently skipped integration checking.
+
 - **Watch for this in Phase 02:** `check.decision-coverage-plan` will fail to parse `P2-D-NN`
   ids the same way it failed on `P1-D-NN` (see the entry above). Expect `could-not-parse` and
   verify coverage by grep instead of renaming the ids.
