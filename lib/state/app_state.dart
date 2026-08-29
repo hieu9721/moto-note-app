@@ -13,7 +13,9 @@ import '../data/serial_queue.dart';
 import '../domain/id.dart';
 import '../domain/models/app_data.dart';
 import '../domain/models/maintenance_item.dart';
+import '../domain/models/misc.dart';
 import '../domain/models/vehicle.dart';
+import '../domain/odo.dart';
 import '../notifications/notification_service.dart';
 import '../ui/onboarding/onboarding_draft.dart';
 
@@ -199,6 +201,68 @@ class AppNotifier extends Notifier<AppData> {
       return current.copyWith(
         vehicles: [...current.vehicles, vehicle],
         items: [...current.items, ...items],
+      );
+    });
+  }
+
+  /// ODO-03: appends a new [OdoReading] and moves all four of its
+  /// [Vehicle] fields together (`currentOdoKm`, `odoUpdatedAt`,
+  /// `avgDailyKm`, `avgDailyKmSource`) — updating the odometer without
+  /// updating `odoUpdatedAt` would make [estimateOdo] add drift on top of
+  /// a fresh reading. Built now even though nothing calls it until Phase
+  /// 3's ODO-04 modal sheet (02-RESEARCH.md Pitfall 4), so that sheet finds
+  /// this already shaped correctly instead of inventing a second
+  /// persistence path.
+  ///
+  /// Two hardenings on §5.2's literal listing:
+  ///
+  /// 1. §5.2 resolves the vehicle with a throwing single-match search. A
+  ///    `StateError` inside `_mutate`'s transform rejects the future this
+  ///    method returns and, per P1-D-06's persist-before-assign contract,
+  ///    correctly leaves `state` untouched — but it turns a caller mistake
+  ///    into an unexplained failed save. Using a nullable index lookup and
+  ///    returning the document unchanged on an unknown id is the honest
+  ///    no-op instead.
+  /// 2. `date` is caller-supplied wall-clock and gets persisted into
+  ///    `OdoReading.date` and `Vehicle.odoUpdatedAt` — `.toUtc()` it at the
+  ///    point of use, matching Phase 1's convention (`app_state.dart:162`,
+  ///    `app_data.dart:40`) and keeping both sides of every later
+  ///    `computeDue` comparison in the same frame (02-RESEARCH.md
+  ///    Pitfall 2).
+  Future<void> addOdoReading(String vehicleId, int odoKm, DateTime date) {
+    return _mutate((current) {
+      final vehicleIndex = current.vehicles.indexWhere(
+        (v) => v.id == vehicleId,
+      );
+      if (vehicleIndex == -1) return current; // unknown id: honest no-op
+
+      final vehicle = current.vehicles[vehicleIndex];
+      // Take the previous reading BEFORE appending the new one, so the new
+      // reading is never compared against itself.
+      final prev = latestReadingFor(current, vehicleId);
+      final utcDate = date.toUtc();
+      final reading = OdoReading(
+        id: newId(),
+        vehicleId: vehicleId,
+        odoKm: odoKm,
+        date: utcDate,
+        // source stays at its OdoSource.manual default here — Phase 3's
+        // service-log path supplies OdoSource.service, and onboarding's
+        // setup reading is Phase 3's ODO-04 territory too.
+      );
+      final refined = refineAvgDailyKm(vehicle, reading, prev);
+
+      final vehicles = [...current.vehicles];
+      vehicles[vehicleIndex] = vehicle.copyWith(
+        currentOdoKm: odoKm,
+        odoUpdatedAt: utcDate,
+        avgDailyKm: refined.avgDailyKm,
+        avgDailyKmSource: refined.source,
+      );
+
+      return current.copyWith(
+        odoReadings: [...current.odoReadings, reading],
+        vehicles: vehicles,
       );
     });
   }
