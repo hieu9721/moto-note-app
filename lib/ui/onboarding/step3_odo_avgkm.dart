@@ -54,6 +54,13 @@ class _Step3OdoAvgKmState extends State<Step3OdoAvgKm> {
   static const double _minAvg = 0.5;
   static const double _maxAvg = 400;
 
+  /// A bound as it should READ in the error message. Both bounds are `double`,
+  /// so plain interpolation rendered the upper one as "400.0" — a number no
+  /// user typed and no copy asked for. Whole values lose the trailing ".0";
+  /// 0.5 keeps its decimal.
+  static String _plain(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
   // P2-D-07's three band midpoints, in display order.
   static const List<double> _bands = [7, 20, 45];
 
@@ -145,7 +152,8 @@ class _Step3OdoAvgKmState extends State<Step3OdoAvgKm> {
     if (parsed == null || parsed < _minAvg || parsed > _maxAvg) {
       setState(() {
         widget.draft.avgDailyKm = null;
-        _avgError = 'Giá trị phải trong khoảng $_minAvg – $_maxAvg km/ngày.';
+        _avgError =
+            'Giá trị phải trong khoảng ${_plain(_minAvg)} – ${_plain(_maxAvg)} km/ngày.';
       });
     } else {
       setState(() {

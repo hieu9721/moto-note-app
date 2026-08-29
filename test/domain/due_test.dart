@@ -642,6 +642,146 @@ void main() {
         expect(atHour.status, equals(DueStatus.dueToday));
       }
     });
+
+    // Regression (code review WR-01). `DateTime` NORMALISES an out-of-range
+    // day rather than rejecting it, so `DateTime(y, m + n, 31)` silently rolled
+    // the due date into the following month: 31/1 + 1 tháng landed on 3/3
+    // instead of the end of February — a 1–3 day drift. Onboarding writes
+    // lastServiceDate as commit-date minus N days, so anyone setting the app up
+    // near a month end hit it.
+    test('mốc cuối tháng không trôi sang tháng sau', () {
+      Vehicle vehicleWith(DateTime created) => Vehicle(
+            id: 'vme',
+            name: 'Xe test',
+            type: VehicleType.scooter,
+            currentOdoKm: 10000,
+            odoUpdatedAt: created,
+            avgDailyKm: 20,
+            createdAt: created,
+          );
+
+      // Each case: baseline date, interval in months, expected due date.
+      // The expectation is always the LAST valid day of the target month when
+      // the baseline day does not exist there — never a roll-forward.
+      final cases = <List<Object>>[
+        [DateTime(2026, 1, 31), 1, DateTime(2026, 2, 28)],
+        [DateTime(2026, 1, 31), 3, DateTime(2026, 4, 30)],
+        [DateTime(2026, 3, 31), 1, DateTime(2026, 4, 30)],
+        [DateTime(2025, 11, 30), 3, DateTime(2026, 2, 28)],
+        // Control: a day that exists in the target month is untouched, and the
+        // year rolls over correctly.
+        [DateTime(2026, 8, 29), 4, DateTime(2026, 12, 29)],
+        [DateTime(2026, 11, 15), 3, DateTime(2027, 2, 15)],
+      ];
+
+      for (final c in cases) {
+        final baseline = c[0] as DateTime;
+        final months = c[1] as int;
+        final expected = c[2] as DateTime;
+
+        final item = MaintenanceItem(
+          id: 'ime',
+          vehicleId: 'vme',
+          catalogCode: 'engine_oil',
+          name: 'Nhớt máy',
+          intervalMonths: months,
+          lastServiceDate: baseline.toUtc(),
+          baselineIsGuess: false,
+        );
+        final result = computeDue(
+          item,
+          vehicleWith(baseline.toUtc()),
+          7,
+          now: baseline.toUtc(),
+        );
+
+        expect(result, isNotNull);
+        expect(
+          _dateOf(result!.dueDate),
+          equals(_dateOf(expected)),
+          reason: '${baseline.toIso8601String().substring(0, 10)} + $months '
+              'tháng phải đến hạn ${expected.toIso8601String().substring(0, 10)}',
+        );
+      }
+    });
+
+    // Regression (code review CR-01). An item can carry a baseline on an axis
+    // it has no interval for — `lastServiceOdo` set while `intervalKm` is null
+    // and `lastServiceDate` is null. The both-null guard is an AND, so such an
+    // item reaches the axis-selection branch with BOTH axes null, where a bare
+    // `dueByTime!` used to throw and take down the whole dueItemsProvider for
+    // that vehicle. Unreachable through onboarding (it writes both baselines
+    // together), but computeDue is a public API Phase 3/5/6 all call.
+    test('không ném lỗi khi mốc không khớp trục nào — trả null', () {
+      final vehicle = Vehicle(
+        id: 'vmis',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 10000,
+        odoUpdatedAt: DateTime.utc(2026, 8, 29),
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+
+      // Has an odometer baseline, but only a TIME interval — and no date
+      // baseline to drive it. Neither axis is computable.
+      const odoBaselineTimeInterval = MaintenanceItem(
+        id: 'i-mismatch-a',
+        vehicleId: 'vmis',
+        catalogCode: 'battery',
+        name: 'Ắc quy',
+        intervalMonths: 24,
+        lastServiceOdo: 8500,
+        baselineIsGuess: false,
+      );
+      expect(
+        () => computeDue(
+          odoBaselineTimeInterval,
+          vehicle,
+          7,
+          now: DateTime.utc(2026, 8, 29),
+        ),
+        returnsNormally,
+      );
+      expect(
+        computeDue(
+          odoBaselineTimeInterval,
+          vehicle,
+          7,
+          now: DateTime.utc(2026, 8, 29),
+        ),
+        isNull,
+      );
+
+      // The mirror case: a date baseline with only a km interval.
+      final dateBaselineKmInterval = MaintenanceItem(
+        id: 'i-mismatch-b',
+        vehicleId: 'vmis',
+        catalogCode: 'chain_lube',
+        name: 'Tra dầu xích',
+        intervalKm: 500,
+        lastServiceDate: DateTime.utc(2026, 6, 1),
+        baselineIsGuess: false,
+      );
+      expect(
+        () => computeDue(
+          dateBaselineKmInterval,
+          vehicle,
+          7,
+          now: DateTime.utc(2026, 8, 29),
+        ),
+        returnsNormally,
+      );
+      expect(
+        computeDue(
+          dateBaselineKmInterval,
+          vehicle,
+          7,
+          now: DateTime.utc(2026, 8, 29),
+        ),
+        isNull,
+      );
+    });
   });
 
   group('_timeProgress (khoá theo A4)', () {
@@ -687,4 +827,10 @@ void main() {
       expect(pastDueResult!.progress, greaterThan(1.0));
     });
   });
+}
+
+/// Calendar date only, for comparing a due date without its time component.
+DateTime _dateOf(DateTime d) {
+  final l = d.toLocal();
+  return DateTime(l.year, l.month, l.day);
 }

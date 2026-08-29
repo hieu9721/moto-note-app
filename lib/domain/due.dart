@@ -104,7 +104,21 @@ DueResult? computeDue(
     // Local civil components: the anniversary a user means by "three months
     // after I changed the oil" is a date on their calendar, not on UTC's.
     final d = item.lastServiceDate!.toLocal();
-    dueByTime = DateTime(d.year, d.month + item.intervalMonths!, d.day);
+    // Clamp to the target month's real length. `DateTime` NORMALISES an
+    // out-of-range day instead of rejecting it, so a baseline on the 29th–31st
+    // silently rolls forward: 31 Jan + 1 month became 3 Mar, and 30 Nov +
+    // 3 months became 2 Mar — a 1–3 day drift on an app that promises the
+    // right day. Onboarding writes `lastServiceDate` as commit-date minus N
+    // days, so every user who sets up near a month end hits it.
+    // `DateTime(y, m + 1, 0)` is the last day of month `m`; day 0 normalises
+    // backwards, and an out-of-range month normalises into the next year.
+    final targetMonth = d.month + item.intervalMonths!;
+    final lastDayOfTarget = DateTime(d.year, targetMonth + 1, 0).day;
+    dueByTime = DateTime(
+      d.year,
+      targetMonth,
+      d.day < lastDayOfTarget ? d.day : lastDayOfTarget,
+    );
     final p = _timeProgress(d, dueByTime, n);
     if (p > progress) progress = p;
   }
@@ -122,9 +136,22 @@ DueResult? computeDue(
   } else if (dueByKm != null) {
     dueDate = dueByKm;
     drivenBy = DrivenBy.km;
-  } else {
-    dueDate = dueByTime!;
+  } else if (dueByTime != null) {
+    dueDate = dueByTime;
     drivenBy = DrivenBy.time;
+  } else {
+    // Neither axis is computable: the item carries a baseline, but not on an
+    // axis it has an interval for (e.g. `lastServiceOdo` set while
+    // `intervalKm` is null and `lastServiceDate` is null). The both-null guard
+    // above is an AND, so such an item reaches here — and the previous
+    // `dueByTime!` threw on it, taking down the whole `dueItemsProvider` for
+    // that vehicle. Onboarding always writes both baselines together so it is
+    // unreachable today, but `computeDue` is a public pure-Dart API that
+    // Phase 3's service log, item editing and Phase 5's Drive restore all
+    // call. Returning null is the same contract the disabled-item and
+    // baseline-less guards already use: no due date is computable, so there
+    // is none to report — never a crash.
+    return null;
   }
 
   final daysLeft = _dateOnly(dueDate).difference(_dateOnly(n)).inDays;
