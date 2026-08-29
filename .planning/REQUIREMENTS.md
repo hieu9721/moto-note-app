@@ -55,8 +55,8 @@ cross-platform; only the release and verification surface is Android-only.
 ### ODO Estimation
 
 - [x] **ODO-01**: Estimated ODO = last entered ODO + average km per day × days since that entry. *(§9.1)*
-- [ ] **ODO-02**: `refineAvgDailyKm` returns unchanged for a null previous reading, an interval under 14 days or a negative km delta; adopts the first real measurement outright when the source is `user`; then smooths as 0.7 × measured + 0.3 × previous; and clamps the result to [0.5, 400] with source `computed`. *(§9.2)*
-- [ ] **ODO-03**: `addOdoReading` appends an `OdoReading` and updates the vehicle's `currentOdoKm`, `odoUpdatedAt`, `avgDailyKm` and `avgDailyKmSource`. *(§5.2)*
+- [x] **ODO-02**: `refineAvgDailyKm` returns unchanged for a null previous reading, an interval under 14 days or a negative km delta; adopts the first real measurement outright when the source is `user`; then smooths as 0.7 × measured + 0.3 × previous; and clamps the result to [0.5, 400] with source `computed`. *(§9.2)*
+- [x] **ODO-03**: `addOdoReading` appends an `OdoReading` and updates the vehicle's `currentOdoKm`, `odoUpdatedAt`, `avgDailyKm` and `avgDailyKmSource`. *(§5.2)*
 - [ ] **ODO-04**: The ODO update modal sheet prefills the estimated value, shows "Lần trước: 18.420 (10 ngày)", uses a self-drawn 12-cell numeric keypad rather than the system keyboard, and blocks a value lower than the previous reading unless the user confirms the odometer was replaced. *(§11.2)*
 
 ### Due Engine
@@ -67,7 +67,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [x] **DUE-04**: Dates are normalised to start-of-day before subtracting so a 23-hour gap does not drift a day, and `avgDailyKm <= 0` is floored to 0.5 so nothing divides by zero. *(§9.3, §14.2)*
 - [x] **DUE-05**: `isEstimate` is true when the ODO is more than 45 days old or the item's baseline is a setup guess. *(§9.3)*
 - [x] **DUE-06**: `dueItemsProvider` computes and caches due status per vehicle sorted by `daysLeft` ascending; widgets never compute item status themselves. *(§5.3)*
-- [ ] **DUE-07**: `test/domain/due_test.dart` and `test/domain/odo_test.dart` cover every case listed in §9.6 and pass under plain `dart test`, with no mocks and no widget tests. *(§9.6)*
+- [x] **DUE-07**: `test/domain/due_test.dart` and `test/domain/odo_test.dart` cover every case listed in §9.6 and pass under plain `dart test`, with no mocks and no widget tests. *(§9.6)*
 
 ### Home & Navigation
 
@@ -211,15 +211,15 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | ONB-04 | Phase 2 | Complete |
 | ONB-05 | Phase 2 | Complete |
 | ODO-01 | Phase 2 | Complete |
-| ODO-02 | Phase 2 | Pending |
-| ODO-03 | Phase 2 | Pending |
+| ODO-02 | Phase 2 | Complete |
+| ODO-03 | Phase 2 | Complete |
 | DUE-01 | Phase 2 | Complete |
 | DUE-02 | Phase 2 | Complete |
 | DUE-03 | Phase 2 | Complete |
 | DUE-04 | Phase 2 | Complete |
 | DUE-05 | Phase 2 | Complete |
 | DUE-06 | Phase 2 | Complete |
-| DUE-07 | Phase 2 | Pending |
+| DUE-07 | Phase 2 | Complete |
 | HOME-01 | Phase 3 | Pending |
 | HOME-02 | Phase 3 | Pending |
 | HOME-03 | Phase 3 | Pending |
