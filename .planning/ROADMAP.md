@@ -166,7 +166,13 @@ Plans:
   4. Refusing the notification permission or the exact-alarm permission leaves every feature working, with only a soft prompt line in Settings and inexact scheduling as the fallback.
   5. On a Xiaomi device the app shows the Xiaomi-specific battery instructions and its button opens the system battery-optimisation page; if 45 days pass with items due and nothing fired, the "Có vẻ thông báo không hoạt động" banner appears.
 
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Tracer: one monthly ODO reminder planned in pure Dart, fired by the OS, tapped back into the app (wave 1)
+- [ ] 04-02-PLAN.md — The domain planner: cadence, (vehicle, day) grouping, horizon, cap and the 45-day predicate (wave 2)
+- [ ] 04-03-PLAN.md — Permissions that never block, and Cài đặt's Thông báo group activated (wave 2)
+- [ ] 04-04-PLAN.md — OEM battery guidance in a bottom sheet, and the dead-notification banner on Trang chủ (wave 3)
 
 ### Phase 5: Google Drive Backup & Restore
 
