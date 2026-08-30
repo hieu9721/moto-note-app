@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 03
 current_phase_name: Home, Logging & Notes
 status: executing
-stopped_at: Phase 03 Wave 1 complete (03-01 merged, c59f1ff); HALTED at ui.safety-gate — 03-UI-SPEC.md missing
-last_updated: "2026-08-30T02:09:00.049Z"
+stopped_at: Phase 03 UI-SPEC approved (ui.safety-gate cleared)
+last_updated: "2026-08-30T03:52:28.961Z"
 last_activity: 2026-08-30
 last_activity_desc: Phase 03 execution started
-state_head: 419c9e46c143f3b0b74d13d751d4b2a98cc8230a
+state_head: 97849e54a1c05efd161d82a81152b17a310119ad
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 17
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 03 (Home, Logging & Notes) — EXECUTING
-Plan: 1 of 6 (03-01 complete; 03-02…03-06 blocked by the UI gate)
-Status: Blocked — run /gsd-ui-phase 3 to create 03-UI-SPEC.md, then /gsd-execute-phase 3 to resume at Wave 2
-Last activity: 2026-08-30 — Phase 03 execution started
+Phase: 03 (Home, Logging & Notes) — READY TO EXECUTE (Wave 2 onward)
+Plan: 1 of 6 complete (03-01 merged at `c59f1ff`; 03-02…03-06 replanned against 03-UI-SPEC.md)
+Status: Ready — run /gsd-execute-phase 3 to resume at Wave 2. The UI gate is cleared and the design contract is now lifted into the plans.
+Last activity: 2026-08-30 — Phase 03 plans 02–06 revised to carry the UI design contract
 
 Progress: [████████████████████] 11/11 plans (Phases 01–02 of 6 complete)
 
@@ -102,14 +102,72 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-08-30T00:35:00.000Z
-Stopped at: Phase 03 Wave 1 complete (03-01 merged, c59f1ff); HALTED at ui.safety-gate — 03-UI-SPEC.md missing
-Resume file: None
+Last session: 2026-08-30T03:52:28.961Z
+Stopped at: Phase 03 plans 02–06 revised to lift 03-UI-SPEC.md; plan-checker PASSED
+Resume file: .planning/phases/03-home-logging-notes/03-02-PLAN.md
 
-Phase 03's context is already gathered — `03-CONTEXT.md` holds 18 decisions (`P3-D-01…P3-D-18`),
-so Phase 03 can go straight to `/gsd-plan-phase 3`.
+Phase 03 is planned and the UI gate is cleared. Next action is `/gsd-execute-phase 3`,
+which resumes at Wave 2 — Wave 1 (03-01) is already merged.
 
 Session notes:
+
+- **Phase 03 plans were replanned on 2026-08-30 to carry the UI design contract (commit `97849e5`).**
+  The six plans were authored at 08:37–08:56; `03-UI-SPEC.md` only appeared at 10:18, so a
+  `grep "UI-SPEC"` over all six returned zero. The plan-phase `<downstream_consumer>` contract
+  requires a UI-SPEC's `## UI Considerations` to be lifted into `must_haves` by the same rule as a
+  SPEC's `## Edge Coverage`, and that lift had never happened — 42 resolved design decisions and 2
+  backstop items were invisible to both the executor and the verifier. `03-01-PLAN.md` was left
+  byte-identical because it is already executed and merged; only 03-02…03-06 were touched.
+  `gsd-plan-checker` re-counted the UI-SPEC marks independently and confirmed 42 + 2 landed, each in
+  exactly one plan, with no drops and no double-counting.
+
+- **`03-UI-SPEC.md`'s own header count is wrong and was left as-is.** It states "54 applicable — 40
+  resolved"; the actual table is 56 rows / 42 resolved / 12 dismissed / 2 backstop. Two rows (H3
+  `overflow`, H6 `interactive-control (new-tap)`) were added at kind-confirmation after the probe
+  ran, and the header was never updated. Both the planner and the checker arrived at 56/42
+  independently. The plans lift from the table, not the header, so nothing downstream is affected —
+  but the header should be corrected the next time that file is touched.
+
+- **Three planner adjudications are recorded inside the plans, not just in the transcript** — the
+  checker verified this specifically, because a judgment call that lives only in a chat log is
+  invisible to `/gsd-execute-phase`:
+  1. `03-05` contradicted the UI-SPEC in two places (a notes-tab `FloatingActionButton` and an inline
+     per-row pin button, against H6's `AppBar` action and pin-only-from-the-editor). The UI-SPEC won —
+     it is the later, checker-approved document, and the FAB slot plus accent colour are reserved for
+     "Cập nhật số km". Recorded in that plan's `## Reconciliation with 03-UI-SPEC.md`.
+     `toggleNotePinned` is still built and still called, now from the editor's pin button.
+  2. `03-06` kept the plan's stricter `kmLeft` guard ("non-null **and negative**") over the UI-SPEC's
+     `!= null`. A positive `kmLeft` on an item overdue on the time axis would render
+     "Quá hạn 7 ngày · 400 km", which reads as *400 km remaining* — the exact opposite of the truth.
+     Recorded in that plan's `## Flagged planner decisions`, item 3.
+  3. `03-06`'s fourth (plain-line) branch keeps the oil / non-oil split, since the UI-SPEC's table
+     quotes only P3-D-01's oil-specific line and does not contradict §11.1's generic form. Recorded
+     in the same block, item 1.
+
+- **A wave-ordering constraint was resolved by a deliberate two-step migration.** H5 `populated`
+  requires the item-detail screen and the due card never to disagree on wording, but `due_card.dart`
+  does not exist at Wave 4. So `03-05` builds the status-line resolver as a private helper inside
+  `item_detail_screen.dart`, and `03-06` task 1 promotes it into `due_card.dart` and repoints the
+  single call site. `lib/ui/item/item_detail_screen.dart` is therefore listed in `03-06`'s
+  `files_modified` as well; Wave 5 contains only 03-06, so there is no concurrent writer.
+
+- **`03-05` is now the heaviest plan in the phase** — 3 tasks, 21 lifted truths, ~84k token estimate.
+  It was deliberately not split: splitting would renumber plans, which was out of scope for a
+  revision run. Worth weighing before Wave 4 runs.
+
+- **Two non-blocking checker warnings, both accepted:** `03-02` carries 11 `files_modified`, one over
+  the 10-file threshold (seven are one-line import edits, each with its own acceptance criterion, and
+  the plan justifies this in its own objective); and the `03-UI-SPEC.md` header discrepancy above.
+
+- **Decision-coverage gate override (Phase 3, second occurrence — the replan).**
+  `check.decision-coverage-plan` again returned `passed: false, reason: "could-not-parse", total: 0`
+  against `03-CONTEXT.md`'s `P3-D-NN` namespace — the fourth recurrence of the pattern recorded below
+  for Phases 1, 2 and 3. Coverage was re-verified by grep and is **18/18**, with a wider spread than
+  before the revision: P3-D-01 (03-01, 03-02, 03-05, 03-06), P3-D-02 (03-06), P3-D-03 (03-06),
+  P3-D-04 (03-01, 03-03), P3-D-05 (03-04, 03-05), P3-D-06/07/08 (03-04), P3-D-09/10 (03-03),
+  P3-D-11 (03-02), P3-D-12 (03-01, 03-03), P3-D-13 (03-01), P3-D-14/15 (03-05),
+  P3-D-16 (03-01, 03-05, 03-06), P3-D-17 (03-04), P3-D-18 (03-02). Proceeded on the override already
+  recorded for this phase rather than re-litigating it. Verify-phase should re-surface it.
 
 - Phase 02 closed by `/gsd-verify-work 02` on the real SM-A066B over wireless debugging: all five
   outstanding human-verification items ran and passed on a `--release` build, `02-SECURITY.md` was
