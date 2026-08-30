@@ -37,6 +37,7 @@ import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
 import 'home/home_screen.dart';
+import 'item/item_detail_screen.dart';
 import 'notes/note_editor_screen.dart';
 import 'notes/notes_screen.dart';
 import 'onboarding/welcome_screen.dart';
@@ -84,6 +85,13 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'item/:id',
+                    builder: (context, state) =>
+                        ItemDetailScreen(itemId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
@@ -98,7 +106,13 @@ GoRouter buildRouter({
                   // otherwise happily capture it as if it were an id.
                   GoRoute(
                     path: 'new',
-                    builder: (context, state) => const NoteEditorScreen(),
+                    builder: (context, state) => NoteEditorScreen(
+                      // P3-D-15: query parameters, not path segments — the
+                      // item-detail screen's "Thêm ghi chú" action is the
+                      // only caller that ever supplies these.
+                      vehicleId: state.uri.queryParameters['vehicleId'],
+                      itemId: state.uri.queryParameters['itemId'],
+                    ),
                   ),
                   GoRoute(
                     path: ':id',
