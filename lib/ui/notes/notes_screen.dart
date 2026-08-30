@@ -60,6 +60,10 @@ String _noteDisplayTitle(Note note) {
   return note.body.split('\n').first;
 }
 
+/// Final copy (Claude's Discretion per 03-CONTEXT.md — the empty state's
+/// wording was explicitly left to planning, unlike every other string in
+/// this phase, which ships verbatim from the source document). Follows
+/// `welcome_screen.dart`'s centred-column idiom.
 class _EmptyNotes extends StatelessWidget {
   const _EmptyNotes();
 
@@ -69,7 +73,8 @@ class _EmptyNotes extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.all(24),
         child: Text(
-          'Chưa có ghi chú nào.',
+          'Ghi lại điều bạn muốn nhớ sẵn khi đứng trước xe — ở tiệm sửa '
+          'hay bất cứ đâu.',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),

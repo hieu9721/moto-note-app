@@ -90,16 +90,14 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       // `State._element != null`). See 02-01-SUMMARY.md's "Decisions Made"
       // for the original on-device finding this preserves.
       if (!mounted) return;
-      // `main.dart` watches `appProvider`'s vehicles list and its `home:`
-      // has already swapped away from onboarding by the time this await
-      // resolves — but `WelcomeScreen` reached this screen via
-      // `Navigator.push`, so THIS route is still sitting on top of that
-      // already-updated home route and must be popped explicitly, or the
-      // user is stranded looking at a dead screen (on-device tracer
-      // verification caught this — see 02-01-SUMMARY.md). A single pop
-      // dismisses the whole flow regardless of how many internal steps it
-      // has — no nested Navigator is introduced here.
-      Navigator.of(context).pop();
+      // Under `go_router` (HOME-01, research Pitfall 2), `/onboarding` is
+      // reached via the router's own `redirect` (`lib/ui/router.dart`), not
+      // an imperative `Navigator.push` from a `home:` branch as it was
+      // before this phase. The instant `completeOnboarding` above updates
+      // `appProvider`, `_AppRefreshNotifier` fires and the redirect alone
+      // sends the user to `/` — no imperative pop is needed here, and
+      // calling one anyway risks popping the wrong route (or nothing, if the
+      // redirect has already unmounted this one) depending on exact timing.
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -221,9 +219,7 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
                   _error!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
             Padding(
