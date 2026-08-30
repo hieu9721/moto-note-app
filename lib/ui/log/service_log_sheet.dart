@@ -23,6 +23,7 @@ import '../../domain/odo.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../widgets/formatters.dart';
+import '../widgets/odometer_confirm_dialog.dart';
 
 /// P3-D-05: opened from a due card's "[ Tôi vừa thay ]" action or the
 /// item-detail screen's "[ Ghi lại ]" (plans 05/06) with [preTickedItemId]
@@ -70,6 +71,13 @@ class ServiceLogForm extends ConsumerStatefulWidget {
 }
 
 class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
+  // WR-03: matches step3_odo_avgkm.dart's own _maxOdo by name and value —
+  // one bound, two enforcement points, not two unrelated magic numbers. An
+  // extra typed digit turns 184200 into 1842000, and this sheet was the one
+  // raw-odometer entry point with no digit-count cap of its own: the ODO
+  // sheet caps at seven digits at the keypad, onboarding rejects at entry.
+  static const int _maxOdo = 1000000;
+
   late final TextEditingController _dateController;
   late final TextEditingController _odoController;
   late final TextEditingController _shopController;
@@ -200,6 +208,46 @@ class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
       return;
     }
 
+    // WR-03: its own branch, its own message. An out-of-range value must
+    // never disappear into the generic save-failure text above — that tells
+    // the user nothing about what to change. Reused byte-for-byte from
+    // step3_odo_avgkm.dart:107 (en dash, not a hyphen) so both entry points
+    // read identically. Strictly greater than, so 1.000.000 itself is
+    // accepted, matching onboarding's own test. Never clamped — an
+    // out-of-range figure is rejected visibly and re-typed, never silently
+    // coerced into the accepted band.
+    if (parsedOdo > _maxOdo) {
+      setState(() {
+        _error = 'Số km không hợp lệ (0 – 1.000.000).';
+      });
+      return;
+    }
+
+    // CR-01 / P3-D-10 / P3-D-12: this same parsedOdo reaches
+    // Vehicle.currentOdoKm and, for any resetsCycle: true entry below,
+    // MaintenanceItem.lastServiceOdo — from which the km-axis due date is
+    // computed as lastServiceOdo + intervalKm (lib/domain/due.dart). A low
+    // typo here does not produce a wrong display; it produces a due date
+    // pushed into the future with nothing on screen to say so. Compared
+    // against the real last reading (never estimateOdo, never the nullable
+    // latestReadingFor), strictly, so a value exactly equal to the current
+    // reading — a same-day visit with no riding since — is never
+    // interrogated. Shares the exact confirmation odo_sheet.dart uses so the
+    // two write paths cannot disagree on wording.
+    if (parsedOdo < widget.vehicle.currentOdoKm) {
+      final confirmed = await confirmOdometerReplaced(
+        context,
+        previousKm: widget.vehicle.currentOdoKm,
+      );
+      // CLAUDE.md trap: BuildContext/State used after an await. The sheet
+      // can be disposed while the confirmation is open.
+      if (!mounted) return;
+      // Declining is a complete no-op: no error, no state change, every
+      // ticked item and every typed field stays exactly as the user left
+      // it. Cancelling is a correction opportunity, not a failure.
+      if (confirmed != true) return;
+    }
+
     setState(() {
       _submitting = true;
       _error = null;
@@ -223,6 +271,24 @@ class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
             resetsCycle: draft.resetsCycle,
           ),
         );
+      }
+
+      // WR-04: the loop above walks dueItems (its shipped order, per
+      // 03-04's must_haves — NOT switched to _drafts.keys, which would
+      // reorder entries by tick sequence) and skips any item without a
+      // matching draft. entries and _drafts are meant to describe the same
+      // ticked set; a mismatch means the provider's output diverged from
+      // that set between the sheet opening and the user tapping save.
+      // Recording a partial visit that silently drops a ticked item — along
+      // with the brand/spec/cost typed into it and any resetsCycle baseline
+      // update it carried — is worse than recording none, because a missed
+      // resetsCycle leaves a replaced part looking un-replaced and its
+      // reminder never fires.
+      if (entries.length != _drafts.length) {
+        setState(() {
+          _error = 'Không thể lưu lịch sử bảo dưỡng. Vui lòng thử lại.';
+        });
+        return;
       }
 
       final shopText = _shopController.text.trim();

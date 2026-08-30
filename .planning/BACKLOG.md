@@ -85,3 +85,115 @@ the image files themselves are never backed up to Drive, and the restore screen 
 
 **Natural moment to do it:** Phase 6, alongside the other polish work — or post-1.0, next to the
 fuel log (D-36).
+
+---
+
+### BL-04 — `home_screen.dart` / `due_card.dart` / `odo_sheet.dart` circular import triangle (WR-01)
+
+**Raised:** 2026-08-30, by `/gsd-code-review 03` and confirmed by `/gsd-verify-work 03`; routed here
+rather than into the 03-07 gap-closure plan.
+
+Both `due_card.dart` and `odo_sheet.dart` import `home_screen.dart show daysSinceOdoUpdate`, and
+`home_screen.dart` imports both of them back.
+
+**Why deferred:** it compiles and works correctly under Dart and `03-VERIFICATION.md` classifies it
+as a maintainability cost, not a functional defect; the gap-closure plan touches `odo_sheet.dart`
+only to repoint one dialog call and does not touch `home_screen.dart` or `due_card.dart` at all, so
+breaking the cycle would mean opening two files the failed truth has nothing to do with.
+
+**What promoting it looks like:** move `daysSinceOdoUpdate` and `vehicleHeaderLine` out of
+`home_screen.dart` into a small standalone file both dependents can import without pointing back at
+the screen widget — `lib/ui/widgets/odometer_confirm_dialog.dart`, created by 03-07, is the precedent
+for where such a file goes.
+
+**Natural moment to do it:** Phase 6 polish, or the next time a fourth file needs
+`daysSinceOdoUpdate`.
+
+---
+
+### BL-05 — `_toggleExact` retains a stale `avgDailyKm` after the exact field is hidden again (WR-02)
+
+**Raised:** 2026-08-30, by `/gsd-code-review 03` and confirmed by `/gsd-verify-work 03`; routed here
+rather than into the 03-07 gap-closure plan.
+
+Reveal the exact-entry field in `step3_odo_avgkm.dart`, type a valid value, tap the toggle again to
+hide it without picking a band: `_showExact` flips back but `draft.avgDailyKm` keeps the typed value,
+no radio appears selected, "Tiếp tục" stays enabled, and `completeOnboarding` commits an invisible
+number the screen is no longer showing. This is a real defect that silently seeds the estimation
+engine.
+
+**Why deferred:** `03-VERIFICATION.md` classifies it as out of Phase 3 scope — it is Phase 2 logic in
+`step3_odo_avgkm.dart`, which Phase 3 touched only for a one-line BL-01 import-path edit, and it is
+not counted against Phase 3's score.
+
+**What promoting it looks like:** clear `draft.avgDailyKm` on both transitions and clear the exact
+controller when hiding, per WR-02's own fix.
+
+**Natural moment to do it:** alongside BL-02's outstanding on-device onboarding checks, which is
+where it would be observed.
+
+---
+
+### BL-06 — two hardcoded grey caption colour literals in the onboarding steps (WR-05)
+
+**Raised:** 2026-08-30, by `/gsd-code-review 03` and confirmed by `/gsd-verify-work 03`; routed here
+rather than into the 03-07 gap-closure plan.
+
+The two call sites WR-05 names in `step4_items.dart` and `step5_oil_grade.dart` set caption colour
+with a literal instead of resolving `Theme.of(context).colorScheme.onSurfaceVariant` the way every
+other caption in the app does, so those two captions will not track contrast under a dark scheme.
+
+**Why deferred:** Phase 2 code, out of Phase 3 scope per `03-VERIFICATION.md`, and the palette itself
+is REL-02 in Phase 6 — fixing two literals now, against the placeholder teal-seeded
+`ColorScheme.fromSeed(...)` in `lib/theme/app_theme.dart` that is itself scheduled for replacement,
+is work done twice. Note explicitly that `settings_screen.dart`'s own grey caption is a deliberate,
+plan-approved copy of `welcome_screen.dart`'s shipped idiom and is NOT part of this item.
+
+**What promoting it looks like:** replace both literals with
+`Theme.of(context).colorScheme.onSurfaceVariant`, in the same pass as REL-02.
+
+**Natural moment to do it:** Phase 6, in the same pass as REL-02.
+
+---
+
+### BL-07 — `_iconForCatalogCode` duplicated verbatim across three files (IN-01)
+
+**Raised:** 2026-08-30, by `/gsd-code-review 03` and confirmed by `/gsd-verify-work 03`; routed here
+rather than into the 03-07 gap-closure plan.
+
+Present in `due_card.dart`, `home_screen.dart` and `item_detail_screen.dart`; a change to the
+fallback behaviour needs three edits in lockstep.
+
+**Why deferred:** INFO severity, each file's own header comment records the duplication as
+deliberate (each copy is private to its file), it is entangled with BL-04's import cycle, and none
+of the three files is edited by the gap-closure plan.
+
+**What promoting it looks like:** promote to a public `iconForCatalogCode` in
+`lib/ui/catalog_icons.dart`, which already owns `catalogIconFor` and the icon tree-shaking
+invariant.
+
+**Natural moment to do it:** together with BL-04, since the cycle is what pushed the duplication in
+the first place.
+
+---
+
+### BL-08 — find-by-id linear-search helpers duplicated across three files (IN-02)
+
+**Raised:** 2026-08-30, by `/gsd-code-review 03` and confirmed by `/gsd-verify-work 03`; routed here
+rather than into the 03-07 gap-closure plan.
+
+`_findItem`, `_findVehicle`, `_findNote` and `_findDueItem` repeat the same nullable-loop shape in
+`item_detail_screen.dart`, `note_editor_screen.dart` and `service_log_sheet.dart`.
+
+**Why deferred:** INFO severity and consistent with this codebase's established non-throwing-lookup
+convention — a deliberate choice, not an accident. Introducing a shared generic helper or adding
+`package:collection` for `firstWhereOrNull` means a new dependency decision and three files edited,
+in a run whose whole point is to not grow. Note that 03-07 deliberately reuses
+`service_log_sheet.dart`'s existing `_findItem` rather than introducing a new lookup pattern
+mid-fix.
+
+**What promoting it looks like:** decide between a shared generic helper and `package:collection`,
+then convert all sites in one pass.
+
+**Natural moment to do it:** Phase 6 polish, or whenever `package:collection` is added for another
+reason.
