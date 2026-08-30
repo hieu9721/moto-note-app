@@ -169,9 +169,17 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 04-01-PLAN.md — Tracer: one monthly ODO reminder planned in pure Dart, fired by the OS, tapped back into the app (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 04-02-PLAN.md — The domain planner: cadence, (vehicle, day) grouping, horizon, cap and the 45-day predicate (wave 2)
 - [ ] 04-03-PLAN.md — Permissions that never block, and Cài đặt's Thông báo group activated (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 04-04-PLAN.md — OEM battery guidance in a bottom sheet, and the dead-notification banner on Trang chủ (wave 3)
 
 ### Phase 5: Google Drive Backup & Restore

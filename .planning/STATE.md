@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 4
+current_phase: 04
 current_phase_name: Local Notifications
-status: planning
+status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-08-30T13:58:34.337Z"
+last_updated: "2026-08-30T14:59:38.532Z"
 last_activity: 2026-08-30
 last_activity_desc: Phase 03 complete, transitioned to Phase 4
-state_head: 8520edb963c4ab1b6c11f13eddbb40a34bc93bff
+state_head: 8e334b997cae90144b138a01f45a80c9fbda50c2
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 18
+  total_plans: 22
   completed_plans: 18
 ---
 
@@ -27,9 +27,9 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 4 — Local Notifications
+Phase: 04 (Local Notifications) — READY TO EXECUTE
 Plan: Not started — context gathered, ready to plan
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-08-30 — Phase 4 context gathered (18 decisions, P4-D-01…P4-D-18)
 
 Progress: [████████████████████] 18/18 plans (Phases 01–03 of 6 complete)
@@ -109,6 +109,8 @@ None yet.
 - **Decision-coverage gate override (Phase 2, 2026-08-29) — the recurrence predicted above.** `check.decision-coverage-plan` returned the identical `passed: false, reason: "could-not-parse", total: 0` when planning Phase 2, for the identical reason: `02-CONTEXT.md` namespaces its decisions as `- **P2-D-01:**`. Coverage was verified two ways — by `gsd-plan-checker` (VERIFICATION PASSED, 0 blockers) and by direct grep — and is **10/10**: P2-D-01 (02-02, 02-05), P2-D-02/03/04 (02-02), P2-D-05 (02-01, 02-02), P2-D-06 (02-01, 02-05), P2-D-07 (02-01, 02-05), P2-D-08 (02-01, 02-03, 02-05), P2-D-09 (02-01), P2-D-10 (02-01, 02-03). The user again chose to proceed rather than renaming the ids or disabling `workflow.context_coverage_gate`. Verify-phase should re-surface this. **This is now a standing pattern, not an incident** — it will recur for every `PN-D-NN` phase unless the gate's parser learns the namespace or the convention changes.
 
 - **Decision-coverage gate override (Phase 3, 2026-08-30) — the third recurrence, predicted in this file before it happened.** `check.decision-coverage-plan` again returned `passed: false, reason: "could-not-parse", total: 0` against `03-CONTEXT.md`'s `P3-D-NN` namespace. Coverage was verified two ways — by `gsd-plan-checker` (VERIFICATION PASSED on iteration 2, 0 blockers) and by direct grep — and is **18/18**: P3-D-01 (03-01, 03-02, 03-06), P3-D-02 (03-06), P3-D-03 (03-06), P3-D-04 (03-01, 03-03), P3-D-05 (03-04, 03-05), P3-D-06/07/08 (03-04), P3-D-09/10 (03-03), P3-D-11 (03-02), P3-D-12 (03-01, 03-03), P3-D-13 (03-01), P3-D-14/15 (03-05), P3-D-16 (03-01, 03-05, 03-06), P3-D-17 (03-04), P3-D-18 (03-02). Proceeded on the established precedent rather than renaming the ids. Verify-phase should re-surface it.
+
+- **Decision-coverage gate override (Phase 4, 2026-08-30) — the fifth recurrence, predicted in this file before it happened.** `check.decision-coverage-plan` again returned `passed: false, reason: "could-not-parse", total: 0` against `04-CONTEXT.md`'s `P4-D-NN` namespace; note `uncovered: []` — the gate named no actually-missing decision, it simply extracted none. Coverage was verified two ways — by `gsd-plan-checker` (VERIFICATION PASSED, 0 blockers, which grep-confirmed 18/18 independently) and by the orchestrator's own grep — and is **18/18**: every `P4-D-01…P4-D-18` is cited by at least one plan (04-01 cites 11 distinct, 04-02 cites 7, 04-03 cites 4, 04-04 cites 6). Proceeded on the established precedent rather than renaming the ids. Verify-phase should re-surface it. The pattern is now five phases old; it will recur for `P5-D-NN` unless the gate's parser learns the namespace or `workflow.context_coverage_gate` is turned off.
 
 - **D-33 was amended during Phase 3 planning (2026-08-30) — a locked project decision changed.** `gsd-plan-checker` blocked the first plan revision because `03-01`'s `DataIssueScreen` on a top-level `/data-issue` route is an eighth screen, and the planner had justified it by an invalid analogy to Phase 1/2's `_PostOnboardingPlaceholder` (those were temporary and scheduled for deletion; this is permanent product surface). The question was put to the user, who chose to amend D-33 to **7 + 1** rather than fold the state into an existing screen. `.planning/PROJECT.md` D-33 now names the read-only data-issue screen as a single explicit exception outside the seven-screen *feature* cap, and the Anti-Goals bullet points at it. `03-RESEARCH.md`'s original reasoning and its assumption **A3** were annotated as superseded. **The exception is not a precedent** — a new feature screen still needs a new decision. Phase 5 (restore, P1-D-09) may give this screen its first action.
 
