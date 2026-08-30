@@ -78,7 +78,8 @@ Summarised by capability:
 - **Push notifications** — there is no server; all notifications are scheduled locally. See D-07.
 - **Widget tests and mocks** — only two pure-function test files; UI is checked by hand on a real device.
   See D-32.
-- **More than seven screens** — the screen inventory is a scope-control device. See D-33.
+- **More than seven screens** — the screen inventory is a scope-control device. See D-33, including
+  its 7 + 1 amendment: the read-only data-issue screen is a named exception, not a precedent.
 - **The `drive` or `drive.readonly` scopes** — they trigger sensitive-scope review and possibly a paid
   security assessment. See D-22.
 - **iOS release in 1.0** — deferred past 1.0 by decision at project setup. The code stays
@@ -173,6 +174,15 @@ Full text with source line references: `.planning/intel/decisions.md`.
 - **D-21 [locked]:** Migration policy is additive only — only add fields, never rename, never delete; `json_serializable` ignores unknown fields, so old backups stay readable and new backups do not crash older app versions, and the migrate function must run on both local and restored data. Source: §4.4.
 - **D-31 [locked]:** `domain/` is pure Dart and must not import `package:flutter/...`, so the whole business logic runs under plain `dart test`; no `services/`, `utils/` or `helpers/` directories full of tiny files. Source: §12.
 - **D-33 [locked]:** Seven screens, no more — onboarding, home, notes list, note editor, settings, item detail, and the service-log modal sheet; ODO update is a modal sheet, not a screen. Source: §11, §3.2.
+  — **Amended 2026-08-30 (Phase 3 planning), 7 + 1.** The seven-screen cap governs the *feature*
+  surface and stays exactly as written. One named exception sits outside it: a read-only
+  **data-issue screen** (`/data-issue`), reachable only when `hydrate()` returns
+  `HydrateOutcome.undecodable` or `.schemaTooNew`. It is not reachable from any normal flow, offers
+  no action and no navigation, and exists so a corrupted `appdata.json` has somewhere to land that
+  is not onboarding — without it, a damaged document is silently overwritten by a fresh setup
+  (Phase 3 research Pitfall 1). Adding a *feature* screen still needs a new decision; this exception
+  does not license an eighth feature screen. Phase 5 owns restore (P1-D-09) and may give this screen
+  its first action.
 
 ### Backup and restore
 
