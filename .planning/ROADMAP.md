@@ -123,7 +123,7 @@ Plans:
   4. Recording the same item a second time prefills brand and spec from last time with "↳ giống lần trước", and the item detail screen shows the full history behind it.
   5. The user writes and pins a note and sees it on the home screen where it is visible at the workshop.
 
-**Plans**: 6/6 plans executed
+**Plans**: 6/6 plans executed + 1 gap-closure plan pending
 
 Plans:
 **Wave 1**
@@ -146,6 +146,10 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 03-06-PLAN.md — Home assembled: §9.5 cards, the 30-day cut, the collapsed row, pinned notes (HOME-03, HOME-05, HOME-06)
+
+**Gap closure — Wave 1** *(from 03-VERIFICATION.md, `status: gaps_found`; run with `/gsd-execute-phase 03 --gaps-only`)*
+
+- [ ] 03-07-PLAN.md — The lower-than-previous odometer guard on the service-log sheet, from one shared confirmation, plus the upper bound (CR-01, WR-03; LOG-02, LOG-03, ODO-04)
 
 **UI hint**: yes
 
