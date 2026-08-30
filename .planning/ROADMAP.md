@@ -123,7 +123,16 @@ Plans:
   4. Recording the same item a second time prefills brand and spec from last time with "↳ giống lần trước", and the item detail screen shows the full history behind it.
   5. The user writes and pins a note and sees it on the home screen where it is visible at the workshop.
 
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Tracer: `go_router` three-tab shell boots into the real vehicle header and due list (HOME-01, HOME-02, NOTE-02)
+- [ ] 03-02-PLAN.md — Foundations: BL-01 draft move, the `DueResult` honesty split, onboarding's setup `OdoReading` (HOME-05, ODO-04)
+- [ ] 03-03-PLAN.md — ODO update sheet with the self-drawn keypad, and the home FAB (ODO-04, HOME-04)
+- [ ] 03-04-PLAN.md — `addServiceLog` and the multi-item service-log sheet (LOG-01…04)
+- [ ] 03-05-PLAN.md — Item detail with full history, note CRUD and the note editor (LOG-05, NOTE-01, NOTE-02)
+- [ ] 03-06-PLAN.md — Home assembled: §9.5 cards, the 30-day cut, the collapsed row, pinned notes (HOME-03, HOME-05, HOME-06)
+
 **UI hint**: yes
 
 ### Phase 4: Local Notifications
