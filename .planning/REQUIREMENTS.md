@@ -80,10 +80,10 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Service Logging
 
-- [ ] **LOG-01**: The service-log modal sheet records Ngày, Số km, Chi phí (₫), Tiệm and a note across several items in one entry, with VND amounts and dates formatted through `intl`. *(§8.4, §11, §3.1)*
-- [ ] **LOG-02**: Entries with `resetsCycle: true` update the item's `lastServiceOdo`, `lastServiceDate`, `partBrand`, `partSpec` and `lastCostVnd` and clear `baselineIsGuess`; entries with `resetsCycle: false` record an inspection without resetting the cycle. *(§5.2, §4.2)*
-- [ ] **LOG-03**: Saving a service log also appends a derived `OdoReading` with `source: OdoSource.service`. *(§5.2)*
-- [ ] **LOG-04**: The next log form prefills brand and spec from the item's last change and shows the sub-line "↳ giống lần trước (02/06)". *(§8.4)*
+- [x] **LOG-01**: The service-log modal sheet records Ngày, Số km, Chi phí (₫), Tiệm and a note across several items in one entry, with VND amounts and dates formatted through `intl`. *(§8.4, §11, §3.1)*
+- [x] **LOG-02**: Entries with `resetsCycle: true` update the item's `lastServiceOdo`, `lastServiceDate`, `partBrand`, `partSpec` and `lastCostVnd` and clear `baselineIsGuess`; entries with `resetsCycle: false` record an inspection without resetting the cycle. *(§5.2, §4.2)*
+- [x] **LOG-03**: Saving a service log also appends a derived `OdoReading` with `source: OdoSource.service`. *(§5.2)*
+- [x] **LOG-04**: The next log form prefills brand and spec from the item's last change and shows the sub-line "↳ giống lần trước (02/06)". *(§8.4)*
 - [ ] **LOG-05**: The item detail screen shows that item's service history alongside its current due status. *(§11, §13 Tuần 2–3)*
 
 ### Notes
@@ -227,10 +227,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | HOME-05 | Phase 3 | Pending |
 | HOME-06 | Phase 3 | Pending |
 | ODO-04 | Phase 3 | Pending |
-| LOG-01 | Phase 3 | Pending |
-| LOG-02 | Phase 3 | Pending |
-| LOG-03 | Phase 3 | Pending |
-| LOG-04 | Phase 3 | Pending |
+| LOG-01 | Phase 3 | Complete |
+| LOG-02 | Phase 3 | Complete |
+| LOG-03 | Phase 3 | Complete |
+| LOG-04 | Phase 3 | Complete |
 | LOG-05 | Phase 3 | Pending |
 | NOTE-01 | Phase 3 | Pending |
 | NOTE-02 | Phase 3 | Pending |
