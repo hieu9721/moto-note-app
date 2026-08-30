@@ -71,6 +71,13 @@ class ServiceLogForm extends ConsumerStatefulWidget {
 }
 
 class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
+  // WR-03: matches step3_odo_avgkm.dart's own _maxOdo by name and value —
+  // one bound, two enforcement points, not two unrelated magic numbers. An
+  // extra typed digit turns 184200 into 1842000, and this sheet was the one
+  // raw-odometer entry point with no digit-count cap of its own: the ODO
+  // sheet caps at seven digits at the keypad, onboarding rejects at entry.
+  static const int _maxOdo = 1000000;
+
   late final TextEditingController _dateController;
   late final TextEditingController _odoController;
   late final TextEditingController _shopController;
@@ -201,6 +208,21 @@ class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
       return;
     }
 
+    // WR-03: its own branch, its own message. An out-of-range value must
+    // never disappear into the generic save-failure text above — that tells
+    // the user nothing about what to change. Reused byte-for-byte from
+    // step3_odo_avgkm.dart:107 (en dash, not a hyphen) so both entry points
+    // read identically. Strictly greater than, so 1.000.000 itself is
+    // accepted, matching onboarding's own test. Never clamped — an
+    // out-of-range figure is rejected visibly and re-typed, never silently
+    // coerced into the accepted band.
+    if (parsedOdo > _maxOdo) {
+      setState(() {
+        _error = 'Số km không hợp lệ (0 – 1.000.000).';
+      });
+      return;
+    }
+
     // CR-01 / P3-D-10 / P3-D-12: this same parsedOdo reaches
     // Vehicle.currentOdoKm and, for any resetsCycle: true entry below,
     // MaintenanceItem.lastServiceOdo — from which the km-axis due date is
@@ -249,6 +271,24 @@ class _ServiceLogFormState extends ConsumerState<ServiceLogForm> {
             resetsCycle: draft.resetsCycle,
           ),
         );
+      }
+
+      // WR-04: the loop above walks dueItems (its shipped order, per
+      // 03-04's must_haves — NOT switched to _drafts.keys, which would
+      // reorder entries by tick sequence) and skips any item without a
+      // matching draft. entries and _drafts are meant to describe the same
+      // ticked set; a mismatch means the provider's output diverged from
+      // that set between the sheet opening and the user tapping save.
+      // Recording a partial visit that silently drops a ticked item — along
+      // with the brand/spec/cost typed into it and any resetsCycle baseline
+      // update it carried — is worse than recording none, because a missed
+      // resetsCycle leaves a replaced part looking un-replaced and its
+      // reminder never fires.
+      if (entries.length != _drafts.length) {
+        setState(() {
+          _error = 'Không thể lưu lịch sử bảo dưỡng. Vui lòng thử lại.';
+        });
+        return;
       }
 
       final shopText = _shopController.text.trim();
