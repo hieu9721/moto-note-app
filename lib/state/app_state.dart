@@ -454,6 +454,24 @@ class AppNotifier extends Notifier<AppData> {
     });
   }
 
+  /// NOTIF-11: records that a notification was *opened* — not that one
+  /// fired. A local notification firing never wakes Dart code (there is no
+  /// observable OS "fired" event), so the only two honest moments this can
+  /// be written are the warm tap callback and the cold-start launch-details
+  /// read, both wired in `main.dart`. Despite the field's name
+  /// (`lastNotificationFiredAt`), this is deliberately "opened" — §10.6's
+  /// own Vietnamese text says "được mở" (RESEARCH.md Assumption A3). Goes
+  /// through `_mutate` like every other mutation (DATA-06).
+  Future<void> recordNotificationOpened({DateTime? now}) {
+    return _mutate(
+      (current) => current.copyWith(
+        settings: current.settings.copyWith(
+          lastNotificationFiredAt: (now ?? DateTime.now()).toUtc(),
+        ),
+      ),
+    );
+  }
+
   void _log(String message) {
     // ignore: avoid_print
     print('AppNotifier: $message');
