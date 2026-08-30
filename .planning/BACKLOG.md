@@ -226,3 +226,33 @@ equivalent. Small — one file, one branch, one shared string already in the tre
 
 **Natural moment to do it:** the next gap-closure pass for Phase 3, or Phase 6 polish. Promote it
 sooner if the on-device UAT for test 2 (ODO sheet keypad) surfaces it in practice.
+
+---
+
+### BL-10 — `service_log_sheet.dart` keeps a stale inline error on screen while the user corrects the field
+
+**Raised:** 2026-08-30, during `/gsd-verify-work 03`'s on-device UAT (test 3, guard `(c)`). Routed
+here rather than reopening Phase 3: every truth test 3 asserts held exactly, and this is a
+presentation nit outside all of them.
+
+`_ServiceLogFormState._error` is only cleared inside `_save()` (`service_log_sheet.dart:250`), so
+after `Số km không hợp lệ (0 – 1.000.000).` is raised, the red line stays on screen while the user
+edits `Số km` to a valid value, and is still visible *behind* the P3-D-12 confirmation dialog on the
+next save attempt — the dialog and a contradicting error render together. `odo_sheet.dart` takes the
+opposite approach: `_tapDigit` and `_backspace` both set `_error = null` (`:73`, `:81`), so its error
+clears on the first correcting keystroke.
+
+Observed on SM-A066B: entered `12345678` → error shown; corrected to `18000` → error still shown;
+tapped Lưu → confirmation dialog opened with the stale error line visible underneath it.
+
+**Why deferred:** D-34 (source §13.2) routes mid-build findings here rather than growing the version
+being built. Nothing is mis-saved and no data is at risk — the guard itself works, and UAT test 3
+passed on every stated criterion. The two sheets deliberately do NOT share scaffolding (research
+Pitfall 3), so this is a genuine divergence to reconcile, not an accidental copy-paste drift.
+
+**What promoting it looks like:** clear `_error` from the `Số km` field's `onChanged` (the field has
+none today), or from a shared `_clearError()` called by the visit-level `TextField`s. One file, a few
+lines. Consider doing it in the same pass as BL-09, which is the other odometer-validation
+inconsistency between these same two sheets.
+
+**Natural moment to do it:** Phase 6 polish, alongside BL-09.
