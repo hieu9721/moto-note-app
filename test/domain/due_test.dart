@@ -496,6 +496,14 @@ void main() {
       // OR, không phải AND: baselineIsGuess=true dù ODO vừa cập nhật (0
       // ngày) vẫn phải isEstimate=true — độ mới của ODO không được che
       // lấp một mốc giả định (§6.1).
+      //
+      // P3-D-01: hai nguyên nhân này giờ tách thành hai cờ độc lập,
+      // odoIsStale và baselineIsGuess, với isEstimate là OR dẫn xuất của cả
+      // hai (một getter, không còn là field lưu trữ). Bốn tổ hợp bên dưới
+      // xác nhận cả hai cờ có thể kiểm tra riêng biệt — điều mà cờ
+      // isEstimate cũ (một boolean duy nhất) không thể phân biệt, và là
+      // tiền đề HOME-05 cần cho ba cách hiển thị với hai nút hành động khác
+      // nhau.
       final vehicleGuess = Vehicle(
         id: 'v12a',
         name: 'Xe test',
@@ -518,6 +526,8 @@ void main() {
           computeDue(itemGuess, vehicleGuess, 7, now: DateTime.utc(2026, 8, 29));
       expect(resultGuess, isNotNull);
       expect(resultGuess!.isEstimate, isTrue);
+      expect(resultGuess.baselineIsGuess, isTrue);
+      expect(resultGuess.odoIsStale, isFalse); // 0 ngày kể từ odoUpdatedAt
 
       // Ranh giới 45 ngày: đúng 45 ngày -> false, 46 ngày -> true (điều
       // kiện là strictly greater than 45, không phải >=).
@@ -542,6 +552,8 @@ void main() {
       final result45 = computeDue(item45, vehicle45, 7, now: DateTime.utc(2026, 8, 29));
       expect(result45, isNotNull);
       expect(result45!.isEstimate, isFalse);
+      expect(result45.odoIsStale, isFalse);
+      expect(result45.baselineIsGuess, isFalse);
 
       final vehicle46 = Vehicle(
         id: 'v1246',
@@ -564,6 +576,37 @@ void main() {
       final result46 = computeDue(item46, vehicle46, 7, now: DateTime.utc(2026, 8, 29));
       expect(result46, isNotNull);
       expect(result46!.isEstimate, isTrue);
+      expect(result46.odoIsStale, isTrue);
+      expect(result46.baselineIsGuess, isFalse);
+
+      // Tổ hợp thứ tư: mốc giả định VÀ ODO đã cũ 46 ngày cùng lúc — cả hai
+      // cờ true. Đây là tổ hợp mà cờ isEstimate cũ (một boolean duy nhất)
+      // không thể diễn đạt, và là tiền đề cho quy tắc ưu tiên của P3-D-01
+      // (baselineIsGuess thắng trong câu chữ khi cả hai đều true).
+      final vehicleBoth = Vehicle(
+        id: 'v1246b',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 5000,
+        odoUpdatedAt: DateTime.utc(2026, 7, 14), // 46 ngày trước 29/8
+        avgDailyKm: 20,
+        createdAt: DateTime.utc(2026, 8, 29),
+      );
+      final itemBoth = const MaintenanceItem(
+        id: 'i1246b',
+        vehicleId: 'v1246b',
+        catalogCode: 'engine_oil',
+        name: 'Nhớt máy',
+        intervalKm: 2000,
+        lastServiceOdo: 4000,
+        baselineIsGuess: true,
+      );
+      final resultBoth =
+          computeDue(itemBoth, vehicleBoth, 7, now: DateTime.utc(2026, 8, 29));
+      expect(resultBoth, isNotNull);
+      expect(resultBoth!.baselineIsGuess, isTrue);
+      expect(resultBoth.odoIsStale, isTrue);
+      expect(resultBoth.isEstimate, isTrue);
     });
 
     // Regression. Before the fix this file's own suite provoked, `_dateOnly`
