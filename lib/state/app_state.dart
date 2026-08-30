@@ -394,6 +394,66 @@ class AppNotifier extends Notifier<AppData> {
     });
   }
 
+  /// NOTE-01: appends a new [Note] to the document. The caller (the note
+  /// editor) supplies both `id` and `createdAt`/`updatedAt` rather than this
+  /// method fabricating them — the editor needs the id up front to tell a
+  /// create from an edit before the mutation ever runs. A single `_mutate`
+  /// call, no other lookup: an append can never fail on an unknown id the
+  /// way an update/delete can.
+  Future<void> addNote(Note note) {
+    return _mutate(
+      (current) => current.copyWith(notes: [...current.notes, note]),
+    );
+  }
+
+  /// NOTE-01: replaces an existing [Note] **at its current index** rather
+  /// than removing and re-appending, so editing a note never reorders
+  /// `AppData.notes`. An unknown id is an honest no-op — same convention as
+  /// `addOdoReading`'s vehicle lookup above — never an insert, since a
+  /// caller passing an id this document does not have is a bug to surface,
+  /// not paper over. `updatedAt` is set here to the current UTC instant
+  /// rather than trusting whatever the caller's copy carried.
+  Future<void> updateNote(Note note) {
+    return _mutate((current) {
+      final i = current.notes.indexWhere((n) => n.id == note.id);
+      if (i == -1) return current; // unknown id: honest no-op, never an insert
+      final notes = [...current.notes];
+      notes[i] = note.copyWith(updatedAt: DateTime.now().toUtc());
+      return current.copyWith(notes: notes);
+    });
+  }
+
+  /// NOTE-01: removes a note by id. Deleting an id that is already gone is
+  /// naturally a no-op under this shape (the filter simply keeps everything)
+  /// — do not "fix" this into a throwing lookup; an absent id here is not an
+  /// error, it is the same state the caller wanted.
+  Future<void> deleteNote(String id) {
+    return _mutate(
+      (current) => current.copyWith(
+        notes: current.notes.where((n) => n.id != id).toList(),
+      ),
+    );
+  }
+
+  /// NOTE-02: flips one note's `pinned` flag in place. Implemented as its
+  /// own method rather than making the editor round-trip a whole [Note] for
+  /// a one-field change — the editor's AppBar pin `IconButton` calls this
+  /// directly for an already-saved note, so a single tap persists
+  /// immediately with no save round-trip through the rest of the record.
+  /// Same nullable-lookup, honest-no-op discipline as `updateNote` above.
+  Future<void> toggleNotePinned(String id) {
+    return _mutate((current) {
+      final i = current.notes.indexWhere((n) => n.id == id);
+      if (i == -1) return current; // unknown id: honest no-op
+      final notes = [...current.notes];
+      notes[i] = notes[i].copyWith(
+        pinned: !notes[i].pinned,
+        updatedAt: DateTime.now().toUtc(),
+      );
+      return current.copyWith(notes: notes);
+    });
+  }
+
   void _log(String message) {
     // ignore: avoid_print
     print('AppNotifier: $message');

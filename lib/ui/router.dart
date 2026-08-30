@@ -26,15 +26,19 @@
 //    screen naming which `HydrateOutcome` occurred, offering no action and no
 //    navigation — Phase 5 owns restore (P1-D-09).
 //
-// `item/:id` (under `/`) and `:id` (under `/notes`) are deliberately NOT
-// declared here — plan 05 adds both routes and their screens together, so no
-// route ever points at a placeholder widget.
+// `item/:id` (under `/`) and `:id` (under `/notes`) are added by plan 05
+// alongside `item_detail_screen.dart` and `note_editor_screen.dart`, so
+// neither route ever points at a placeholder widget. The notes branch also
+// declares a literal `new` segment BEFORE its `:id` route — a `:id` route
+// declared first would otherwise happily capture `new` as if it were an id.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
 import 'home/home_screen.dart';
+import 'item/item_detail_screen.dart';
+import 'notes/note_editor_screen.dart';
 import 'notes/notes_screen.dart';
 import 'onboarding/welcome_screen.dart';
 import 'settings/settings_screen.dart';
@@ -81,6 +85,13 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/',
                 builder: (context, state) => const HomeScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'item/:id',
+                    builder: (context, state) =>
+                        ItemDetailScreen(itemId: state.pathParameters['id']!),
+                  ),
+                ],
               ),
             ],
           ),
@@ -89,6 +100,26 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/notes',
                 builder: (context, state) => const NotesScreen(),
+                routes: [
+                  // Declared BEFORE the ':id' route below so a literal
+                  // 'new' segment is matched first — a ':id' route would
+                  // otherwise happily capture it as if it were an id.
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => NoteEditorScreen(
+                      // P3-D-15: query parameters, not path segments — the
+                      // item-detail screen's "Thêm ghi chú" action is the
+                      // only caller that ever supplies these.
+                      vehicleId: state.uri.queryParameters['vehicleId'],
+                      itemId: state.uri.queryParameters['itemId'],
+                    ),
+                  ),
+                  GoRoute(
+                    path: ':id',
+                    builder: (context, state) =>
+                        NoteEditorScreen(noteId: state.pathParameters['id']),
+                  ),
+                ],
               ),
             ],
           ),

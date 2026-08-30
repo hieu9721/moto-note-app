@@ -84,12 +84,12 @@ cross-platform; only the release and verification surface is Android-only.
 - [x] **LOG-02**: Entries with `resetsCycle: true` update the item's `lastServiceOdo`, `lastServiceDate`, `partBrand`, `partSpec` and `lastCostVnd` and clear `baselineIsGuess`; entries with `resetsCycle: false` record an inspection without resetting the cycle. *(§5.2, §4.2)*
 - [x] **LOG-03**: Saving a service log also appends a derived `OdoReading` with `source: OdoSource.service`. *(§5.2)*
 - [x] **LOG-04**: The next log form prefills brand and spec from the item's last change and shows the sub-line "↳ giống lần trước (02/06)". *(§8.4)*
-- [ ] **LOG-05**: The item detail screen shows that item's service history alongside its current due status. *(§11, §13 Tuần 2–3)*
+- [x] **LOG-05**: The item detail screen shows that item's service history alongside its current due status. *(§11, §13 Tuần 2–3)*
 
 ### Notes
 
-- [ ] **NOTE-01**: The user can create, edit and delete a note with an optional title and a body, optionally attached to a vehicle or an item. *(§4.2, §11)*
-- [ ] **NOTE-02**: The user can pin a note; pinned notes sort first in the Ghi chú list. *(§4.2, §11)*
+- [x] **NOTE-01**: The user can create, edit and delete a note with an optional title and a body, optionally attached to a vehicle or an item. *(§4.2, §11)*
+- [x] **NOTE-02**: The user can pin a note; pinned notes sort first in the Ghi chú list. *(§4.2, §11)*
 
 ### Notifications
 
@@ -231,9 +231,9 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | LOG-02 | Phase 3 | Complete |
 | LOG-03 | Phase 3 | Complete |
 | LOG-04 | Phase 3 | Complete |
-| LOG-05 | Phase 3 | Pending |
-| NOTE-01 | Phase 3 | Pending |
-| NOTE-02 | Phase 3 | Pending |
+| LOG-05 | Phase 3 | Complete |
+| NOTE-01 | Phase 3 | Complete |
+| NOTE-02 | Phase 3 | Complete |
 | NOTIF-01 | Phase 4 | Pending |
 | NOTIF-02 | Phase 4 | Pending |
 | NOTIF-03 | Phase 4 | Pending |
