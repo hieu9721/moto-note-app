@@ -14,6 +14,7 @@ import '../domain/id.dart';
 import '../domain/models/app_data.dart';
 import '../domain/models/maintenance_item.dart';
 import '../domain/models/misc.dart';
+import '../domain/models/service_log.dart';
 import '../domain/models/vehicle.dart';
 import '../domain/odo.dart';
 import '../notifications/notification_service.dart';
@@ -285,6 +286,109 @@ class AppNotifier extends Notifier<AppData> {
 
       return current.copyWith(
         odoReadings: [...current.odoReadings, reading],
+        vehicles: vehicles,
+      );
+    });
+  }
+
+  /// LOG-01…03: records one workshop visit across however many items were
+  /// actually touched, taking the domain [ServiceLog] type directly — never
+  /// a draft/form type from `lib/ui/`. Plan 02 just finished removing exactly
+  /// that inversion (BL-01, P3-D-18), and this method is the place research
+  /// names as most likely to recreate it, so the sheet converts to
+  /// [ServiceLog]/[ServiceLogEntry] only at save time and this signature
+  /// never accepts anything else.
+  ///
+  /// Shares `addOdoReading`'s exact shape above it: a nullable vehicle
+  /// lookup (honest no-op on an unknown id), the previous reading taken
+  /// BEFORE the new one is built, `.toUtc()` at the point of use, and all
+  /// four `Vehicle` fields moved together through [refineAvgDailyKm].
+  ///
+  /// **P3-D-08 — the deliberate hardening over §5.2's literal listing.**
+  /// §5.2 only appends an `OdoReading`; it leaves `Vehicle` untouched. Under
+  /// that listing, a user who logs "today, 18.420 km" at a workshop would
+  /// return to a home screen still reading a stale, drifted estimate — the
+  /// single most valuable measurement this app is ever likely to receive
+  /// would refine nothing. Do not "fix" this back toward the source listing.
+  ///
+  /// **P3-D-06** — `ServiceLog.totalCostVnd` is derived here, once, as the
+  /// sum of the entries' `costVnd` (null treated as zero) and stored via
+  /// `copyWith` — never accepted as input, so the two figures can never
+  /// disagree.
+  ///
+  /// **LOG-02** — only entries with `resetsCycle: true` update their item's
+  /// baseline (`lastServiceOdo`, `lastServiceDate`, `baselineIsGuess`,
+  /// `partBrand`, `partSpec`, `lastCostVnd`); a `resetsCycle: false` entry
+  /// (inspection without replacement) touches nothing on its item even when
+  /// it carries a brand, a spec or a cost (T-03-15). Each of the three
+  /// part-data fields falls back to the item's existing value when the
+  /// entry's own is null, so a blank brand field on save never erases what
+  /// was already known (T-03-14).
+  Future<void> addServiceLog(ServiceLog log) {
+    return _mutate((current) {
+      final vehicleIndex = current.vehicles.indexWhere(
+        (v) => v.id == log.vehicleId,
+      );
+      if (vehicleIndex == -1) return current; // unknown id: honest no-op
+
+      final vehicle = current.vehicles[vehicleIndex];
+      // Take the previous reading BEFORE appending the new one, so the new
+      // reading is never compared against itself.
+      final prev = latestReadingFor(current, log.vehicleId);
+      final reading = OdoReading(
+        id: newId(),
+        vehicleId: log.vehicleId,
+        odoKm: log.odoKm,
+        date: log.date.toUtc(),
+        source: OdoSource.service, // LOG-03
+      );
+      final refined = refineAvgDailyKm(vehicle, reading, prev);
+
+      final vehicles = [...current.vehicles];
+      vehicles[vehicleIndex] = vehicle.copyWith(
+        currentOdoKm: log.odoKm,
+        odoUpdatedAt: reading.date,
+        avgDailyKm: refined.avgDailyKm,
+        avgDailyKmSource: refined.source,
+      );
+
+      // P3-D-06: the total is computed here, once — never accepted as
+      // input, so ServiceLog.totalCostVnd and the sum of its entries'
+      // costVnd can never disagree.
+      final totalCost = log.entries.fold<int>(
+        0,
+        (sum, e) => sum + (e.costVnd ?? 0),
+      );
+
+      // LOG-02: only resetsCycle:true entries touch the item's baseline.
+      final resetIds = log.entries
+          .where((e) => e.resetsCycle)
+          .map((e) => e.itemId)
+          .toSet();
+      final items = current.items.map((item) {
+        if (!resetIds.contains(item.id)) return item;
+        // This lookup is safe unlike an ordinary throwing search: entry.itemId
+        // values come from THIS SAME log's own entries list, so a match is
+        // guaranteed by construction. Every lookup against a caller-supplied
+        // id (the vehicle, above) still uses the nullable indexWhere form.
+        final entry = log.entries.firstWhere((e) => e.itemId == item.id);
+        return item.copyWith(
+          lastServiceOdo: log.odoKm,
+          lastServiceDate: reading.date,
+          baselineIsGuess: false, // LOG-02: no longer a guessed baseline
+          partBrand: entry.partBrand ?? item.partBrand,
+          partSpec: entry.partSpec ?? item.partSpec,
+          lastCostVnd: entry.costVnd ?? item.lastCostVnd,
+        );
+      }).toList();
+
+      return current.copyWith(
+        logs: [
+          ...current.logs,
+          log.copyWith(totalCostVnd: totalCost),
+        ],
+        odoReadings: [...current.odoReadings, reading],
+        items: items,
         vehicles: vehicles,
       );
     });
