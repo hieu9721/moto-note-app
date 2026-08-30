@@ -5,10 +5,10 @@ current_phase: 03
 current_phase_name: Home, Logging & Notes
 status: executing
 stopped_at: Phase 03 UI-SPEC approved (ui.safety-gate cleared)
-last_updated: "2026-08-30T03:52:28.961Z"
+last_updated: "2026-08-30T03:56:46.853Z"
 last_activity: 2026-08-30
 last_activity_desc: Phase 03 execution started
-state_head: 97849e54a1c05efd161d82a81152b17a310119ad
+state_head: 022b602d8a82a0460e028d47504868af75610b49
 progress:
   total_phases: 6
   completed_phases: 2
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 03 (Home, Logging & Notes) — READY TO EXECUTE (Wave 2 onward)
-Plan: 1 of 6 complete (03-01 merged at `c59f1ff`; 03-02…03-06 replanned against 03-UI-SPEC.md)
-Status: Ready — run /gsd-execute-phase 3 to resume at Wave 2. The UI gate is cleared and the design contract is now lifted into the plans.
-Last activity: 2026-08-30 — Phase 03 plans 02–06 revised to carry the UI design contract
+Phase: 03 (Home, Logging & Notes) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 03
+Last activity: 2026-08-30 — Phase 03 execution started
 
 Progress: [████████████████████] 11/11 plans (Phases 01–02 of 6 complete)
 
@@ -131,15 +131,18 @@ Session notes:
 - **Three planner adjudications are recorded inside the plans, not just in the transcript** — the
   checker verified this specifically, because a judgment call that lives only in a chat log is
   invisible to `/gsd-execute-phase`:
+
   1. `03-05` contradicted the UI-SPEC in two places (a notes-tab `FloatingActionButton` and an inline
      per-row pin button, against H6's `AppBar` action and pin-only-from-the-editor). The UI-SPEC won —
      it is the later, checker-approved document, and the FAB slot plus accent colour are reserved for
      "Cập nhật số km". Recorded in that plan's `## Reconciliation with 03-UI-SPEC.md`.
      `toggleNotePinned` is still built and still called, now from the editor's pin button.
+
   2. `03-06` kept the plan's stricter `kmLeft` guard ("non-null **and negative**") over the UI-SPEC's
      `!= null`. A positive `kmLeft` on an item overdue on the time axis would render
      "Quá hạn 7 ngày · 400 km", which reads as *400 km remaining* — the exact opposite of the truth.
      Recorded in that plan's `## Flagged planner decisions`, item 3.
+
   3. `03-06`'s fourth (plain-line) branch keeps the oil / non-oil split, since the UI-SPEC's table
      quotes only P3-D-01's oil-specific line and does not contradict §11.1's generic form. Recorded
      in the same block, item 1.
