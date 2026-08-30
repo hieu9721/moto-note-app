@@ -4,15 +4,15 @@ milestone: v1.0
 current_phase: 03
 current_phase_name: Home, Logging & Notes
 status: executing
-stopped_at: Phase 03 UI-SPEC approved (ui.safety-gate cleared)
-last_updated: "2026-08-30T03:56:46.853Z"
+stopped_at: Phase 03 gap-closure plan 03-07 created and verified; awaiting /gsd-execute-phase 03 --gaps-only
+last_updated: "2026-08-30T12:00:57.825Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 03 execution started
-state_head: 022b602d8a82a0460e028d47504868af75610b49
+last_activity_desc: Phase 03 gap-closure plan 03-07 created (CR-01/WR-03 odometer guards)
+state_head: 5710e9d226ef43c347afeaae53bc25f872eeddd1
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 17
+  total_plans: 18
   completed_plans: 12
 ---
 
@@ -27,12 +27,30 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 03 (Home, Logging & Notes) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 03
-Last activity: 2026-08-30 — Phase 03 execution started
+Phase: 03 (Home, Logging & Notes) — READY TO EXECUTE (gap closure)
+Plan: 03-07 of 7 (03-01…03-06 executed; 03-07 is the only outstanding plan)
+Status: Ready to execute
+Last activity: 2026-08-30 — Phase 03 gap-closure plan created (`/gsd-plan-phase 03 --gaps`)
 
-Progress: [████████████████████] 11/11 plans (Phases 01–02 of 6 complete)
+Progress: [████████████████░░░░] 17/18 plans (Phases 01–02 of 6 complete; Phase 03 at 6/7)
+
+**Next command:** `/gsd-execute-phase 03 --gaps-only` — runs only `gap_closure: true` plans, i.e. 03-07 alone.
+
+### Planning gate note — §13a decision coverage (2026-08-30)
+
+`query check.decision-coverage-plan` returned `passed: false`, `reason: could-not-parse`, `total: 0`.
+**This is a parser namespace mismatch, not a coverage gap.** `03-CONTEXT.md` deliberately numbers its
+decisions `P3-D-NN` (phase-scoped, stated at its line 29, to keep them distinct from PROJECT.md's
+`D-01…D-36`); the gate's extractor only matches `- **D-NN:**` bullets, so it parsed zero decisions and
+failed closed.
+
+Equivalent check run by hand at plan time: **18 of 18** `P3-D-01…P3-D-18` are cited by at least one
+`03-*-PLAN.md`; zero uncovered. `03-07-PLAN.md` cites `P3-D-10` and `P3-D-12`.
+
+Recorded so verify-phase re-surfaces the *parser* issue, not a phantom dropped decision. Nothing was
+overridden and no coverage gap was accepted. Fixing this properly means teaching the extractor the
+`P{N}-D-NN` form — renaming the decisions is not an option, as six executed plans and their SUMMARYs
+already cite the `P3-D-NN` ids.
 
 ## Performance Metrics
 
