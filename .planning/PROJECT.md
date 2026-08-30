@@ -39,13 +39,19 @@ All three must hold together for 1.0 to count as done:
   device reboot byte-identically, and the §5.1 write ordering was observed on-device — the backup
   copy holds the *previous target* content, never the tmp file.
 
+- ✓ Six-step onboarding, the 24-entry parts catalog, oil-grade presets, and the pure-Dart due /
+  ODO-estimation engines with their two test files — **Phase 2** (18 requirements: CAT-01…03,
+  ONB-01…05, ODO-01…03, DUE-01…07). Verified on real hardware (SM-A066B, `--release`): the full
+  six-step flow, the P2-D-01 pre-check triples for both scooter (20/11/9) and manual (19/12/7),
+  P2-D-08's `[0.5, 400]` bound **rejecting** rather than clamping, back-navigation preserving
+  entered values, "Không nhớ" buying a full silent cycle instead of a wrong reminder, and a
+  Vietnamese name surviving a force-stop pixel-identically.
+
 ### Active
 
 Full requirement list with IDs and source traceability: `.planning/REQUIREMENTS.md` (86 v1 requirements).
 Summarised by capability:
 
-- [ ] Six-step onboarding, the 24-entry parts catalog, oil-grade presets, and the pure-Dart due /
-      ODO-estimation engines with their two test files
 - [ ] Home screen, ODO update sheet, service logging with part-spec memory, item history, and notes
       with pinning
 - [ ] Local notifications — monthly ODO reminder, due-soon and overdue reminders, grouping, deep
@@ -224,4 +230,4 @@ during `/gsd-discuss-phase 2` and are kept here only as a record of what was dec
 </details>
 
 ---
-*Last updated: 2026-08-29 after Phase 1*
+*Last updated: 2026-08-30 after Phase 2*
