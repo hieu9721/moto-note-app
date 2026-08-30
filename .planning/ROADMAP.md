@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Toolchain, Scaffold & Data Layer** - Flutter installed, project created per §12, and one JSON document that survives a force-stop (completed 2026-08-29)
 - [x] **Phase 2: Onboarding, Catalog & Estimation Engines** - A bike set up in six steps, and the pure-Dart engines that know when each item is due (completed 2026-08-30)
-- [ ] **Phase 3: Home, Logging & Notes** - Usable for real on the developer's own bike
+- [x] **Phase 3: Home, Logging & Notes** - Usable for real on the developer's own bike (completed 2026-08-30)
 - [ ] **Phase 4: Local Notifications** - The right reminder on the right day, even on a Xiaomi
 - [ ] **Phase 5: Google Drive Backup & Restore** - Lose the phone, get everything back
 - [ ] **Phase 6: Polish & Play Store Release** - 1.0 live on the Play Store
@@ -210,7 +210,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
-| 3. Home, Logging & Notes | 7/7 | In Progress|  |
+| 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |

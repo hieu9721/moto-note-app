@@ -1,19 +1,19 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 03
-current_phase_name: Home, Logging & Notes
-status: executing
-stopped_at: Phase 03 gap-closure plan 03-07 created and verified; awaiting /gsd-execute-phase 03 --gaps-only
-last_updated: "2026-08-30T12:11:05.932Z"
+current_phase: 4
+current_phase_name: Local Notifications
+status: planning
+stopped_at: Phase 03 complete, ready to plan Phase 4
+last_updated: "2026-08-30T13:31:33.877Z"
 last_activity: 2026-08-30
-last_activity_desc: Phase 03 execution started
-state_head: 3017e83f47d0c59f7e3b56f15e783c2b3b2cdf55
+last_activity_desc: Phase 03 complete, transitioned to Phase 4
+state_head: fa77ce2fc40ef2b7247156c6a70c40a630be1951
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -27,16 +27,18 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 03 (Home, Logging & Notes) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 03
-Last activity: 2026-08-30 — Phase 03 execution started
+Phase: 4 — Local Notifications
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-08-30 — Phase 03 complete, transitioned to Phase 4
 
-Progress: [████████████████░░░░] 17/18 plans (Phases 01–02 of 6 complete; Phase 03 at 6/7)
+Progress: [████████████████████] 18/18 plans (Phases 01–03 of 6 complete)
 
-**Next command:** `/gsd-execute-phase 03 --gaps-only` — runs only `gap_closure: true` plans, i.e. 03-07 alone.
+**Next command:** `/gsd-discuss-phase 4` — Phase 4 (Local Notifications) is unplanned. Note that
+§10.6's OEM battery-optimisation behaviour is only observable on the real SM-A066B, which must be
+re-attached; and that D-30 forbids blocking any feature on the exact-alarm permission.
 
-### Planning gate note — §13a decision coverage (2026-08-30)
+### Planning gate note — §13a decision coverage (2026-08-30, Phase 03 — closed)
 
 `query check.decision-coverage-plan` returned `passed: false`, `reason: could-not-parse`, `total: 0`.
 **This is a parser namespace mismatch, not a coverage gap.** `03-CONTEXT.md` deliberately numbers its
@@ -56,7 +58,7 @@ already cite the `P3-D-NN` ids.
 
 **Velocity:**
 
-- Total plans completed: 11
+- Total plans completed: 18
 - Average duration: —
 - Total execution time: 0.0 hours
 
@@ -66,6 +68,7 @@ already cite the `P3-D-NN` ids.
 |-------|-------|-------|----------|
 | 01 | 6 | - | - |
 | 02 | 5 | - | - |
+| 03 | 7 | - | - |
 
 **Recent Trend:**
 
@@ -120,14 +123,52 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-08-30T03:52:28.961Z
-Stopped at: Phase 03 plans 02–06 revised to lift 03-UI-SPEC.md; plan-checker PASSED
-Resume file: .planning/phases/03-home-logging-notes/03-02-PLAN.md
+Last session: 2026-08-30T13:31:33.877Z
+Stopped at: Phase 03 CLOSED — UAT 7/7 passed on device, SECURITY.md produced, transitioned to Phase 4
+Resume file: none — Phase 4 is unplanned
 
-Phase 03 is planned and the UI gate is cleared. Next action is `/gsd-execute-phase 3`,
-which resumes at Wave 2 — Wave 1 (03-01) is already merged.
+Phase 03 is complete. Next action is `/gsd-discuss-phase 4`.
 
 Session notes:
+
+- **Phase 03 closed by `/gsd-verify-work 03` on 2026-08-30, driven end-to-end over adb against the
+  real SM-A066B on a fresh `--release` build of `7b08689`.** All five outstanding human-verification
+  items ran and passed; `03-SECURITY.md` was produced by `/gsd-secure-phase 03` (38 threats, 0 open,
+  1 documented accepted risk); `03-VERIFICATION.md` was canonicalised to `passed`.
+
+- **The on-device UAT was scripted, not hand-driven, and the technique is worth reusing.**
+  `adb exec-out screencap -p` into the scratchpad plus `adb shell input tap/swipe/text`, reading each
+  screenshot back before deciding the next tap. Two things learned that will save time in Phase 4:
+  `adb shell input text` splits on spaces unless they are written `%s` (a plain quoted string silently
+  truncates at the first space — it produced a one-word note body before this was spotted); and the
+  ODO sheet's keypad y-coordinates are stable whether or not the lower-than-previous warning is
+  showing, because the sheet is bottom-anchored and only its top moves.
+
+- **Two Phase-3 truths were not directly observable from the shipped data and had to be manufactured
+  through legitimate in-app actions** — worth knowing before Phase 4's UAT is designed. The `~`
+  prefix only appears when `estimateOdo > currentOdoKm`, which needs elapsed time since the last
+  reading; and no item was overdue. Both were created without touching the device clock or the
+  document: a back-dated `Chỉ kiểm tra` service log moves `odoUpdatedAt` into the past (it is the one
+  entry shape that changes the vehicle's odometer while touching no item baseline), and an ODO update
+  to 25.000 put an item overdue. `avgDailyKm` was measured at 20 km/day this way.
+
+- **The cancelled-save guard was proven negatively, not just observed.** UAT 3(b) asserts a cancelled
+  P3-D-12 confirmation writes nothing. Rather than trusting the absence of a visible change — the
+  release build is not debuggable, so `run-as` cannot read `appdata.json` — the check was deferred
+  until after the real save, then settled by counting `Lịch sử` rows: exactly one entry per item, and
+  no reading at the cancelled value anywhere. Use this shape again; a "nothing happened" claim needs a
+  positive count, not an eyeball.
+
+- **Two cosmetic findings were routed to BACKLOG as BL-10, not treated as gaps** (D-34): the service-log
+  sheet keeps a stale inline error on screen while the user corrects the field, where the ODO sheet
+  clears its error on the first keystroke; and the ODO sheet's `[ Lưu ]` renders below the keypad
+  rather than beside it on this device (352 dp of sheet content against its own 360 dp threshold —
+  its documented responsive fallback, recorded so it is not re-reported as a defect later).
+
+- **BL-09's promotion trigger did NOT fire.** That entry says to promote it sooner "if the on-device
+  UAT for test 2 surfaces it in practice". Test 2's stated expectations never involve a 7-digit
+  odometer, so no value above 1.000.000 was entered into the ODO sheet this session. BL-09 remains
+  correctly deferred on its original reasoning, un-exercised.
 
 - **Phase 03 plans were replanned on 2026-08-30 to carry the UI design contract (commit `97849e5`).**
   The six plans were authored at 08:37–08:56; `03-UI-SPEC.md` only appeared at 10:18, so a

@@ -57,7 +57,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [x] **ODO-01**: Estimated ODO = last entered ODO + average km per day × days since that entry. *(§9.1)*
 - [x] **ODO-02**: `refineAvgDailyKm` returns unchanged for a null previous reading, an interval under 14 days or a negative km delta; adopts the first real measurement outright when the source is `user`; then smooths as 0.7 × measured + 0.3 × previous; and clamps the result to [0.5, 400] with source `computed`. *(§9.2)*
 - [x] **ODO-03**: `addOdoReading` appends an `OdoReading` and updates the vehicle's `currentOdoKm`, `odoUpdatedAt`, `avgDailyKm` and `avgDailyKmSource`. *(§5.2)*
-- [ ] **ODO-04**: The ODO update modal sheet prefills the estimated value, shows "Lần trước: 18.420 (10 ngày)", uses a self-drawn 12-cell numeric keypad rather than the system keyboard, and blocks a value lower than the previous reading unless the user confirms the odometer was replaced. *(§11.2)*
+- [x] **ODO-04**: The ODO update modal sheet prefills the estimated value, shows "Lần trước: 18.420 (10 ngày)", uses a self-drawn 12-cell numeric keypad rather than the system keyboard, and blocks a value lower than the previous reading unless the user confirms the odometer was replaced. *(§11.2)*
 
 ### Due Engine
 
@@ -71,25 +71,25 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Home & Navigation
 
-- [ ] **HOME-01**: Navigation uses `go_router` with a three-tab `BottomNavigationBar` — Trang chủ, Ghi chú, Cài đặt — and the app ships exactly the seven screens of §11. *(§11, §3.2)*
-- [ ] **HOME-02**: The home screen shows the vehicle header in the form "Vision · 29A1-234.56 · ~18.665 km · cập nhật 10 ngày", prefixing km with `~` whenever `isEstimate` is true. *(§11.1)*
-- [ ] **HOME-03**: Home shows only items needing attention, collapses healthy items into a single row ("9 hạng mục khác đang ổn ›"), and reserves red for overdue only. *(§11.1)*
-- [ ] **HOME-04**: The "Cập nhật số km" `FloatingActionButton.extended` is the most prominent element on the home screen. *(§11.1)*
-- [ ] **HOME-05**: Due cards use the honest-uncertainty wording of §9.5 — plain when the data is fresh, "Còn khoảng 12 ngày · số km đã cũ 2 tháng" with a [ Cập nhật số km ] action when the ODO is stale, and "Ước tính còn 12 ngày · chưa có mốc thay thật" with a [ Tôi vừa thay ] action when the baseline is a guess. *(§9.5, §11.1, §6.1)*
-- [ ] **HOME-06**: Pinned notes appear on the home screen so they are visible at the workshop. *(§11.1)*
+- [x] **HOME-01**: Navigation uses `go_router` with a three-tab `BottomNavigationBar` — Trang chủ, Ghi chú, Cài đặt — and the app ships exactly the seven screens of §11. *(§11, §3.2)*
+- [x] **HOME-02**: The home screen shows the vehicle header in the form "Vision · 29A1-234.56 · ~18.665 km · cập nhật 10 ngày", prefixing km with `~` whenever `isEstimate` is true. *(§11.1)*
+- [x] **HOME-03**: Home shows only items needing attention, collapses healthy items into a single row ("9 hạng mục khác đang ổn ›"), and reserves red for overdue only. *(§11.1)*
+- [x] **HOME-04**: The "Cập nhật số km" `FloatingActionButton.extended` is the most prominent element on the home screen. *(§11.1)*
+- [x] **HOME-05**: Due cards use the honest-uncertainty wording of §9.5 — plain when the data is fresh, "Còn khoảng 12 ngày · số km đã cũ 2 tháng" with a [ Cập nhật số km ] action when the ODO is stale, and "Ước tính còn 12 ngày · chưa có mốc thay thật" with a [ Tôi vừa thay ] action when the baseline is a guess. *(§9.5, §11.1, §6.1)*
+- [x] **HOME-06**: Pinned notes appear on the home screen so they are visible at the workshop. *(§11.1)*
 
 ### Service Logging
 
-- [ ] **LOG-01**: The service-log modal sheet records Ngày, Số km, Chi phí (₫), Tiệm and a note across several items in one entry, with VND amounts and dates formatted through `intl`. *(§8.4, §11, §3.1)*
-- [ ] **LOG-02**: Entries with `resetsCycle: true` update the item's `lastServiceOdo`, `lastServiceDate`, `partBrand`, `partSpec` and `lastCostVnd` and clear `baselineIsGuess`; entries with `resetsCycle: false` record an inspection without resetting the cycle. *(§5.2, §4.2)*
-- [ ] **LOG-03**: Saving a service log also appends a derived `OdoReading` with `source: OdoSource.service`. *(§5.2)*
-- [ ] **LOG-04**: The next log form prefills brand and spec from the item's last change and shows the sub-line "↳ giống lần trước (02/06)". *(§8.4)*
-- [ ] **LOG-05**: The item detail screen shows that item's service history alongside its current due status. *(§11, §13 Tuần 2–3)*
+- [x] **LOG-01**: The service-log modal sheet records Ngày, Số km, Chi phí (₫), Tiệm and a note across several items in one entry, with VND amounts and dates formatted through `intl`. *(§8.4, §11, §3.1)*
+- [x] **LOG-02**: Entries with `resetsCycle: true` update the item's `lastServiceOdo`, `lastServiceDate`, `partBrand`, `partSpec` and `lastCostVnd` and clear `baselineIsGuess`; entries with `resetsCycle: false` record an inspection without resetting the cycle. *(§5.2, §4.2)*
+- [x] **LOG-03**: Saving a service log also appends a derived `OdoReading` with `source: OdoSource.service`. *(§5.2)*
+- [x] **LOG-04**: The next log form prefills brand and spec from the item's last change and shows the sub-line "↳ giống lần trước (02/06)". *(§8.4)*
+- [x] **LOG-05**: The item detail screen shows that item's service history alongside its current due status. *(§11, §13 Tuần 2–3)*
 
 ### Notes
 
-- [ ] **NOTE-01**: The user can create, edit and delete a note with an optional title and a body, optionally attached to a vehicle or an item. *(§4.2, §11)*
-- [ ] **NOTE-02**: The user can pin a note; pinned notes sort first in the Ghi chú list. *(§4.2, §11)*
+- [x] **NOTE-01**: The user can create, edit and delete a note with an optional title and a body, optionally attached to a vehicle or an item. *(§4.2, §11)*
+- [x] **NOTE-02**: The user can pin a note; pinned notes sort first in the Ghi chú list. *(§4.2, §11)*
 
 ### Notifications
 
@@ -220,20 +220,20 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | DUE-05 | Phase 2 | Complete |
 | DUE-06 | Phase 2 | Complete |
 | DUE-07 | Phase 2 | Complete |
-| HOME-01 | Phase 3 | Gaps Found |
-| HOME-02 | Phase 3 | Gaps Found |
-| HOME-03 | Phase 3 | Gaps Found |
-| HOME-04 | Phase 3 | Gaps Found |
-| HOME-05 | Phase 3 | Gaps Found |
-| HOME-06 | Phase 3 | Gaps Found |
-| ODO-04 | Phase 3 | Gaps Found |
-| LOG-01 | Phase 3 | Gaps Found |
-| LOG-02 | Phase 3 | Gaps Found |
-| LOG-03 | Phase 3 | Gaps Found |
-| LOG-04 | Phase 3 | Gaps Found |
-| LOG-05 | Phase 3 | Gaps Found |
-| NOTE-01 | Phase 3 | Gaps Found |
-| NOTE-02 | Phase 3 | Gaps Found |
+| HOME-01 | Phase 3 | Complete |
+| HOME-02 | Phase 3 | Complete |
+| HOME-03 | Phase 3 | Complete |
+| HOME-04 | Phase 3 | Complete |
+| HOME-05 | Phase 3 | Complete |
+| HOME-06 | Phase 3 | Complete |
+| ODO-04 | Phase 3 | Complete |
+| LOG-01 | Phase 3 | Complete |
+| LOG-02 | Phase 3 | Complete |
+| LOG-03 | Phase 3 | Complete |
+| LOG-04 | Phase 3 | Complete |
+| LOG-05 | Phase 3 | Complete |
+| NOTE-01 | Phase 3 | Complete |
+| NOTE-02 | Phase 3 | Complete |
 | NOTIF-01 | Phase 4 | Pending |
 | NOTIF-02 | Phase 4 | Pending |
 | NOTIF-03 | Phase 4 | Pending |

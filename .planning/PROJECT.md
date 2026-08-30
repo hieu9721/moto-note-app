@@ -47,13 +47,21 @@ All three must hold together for 1.0 to count as done:
   entered values, "Không nhớ" buying a full silent cycle instead of a wrong reminder, and a
   Vietnamese name surviving a force-stop pixel-identically.
 
+- ✓ Home screen, the ODO update sheet, multi-item service logging with part-spec memory, item
+  history, and notes with pinning — **Phase 3** (14 requirements: HOME-01…06, ODO-04, LOG-01…05,
+  NOTE-01…02). Verified on real hardware (SM-A066B, `--release`): the card/collapsed-row partition
+  counted exactly against the vehicle's item set with nothing dropped or duplicated, the `~` prefix
+  appearing and disappearing with actual drift, the keypad editing from the end of the buffer, the
+  one shared P3-D-12 confirmation rendering identically from both odometer write paths, a cancelled
+  confirmation provably writing nothing, an inspection-only entry leaving its item's baseline
+  untouched while still recording the visit, "↳ giống lần trước (25/08)" reading the real prior
+  service date, and a pinned note rendering from `noteDisplayTitle`'s first-line-of-body fallback.
+
 ### Active
 
 Full requirement list with IDs and source traceability: `.planning/REQUIREMENTS.md` (86 v1 requirements).
 Summarised by capability:
 
-- [ ] Home screen, ODO update sheet, service logging with part-spec memory, item history, and notes
-      with pinning
 - [ ] Local notifications — monthly ODO reminder, due-soon and overdue reminders, grouping, deep
       links, reboot survival, and Android OEM battery-optimisation handling
 - [ ] Google Drive `appDataFolder` backup, three-layer-safe restore, undo, and local file export
@@ -240,4 +248,4 @@ during `/gsd-discuss-phase 2` and are kept here only as a record of what was dec
 </details>
 
 ---
-*Last updated: 2026-08-30 after Phase 2*
+*Last updated: 2026-08-30 after Phase 3*
