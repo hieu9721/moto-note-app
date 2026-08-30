@@ -123,7 +123,7 @@ Plans:
   4. Recording the same item a second time prefills brand and spec from last time with "↳ giống lần trước", and the item detail screen shows the full history behind it.
   5. The user writes and pins a note and sees it on the home screen where it is visible at the workshop.
 
-**Plans**: 6/6 plans executed + 1 gap-closure plan pending
+**Plans**: 7/7 plans executed + 1 gap-closure plan pending
 
 Plans:
 **Wave 1**
@@ -149,7 +149,7 @@ Plans:
 
 **Gap closure — Wave 1** *(from 03-VERIFICATION.md, `status: gaps_found`; run with `/gsd-execute-phase 03 --gaps-only`)*
 
-- [ ] 03-07-PLAN.md — The lower-than-previous odometer guard on the service-log sheet, from one shared confirmation, plus the upper bound (CR-01, WR-03; LOG-02, LOG-03, ODO-04)
+- [x] 03-07-PLAN.md — The lower-than-previous odometer guard on the service-log sheet, from one shared confirmation, plus the upper bound (CR-01, WR-03; LOG-02, LOG-03, ODO-04)
 
 **UI hint**: yes
 
@@ -210,7 +210,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
-| 3. Home, Logging & Notes | 6/6 | In Progress|  |
+| 3. Home, Logging & Notes | 7/7 | In Progress|  |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
