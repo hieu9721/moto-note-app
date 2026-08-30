@@ -5,58 +5,63 @@
   "phase_name": "Local Notifications",
   "phase_dir": ".planning/phases/04-local-notifications",
   "plan": 1,
-  "task": 1,
+  "task": 3,
   "total_tasks": 3,
   "status": "paused",
-  "completed_tasks": [],
-  "remaining_tasks": [
+  "completed_tasks": [
     {
       "id": 1,
-      "name": "Confirm the notification payload grammar, then wire the manifest + NotificationService init",
-      "status": "in_progress",
-      "progress": "Checkpoint decision resolved by the user (kind-colon-id). A continuation executor was dispatched and was still running when the session paused; it had produced no commits."
+      "name": "Confirm the notification payload grammar before it is written into the OS store",
+      "status": "done",
+      "commit": "(no commit — checkpoint:decision, resolved by the user; see decisions)"
     },
     {
       "id": 2,
-      "name": "Task 2 of 04-01-PLAN.md",
-      "status": "not_started"
-    },
+      "name": "One monthly ODO reminder — planned in pure Dart, fired by the OS, tapped back into the app",
+      "status": "done",
+      "commit": "ace598d"
+    }
+  ],
+  "remaining_tasks": [
     {
       "id": 3,
-      "name": "Task 3 of 04-01-PLAN.md",
+      "name": "The ODO deep link lands where it promised — ?sheet=odo consumed once by Trang chu",
       "status": "not_started"
     }
   ],
   "blockers": [
     {
-      "description": "An in-flight gsd-executor for plan 04-01 was still running when work paused. Its git worktree is D:/Projects/moto-note/.claude/worktrees/agent-a4834b9790d857f07 on branch worktree-agent-a4834b9790d857f07, forked from a969521. At pause time that branch was still at a969521 (zero commits).",
+      "description": "04-01 has a production commit (ace598d, merged to main) but NO 04-01-SUMMARY.md. This is exactly the anomaly execute-phase's safe_resume_gate detects: re-running /gsd-execute-phase 4 will see no SUMMARY, treat 04-01 as untouched, and risk duplicating Task 2's work.",
       "type": "technical",
-      "workaround": "Before re-dispatching 04-01, run `git log --oneline a969521..worktree-agent-a4834b9790d857f07`. If it is empty, remove the worktree (`git worktree unlock <path>; git worktree remove <path> --force; git branch -D worktree-agent-a4834b9790d857f07; git worktree prune`) and re-dispatch 04-01 from scratch. If it has commits, merge them into main first, then resume 04-01 from the first task with no SUMMARY entry."
+      "workaround": "Resume 04-01 at Task 3 only. Dispatch an executor with an explicit completed-tasks table (Task 1 decided, Task 2 = ace598d) and instructions to write and commit 04-01-SUMMARY.md covering all three tasks. Do NOT re-execute Task 2."
+    },
+    {
+      "description": "Task 2 carries a <precondition> that the SM-A066B is attached over wireless debugging (`adb devices` lists exactly one device). No Android device is connected — flutter doctor sees only Windows/Chrome/Edge. The executor implemented and committed Task 2 anyway, so its on-device proof (notification arrives on a real --release build, survives a reboot, tap opens the ODO sheet from cold start) was never obtained.",
+      "type": "human_action",
+      "workaround": "Static verification passed on main (flutter analyze clean, 36/36 domain tests pass). Route the on-device claims to 04-UAT.md via /gsd-verify-work rather than treating them as executor-verified."
     }
   ],
   "async_jobs": [],
   "human_actions_pending": [
     {
-      "action": "Provide a real low-end Android device (3-4 GB RAM, e.g. SM-A066B) for Phase 4 sign-off",
-      "context": "04-01 must-haves require a scheduled notification to arrive on a real --release build and to survive a reboot (SC1, NOTIF-09). flutter doctor sees only Windows/Chrome/Edge, so no executor can verify this.",
-      "blocking": false
+      "action": "Attach a real low-end Android device (SM-A066B, 3-4 GB RAM) and run a --release build to confirm a scheduled notification arrives, survives a reboot, and its tap opens the ODO sheet from a cold start",
+      "context": "04-01 must-haves SC1/SC3/NOTIF-09 are only provable on hardware, and Task 2 was committed with its device precondition unmet. Phase 1 sign-off and all §10.6 OEM battery behaviour need the same device.",
+      "blocking": true
     }
   ],
   "decisions": [
     {
       "decision": "Notification payload grammar is fixed at {kind}:{id} — literally due:{vehicleId} and odo:{vehicleId}. due: routes to /, odo: routes to /?sheet=odo. /vehicle/:id is never added to the route table.",
-      "rationale": "One-way door: a payload is serialised into the OS scheduled-notification store and handed back to whatever build is installed when it fires, up to 120 days later. Confirmed by the user at 04-01 Task 1's blocking checkpoint; matches P4-D-01/P4-D-02 and the source doc's SS10.7 verbatim. The versioned and json alternatives were presented and declined.",
+      "rationale": "One-way door: a payload is serialised into the OS scheduled-notification store and handed back to whatever build is installed when it fires, up to 120 days later. Confirmed by the user at 04-01 Task 1's blocking checkpoint; matches P4-D-01/P4-D-02 and the source doc's SS10.7 verbatim. The versioned and json alternatives were presented and declined. Now shipped in code and covered by tests in test/domain/notification_plan_test.dart.",
       "phase": "04"
     },
     {
-      "decision": "Executor dispatch prompts embed the large GSD reference docs as absolute-path Read-tool instructions rather than inlining their full text.",
-      "rationale": "execute-phase.md asks the orchestrator to inline ~103 KB of reference material verbatim into every executor prompt. @-includes do not expand inside an Agent() prompt (#3324), but an explicit Read-tool instruction does, and it costs ~26K output tokens less per dispatch. The gsd-executor agent definition already @-references checkpoints.md and summary.md, so those arrive twice over.",
+      "decision": "Executor dispatch prompts reference the large GSD docs by absolute path as Read-tool instructions instead of inlining ~103 KB verbatim per dispatch.",
+      "rationale": "execute-phase.md asks the orchestrator to inline the reference material into every executor prompt. @-includes genuinely do not expand inside an Agent() prompt (#3324), but an explicit Read-tool instruction does, at ~26K fewer output tokens per dispatch. gsd-executor.md already @-references checkpoints.md and summary.md itself.",
       "phase": "04"
     }
   ],
-  "uncommitted_files": [
-    ".planning/STATE.md"
-  ],
-  "next_action": "Inspect the stranded worktree branch worktree-agent-a4834b9790d857f07 for commits, clean it up or merge it, then re-run /gsd-execute-phase 4 — pass the resolved payload decision (kind-colon-id) into the 04-01 dispatch so its Task 1 checkpoint does not stop again.",
-  "context_notes": "Phase 4 has 3 waves: W1 = 04-01 (tracer, autonomous:false), W2 = 04-02 + 04-03 (parallel, no files_modified overlap, both depends_on 04-01), W3 = 04-04. Resolved config for the run: ISOLATION=harness-worktree, USE_WORKTREES=true, PARALLELIZATION=true, executor_model=sonnet, branching_strategy=none (work lands on main), AUTO_MODE=false, response_language=Vietnamese, build_command='flutter analyze', test_command='dart test'. No submodules, so every plan keeps worktree isolation. .planning/STATE.md is dirty only because state.begin-phase ran at the start of this session."
+  "uncommitted_files": [],
+  "next_action": "Resume 04-01 at Task 3 (?sheet=odo consumed once by Trang chu), then have the same executor write and commit 04-01-SUMMARY.md. Only after that SUMMARY exists should Wave 2 (04-02 + 04-03, parallel) start.",
+  "context_notes": "Phase 4 has 3 waves: W1 = 04-01 (tracer, autonomous:false), W2 = 04-02 + 04-03 (parallel, no files_modified overlap, both depends_on 04-01), W3 = 04-04. Resolved config for the run: ISOLATION=harness-worktree, USE_WORKTREES=true, PARALLELIZATION=true, executor_model=sonnet, branching_strategy=none (work lands on main), AUTO_MODE=false, response_language=Vietnamese, build_command='flutter analyze', test_command='dart test'. No submodules, so every plan keeps worktree isolation. main is at 259ea4a with the executor worktree already merged and removed; working tree clean; flutter analyze clean and 36/36 domain tests passing."
 }
