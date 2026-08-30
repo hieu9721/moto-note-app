@@ -23,20 +23,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-30)
 
 **Core value:** The user gets reminded on the right day that their bike needs something — accurately enough that they never turn the notifications off.
-**Current focus:** Phase 03 — Home, Logging & Notes
+**Current focus:** Phase 4 — Local Notifications
 
 ## Current Position
 
 Phase: 4 — Local Notifications
-Plan: Not started
+Plan: Not started — context gathered, ready to plan
 Status: Ready to plan
-Last activity: 2026-08-30 — Phase 03 complete, transitioned to Phase 4
+Last activity: 2026-08-30 — Phase 4 context gathered (18 decisions, P4-D-01…P4-D-18)
 
 Progress: [████████████████████] 18/18 plans (Phases 01–03 of 6 complete)
 
-**Next command:** `/gsd-discuss-phase 4` — Phase 4 (Local Notifications) is unplanned. Note that
-§10.6's OEM battery-optimisation behaviour is only observable on the real SM-A066B, which must be
-re-attached; and that D-30 forbids blocking any feature on the exact-alarm permission.
+**Next command:** `/gsd-plan-phase 4` — `04-CONTEXT.md` is written and committed. Expect the
+decision-coverage gate to fail-parse the `P4-D-NN` namespace for the fifth time (see below); verify
+by grep instead of renaming ids. Note also that §10.6's OEM behaviour is only observable on the real
+SM-A066B, and that SC1's clock-move must be asked for before it is done.
 
 ### Planning gate note — §13a decision coverage (2026-08-30, Phase 03 — closed)
 
