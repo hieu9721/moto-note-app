@@ -123,12 +123,12 @@ Plans:
   4. Recording the same item a second time prefills brand and spec from last time with "↳ giống lần trước", and the item detail screen shows the full history behind it.
   5. The user writes and pins a note and sees it on the home screen where it is visible at the workshop.
 
-**Plans**: 6 plans
+**Plans**: 1/6 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Tracer: `go_router` three-tab shell boots into the real vehicle header and due list (HOME-01, HOME-02, NOTE-02)
+- [x] 03-01-PLAN.md — Tracer: `go_router` three-tab shell boots into the real vehicle header and due list (HOME-01, HOME-02, NOTE-02)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -206,7 +206,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
-| 3. Home, Logging & Notes | 0/TBD | Not started | - |
+| 3. Home, Logging & Notes | 1/6 | In Progress|  |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
