@@ -16,7 +16,7 @@ import 'package:intl/intl.dart';
 
 import '../../domain/models/vehicle.dart';
 import '../../domain/oil_presets.dart';
-import 'onboarding_draft.dart';
+import '../../state/onboarding_draft.dart';
 
 class Step5OilGrade extends StatelessWidget {
   const Step5OilGrade({

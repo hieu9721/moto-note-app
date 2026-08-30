@@ -17,7 +17,7 @@ import '../domain/models/misc.dart';
 import '../domain/models/vehicle.dart';
 import '../domain/odo.dart';
 import '../notifications/notification_service.dart';
-import '../ui/onboarding/onboarding_draft.dart';
+import 'onboarding_draft.dart';
 
 /// Supplies the [AppDataRepository]. P1-D-11 injects the `Directory` through
 /// the repository's constructor instead of resolving it internally, so this

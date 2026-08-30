@@ -25,7 +25,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
 import '../../state/app_state.dart';
-import 'onboarding_draft.dart';
+import '../../state/onboarding_draft.dart';
 import 'step2_name_plate.dart';
 import 'step3_odo_avgkm.dart';
 import 'step4_items.dart';
