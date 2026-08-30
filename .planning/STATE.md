@@ -4,7 +4,7 @@ milestone: v1.0
 current_phase: 03
 current_phase_name: Home, Logging & Notes
 status: executing
-stopped_at: Phase 02 complete, ready to plan Phase 03
+stopped_at: Phase 03 Wave 1 complete (03-01 merged, c59f1ff); HALTED at ui.safety-gate — 03-UI-SPEC.md missing
 last_updated: "2026-08-30T02:09:00.049Z"
 last_activity: 2026-08-30
 last_activity_desc: Phase 03 execution started
@@ -28,8 +28,8 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 03 (Home, Logging & Notes) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 03
+Plan: 1 of 6 (03-01 complete; 03-02…03-06 blocked by the UI gate)
+Status: Blocked — run /gsd-ui-phase 3 to create 03-UI-SPEC.md, then /gsd-execute-phase 3 to resume at Wave 2
 Last activity: 2026-08-30 — Phase 03 execution started
 
 Progress: [████████████████████] 11/11 plans (Phases 01–02 of 6 complete)
@@ -103,7 +103,7 @@ Items acknowledged and deferred at milestone close, most recent first:
 ## Session Continuity
 
 Last session: 2026-08-30T00:35:00.000Z
-Stopped at: Phase 02 complete, ready to plan Phase 03
+Stopped at: Phase 03 Wave 1 complete (03-01 merged, c59f1ff); HALTED at ui.safety-gate — 03-UI-SPEC.md missing
 Resume file: None
 
 Phase 03's context is already gathered — `03-CONTEXT.md` holds 18 decisions (`P3-D-01…P3-D-18`),
