@@ -8,13 +8,16 @@
 // which needs the opposite — see Pitfall 3).
 //
 // The `gate="blocking-human"` decision checkpoint this plan opened with was
-// resolved `ui-spec`: the three strings in `_confirmOdometerReplaced` below
-// are `03-UI-SPEC.md`'s Copywriting Contract → "Destructive confirmation"
-// row, the same copy `gsd-ui-checker` verified against
+// resolved `ui-spec`: the P3-D-12 confirmation this sheet calls is
+// `03-UI-SPEC.md`'s Copywriting Contract → "Destructive confirmation" row,
+// the same copy `gsd-ui-checker` verified against
 // `motonote-v3-flutter.md:1701`. They are `[NEW, PROVISIONAL]` — reviewed
 // Vietnamese, not transcribed Vietnamese — and are recorded verbatim in
 // 03-03-SUMMARY.md so end-of-phase UAT can check the shipped build against
-// what was approved. Do not reword them.
+// what was approved. Do not reword them. 03-07 promoted the dialog itself
+// into `lib/ui/widgets/odometer_confirm_dialog.dart` (CR-01) so the
+// service-log sheet's own lower-than-previous guard shares this exact
+// implementation instead of growing a second copy.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,6 +25,7 @@ import '../../domain/models/vehicle.dart';
 import '../../domain/odo.dart';
 import '../../state/app_state.dart';
 import '../widgets/formatters.dart';
+import '../widgets/odometer_confirm_dialog.dart';
 import 'home_screen.dart' show daysSinceOdoUpdate;
 
 /// Opens the ODO update sheet for [vehicle]. §11.2 frames this explicitly as
@@ -97,10 +101,14 @@ class _OdoSheetBodyState extends ConsumerState<OdoSheetBody> {
     final value = _parsedValue;
 
     if (value < widget.vehicle.currentOdoKm) {
-      final confirmed = await _confirmOdometerReplaced(
+      final confirmed = await confirmOdometerReplaced(
         context,
         previousKm: widget.vehicle.currentOdoKm,
       );
+      // CLAUDE.md trap: BuildContext/State used after an await. This sheet
+      // can be disposed while the confirmation is open; bail before the
+      // setState below touches a disposed State.
+      if (!mounted) return;
       if (confirmed != true) return;
       // P3-D-12: a confirmed replacement is written EXACTLY like any other
       // reading below — no new field, no new OdoSource member, and no
@@ -296,37 +304,4 @@ class _OdoSheetBodyState extends ConsumerState<OdoSheetBody> {
       ),
     );
   }
-}
-
-/// P3-D-12 / ODO-04's replacement confirmation. See the file header — the
-/// strings below are the exact `ui-spec` resolution of this plan's
-/// `gate="blocking-human"` checkpoint; do not reword them.
-Future<bool?> _confirmOdometerReplaced(
-  BuildContext context, {
-  required int previousKm,
-}) {
-  return showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Xác nhận đã thay đồng hồ'),
-      content: Text(
-        'Số bạn nhập nhỏ hơn lần trước (Lần trước: ${formatKm(previousKm)} '
-        'km). Nếu bạn vừa thay đồng hồ ODO, hãy xác nhận để tiếp tục — nếu '
-        'không, hãy kiểm tra lại số vừa nhập.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Huỷ'),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: Theme.of(ctx).colorScheme.error,
-          ),
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Xác nhận'),
-        ),
-      ],
-    ),
-  );
 }
