@@ -6,23 +6,22 @@
 // SET-02 has somewhere to land, and this screen is the most tempting place
 // in the phase to accidentally recreate that scope.
 //
-// **Status wording (03-UI-SPEC.md H5 `populated`).** `_statusLine` below is
-// the four-branch precedence table `due_card.dart` will also need — but
-// `due_card.dart` does not exist until plan 06 (wave-ordering, see
-// 03-05-PLAN.md). It is written here as a single, self-contained, private
-// top-level function with exactly one call site so plan 06 task 1 can
-// promote it into `due_card.dart` and repoint that one call site as a
-// two-line edit. Do NOT re-derive the 45-day staleness threshold or read
-// `item.baselineIsGuess` directly anywhere else — `DueResult` already carries
-// both flags (§5.3, P3-D-01).
+// **Status wording (03-UI-SPEC.md H5 `populated`).** The four-branch status
+// precedence used to live here as a private `_statusLine` helper (before
+// the home due-card widget's own file existed at wave 4 — see
+// 03-05-SUMMARY.md). Plan 06 task 1 promoted it into that file as the ONE
+// public `resolveDueCardStatus` implementation (see the import below); this
+// screen now calls that function instead of carrying its own copy, so an
+// item's detail screen and its home card can never word the same state
+// differently.
 //
 // Deliberately does NOT tint the overdue status line with `colorScheme
 // .error` — `03-UI-SPEC.md`'s design-system rule for these two new files
 // reserves `colorScheme.error` for the note editor's delete-confirmation
 // dialog alone; this screen's status line stays default text colour
 // regardless of `DueStatus`, matching the locked truth verbatim ("colour
-// resolves through colorScheme.*" is about wording consistency with
-// due_card.dart, not colour consistency).
+// resolves through colorScheme.*" is about wording consistency with the
+// home due card, not colour consistency).
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -35,6 +34,7 @@ import '../../domain/models/vehicle.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../catalog_icons.dart';
+import '../home/due_card.dart';
 import '../log/service_log_sheet.dart';
 import '../notes/notes_screen.dart';
 import '../widgets/formatters.dart';
@@ -116,7 +116,7 @@ class ItemDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           children: [
             const SizedBox(height: 24),
-            _buildStatusBlock(context, item, dueItem?.due),
+            _buildStatusBlock(context, item, vehicle, dueItem?.due),
             const SizedBox(height: 24),
             FilledButton(
               onPressed: () => showServiceLogSheet(
@@ -183,6 +183,7 @@ class ItemDetailScreen extends ConsumerWidget {
   Widget _buildStatusBlock(
     BuildContext context,
     MaintenanceItem item,
+    Vehicle vehicle,
     DueResult? due,
   ) {
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
@@ -212,7 +213,14 @@ class ItemDetailScreen extends ConsumerWidget {
         ),
         if (due != null) ...[
           const SizedBox(height: 8),
-          Text(_statusLine(due), style: const TextStyle(fontSize: 16)),
+          Text(
+            resolveDueCardStatus(
+              due,
+              vehicle,
+              isEngineOil: item.catalogCode == 'engine_oil',
+            ).line,
+            style: const TextStyle(fontSize: 16),
+          ),
         ],
         if (lastServiceLine != null) ...[
           const SizedBox(height: 8),
@@ -307,24 +315,6 @@ class ItemDetailScreen extends ConsumerWidget {
     }
     return line.isEmpty ? null : line;
   }
-}
-
-/// The four-branch status-line precedence table (03-UI-SPEC.md's due-card
-/// table, wording only — see this file's header comment for the deliberate
-/// colour omission). Top-level and self-contained so plan 06 task 1 can
-/// promote it verbatim into `due_card.dart`.
-String _statusLine(DueResult due) {
-  if (due.status == DueStatus.overdue) {
-    final kmClause = due.kmLeft != null ? ' · ${due.kmLeft!.abs()} km' : '';
-    return 'Quá hạn ${-due.daysLeft} ngày$kmClause';
-  }
-  if (due.baselineIsGuess) {
-    return 'Ước tính còn ${due.daysLeft} ngày · chưa có mốc thay thật';
-  }
-  if (due.odoIsStale) {
-    return 'Còn khoảng ${due.daysLeft} ngày · số km đã cũ 2 tháng';
-  }
-  return 'Còn ${due.daysLeft} ngày nữa tới hạn thay nhớt';
 }
 
 /// Resolves a [MaintenanceItem.catalogCode] to its icon through `kCatalog`'s
