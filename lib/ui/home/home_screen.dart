@@ -12,9 +12,12 @@
 // §5.3's rule holds here: this widget neither sorts, filters nor recomputes
 // any item's status — `dueItemsProvider` already returns the list sorted by
 // urgency with a deterministic tie-break, and `DueResult` (plan 02) owns
-// every status computation. No floating action button yet — plan 03 adds it
-// together with the sheet it opens, so this slice ships no button that does
-// nothing.
+// every status computation.
+//
+// HOME-04: a `FloatingActionButton.extended` opens `odo_sheet.dart`'s
+// keypad sheet — 03-UI-SPEC.md names both the exact icon it uses below
+// and Material's own (unmodified) FAB accent colour, since this is one of
+// the phase's five reserved accent CTAs.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,6 +28,7 @@ import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../catalog_icons.dart';
 import '../widgets/formatters.dart';
+import 'odo_sheet.dart';
 
 // Standalone literals rather than inlined interpolation fragments, so the
 // zero-prefix and the "ngày" suffix are each a single, greppable source of
@@ -68,6 +72,17 @@ class HomeScreen extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+      // HOME-04: the single most prominent control on this screen — the
+      // extended (labelled) form, not a bare circular FAB, kept at
+      // Material's default end-float position. Material's own FAB colour
+      // is already `colorScheme.primary`-derived, so no `backgroundColor`
+      // override is added here (03-UI-SPEC.md reserves the accent for
+      // exactly five CTAs across this phase; this is the first).
+      floatingActionButton: FloatingActionButton.extended(
+        icon: const Icon(Icons.speed),
+        label: const Text('Cập nhật số km'),
+        onPressed: () => showOdoSheet(context, ref, vehicle),
       ),
     );
   }
