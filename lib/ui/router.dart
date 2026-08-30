@@ -46,10 +46,15 @@ import 'settings/settings_screen.dart';
 GoRouter buildRouter({
   required ProviderContainer container,
   required HydrateOutcome outcome,
+  // P4-D-03: cold start routes straight to the destination a notification
+  // promised — main.dart resolves this from the launch payload before the
+  // router is built, so the first frame is already correct with no flash of
+  // plain home. Defaults to '/' so every existing caller stays correct.
+  String initialLocation = '/',
 }) {
   final refresh = _AppRefreshNotifier(container);
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: initialLocation,
     refreshListenable: refresh,
     redirect: (context, state) {
       // Pitfall 1 (research): `undecodable`/`schemaTooNew` must NEVER fall
