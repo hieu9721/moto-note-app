@@ -197,3 +197,32 @@ then convert all sites in one pass.
 
 **Natural moment to do it:** Phase 6 polish, or whenever `package:collection` is added for another
 reason.
+
+---
+
+### BL-09 — `odo_sheet.dart` has no upper-bound odometer validation, only a 7-digit keypad cap (CR-01)
+
+**Raised:** 2026-08-30, by the post-gap-closure `/gsd-code-review 03` re-run — i.e. AFTER 03-07 had
+already shipped. Routed here rather than reopening the 03-07 plan.
+
+`lib/ui/home/odo_sheet.dart:69` caps the digit *count* at 7 (`_maxDigits = 7`), which admits
+`1.000.001` through `9.999.999`. The other two odometer entry points both enforce the real bound:
+`step3_odo_avgkm.dart:49` and `service_log_sheet.dart:79` each declare `_maxOdo = 1000000` and reject
+above it with `Số km không hợp lệ (0 – 1.000.000).`. 03-07's own comment treats the 7-digit keypad cap
+as equivalent to that ceiling — it is not. This is the mirror image of WR-03: 03-07 made the two write
+paths agree on the *confirmation dialog* but left them disagreeing on the *upper bound*, on the home
+FAB, which is the most-used ODO entry point.
+
+**Why deferred:** it arrived from a review run that post-dates the gap-closure plan, so it is not one
+of `03-VERIFICATION.md`'s must-have truths and was never in 03-07's scope. D-34 (source §13.2) routes
+mid-build findings here rather than growing the version being built — the same rule that put BL-04…BL-08
+here. It is also not a silent-corruption-with-no-warning case in the way CR-01/WR-03 were: the ODO
+sheet's own lower-than-previous confirmation still fires on the *next* reading after a bad entry.
+
+**What promoting it looks like:** add `static const int _maxOdo = 1000000;` to `_OdoSheetState`,
+reject `value > _maxOdo` in the save path with the byte-exact onboarding message, and delete the
+"caps at seven digits at the keypad" comment in `service_log_sheet.dart` that treats the two as
+equivalent. Small — one file, one branch, one shared string already in the tree.
+
+**Natural moment to do it:** the next gap-closure pass for Phase 3, or Phase 6 polish. Promote it
+sooner if the on-device UAT for test 2 (ODO sheet keypad) surfaces it in practice.
