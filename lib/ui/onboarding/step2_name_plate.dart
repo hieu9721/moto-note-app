@@ -13,7 +13,7 @@
 // reset or re-seeded on revisit.
 import 'package:flutter/material.dart';
 
-import 'onboarding_draft.dart';
+import '../../state/onboarding_draft.dart';
 
 class Step2NamePlate extends StatefulWidget {
   const Step2NamePlate({

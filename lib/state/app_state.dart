@@ -17,7 +17,7 @@ import '../domain/models/misc.dart';
 import '../domain/models/vehicle.dart';
 import '../domain/odo.dart';
 import '../notifications/notification_service.dart';
-import '../ui/onboarding/onboarding_draft.dart';
+import 'onboarding_draft.dart';
 
 /// Supplies the [AppDataRepository]. P1-D-11 injects the `Directory` through
 /// the repository's constructor instead of resolving it internally, so this
@@ -184,6 +184,21 @@ class AppNotifier extends Notifier<AppData> {
   /// [hydrate] already uses above. Appending (`[...current.vehicles,
   /// vehicle]`), never replacing: `AppData.vehicles` is a list of vehicles
   /// and Phase 6's SET-01 manages several.
+  ///
+  /// P3-D-11: also appends one [OdoReading] with `source: OdoSource.setup`,
+  /// recording the odometer the user just typed at step 3. Before this,
+  /// onboarding set `Vehicle.currentOdoKm` and created no reading at all, so
+  /// the user's first real ODO update found a null previous reading,
+  /// [refineAvgDailyKm] returned the average unchanged, and the P2-D-07 band
+  /// seed survived at least one cycle longer than it should. `OdoSource.setup`
+  /// has existed since Phase 1 and was written nowhere until now. This is an
+  /// accepted, named modification of a function written in Phase 2 — not
+  /// incidental drift — and Phase 6's offline error measurement (P2-D-10)
+  /// reads the history this reading now heads. The reading's `date` reuses
+  /// `vehicle.odoUpdatedAt` rather than a third `DateTime.now().toUtc()`
+  /// call — `odoUpdatedAt` and `createdAt` above are each already their own
+  /// separate `now()` call, and a third call here would put the reading
+  /// microseconds ahead of the vehicle it describes.
   Future<void> completeOnboarding(OnboardingDraft draft) {
     return _mutate((current) {
       final vehicle = Vehicle(
@@ -198,9 +213,17 @@ class AppNotifier extends Notifier<AppData> {
         createdAt: DateTime.now().toUtc(),
       );
       final items = draft.buildSelectedItems(vehicle.id);
+      final setupReading = OdoReading(
+        id: newId(),
+        vehicleId: vehicle.id,
+        odoKm: vehicle.currentOdoKm,
+        date: vehicle.odoUpdatedAt,
+        source: OdoSource.setup,
+      );
       return current.copyWith(
         vehicles: [...current.vehicles, vehicle],
         items: [...current.items, ...items],
+        odoReadings: [...current.odoReadings, setupReading],
       );
     });
   }

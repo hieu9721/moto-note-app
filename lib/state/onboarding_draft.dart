@@ -1,4 +1,4 @@
-// lib/ui/onboarding/onboarding_draft.dart — plain mutable Dart class, never
+// lib/state/onboarding_draft.dart — plain mutable Dart class, never
 // Freezed, never serialised, never a Riverpod provider (02-RESEARCH.md
 // Pattern 2 and its Anti-Patterns list). `OnboardingFlow` owns exactly one
 // instance and mutates its fields via `setState`; nothing here reaches disk
@@ -16,11 +16,20 @@
 // §6.1 (plan 05): [lastOilChoice] drives the same commit-time application
 // for the `engine_oil` row's `lastServiceDate`/`lastServiceOdo` baseline —
 // asked for engine oil alone, never for any other selected item.
-import '../../domain/catalog.dart';
-import '../../domain/id.dart';
-import '../../domain/models/maintenance_item.dart';
-import '../../domain/models/vehicle.dart';
-import '../../domain/oil_presets.dart';
+//
+// Moved here from lib/ui/onboarding/onboarding_draft.dart in Phase 3
+// (BL-01 / P3-D-18): `lib/state/app_state.dart` used to import this class
+// from `lib/ui/onboarding/`, an inverted dependency direction for a
+// state-tier entry point. This class carries no Flutter import either way
+// (D-31), so the move is purely about which tier owns the file —
+// `lib/state/` is about to grow two more entry points (`addServiceLog`, the
+// ODO-04 path) that need the dependency to point inward, never up into the
+// UI tier.
+import '../domain/catalog.dart';
+import '../domain/id.dart';
+import '../domain/models/maintenance_item.dart';
+import '../domain/models/vehicle.dart';
+import '../domain/oil_presets.dart';
 
 /// §6.1's four last-oil-change answers. `dontRemember` is also the safe
 /// fallback [buildSelectedItems] applies when the user reaches the flow's

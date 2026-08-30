@@ -13,8 +13,8 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/catalog.dart';
+import '../../state/onboarding_draft.dart';
 import '../catalog_icons.dart';
-import 'onboarding_draft.dart';
 
 class Step4Items extends StatelessWidget {
   const Step4Items({super.key, required this.draft, required this.onChanged});

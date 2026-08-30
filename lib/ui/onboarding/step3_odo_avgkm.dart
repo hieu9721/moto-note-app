@@ -25,7 +25,7 @@
 // of truth and is never reset on revisit.
 import 'package:flutter/material.dart';
 
-import 'onboarding_draft.dart';
+import '../../state/onboarding_draft.dart';
 
 class Step3OdoAvgKm extends StatefulWidget {
   const Step3OdoAvgKm({

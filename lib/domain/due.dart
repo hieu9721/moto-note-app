@@ -39,6 +39,20 @@
 //    Never write the literal 7 at a call site — P2-D-09 anchors the phase's
 //    ODO-error threshold to this same default and tracks it if the value
 //    ever changes.
+// 5. P3-D-01 (Phase 3): `isEstimate` was a single stored flag collapsing two
+//    different causes — the ODO reading being stale (`daysSinceOdo > 45`)
+//    and the item's baseline being a guess (`item.baselineIsGuess`) — into
+//    one boolean. HOME-05 needs three distinct renderings with two
+//    different action buttons, which a single flag cannot express. The two
+//    causes are now stored independently as `odoIsStale`/`baselineIsGuess`,
+//    and `isEstimate` becomes a derived getter (their OR) so every existing
+//    caller keeps compiling and keeps reading the same truth table. The
+//    45-day threshold and the guessed-baseline test stay in this file alone
+//    (§5.3 — widgets never compute item status themselves), so a card
+//    widget can never re-derive 45 days and drift away from this
+//    definition. Precedence when both are true (which string a widget
+//    shows) is plan 06's job, not this file's — `baselineIsGuess` wins the
+//    wording there because a missing real baseline is the larger admission.
 //
 // `_dateOnly` normalisation stays on `daysLeft` — a 23-hour gap must not
 // read as one day (§9.3's own Dart-trap callout; CLAUDE.md flags the same
@@ -58,7 +72,11 @@ class DueResult {
   final int? kmLeft;
   final double progress; // 0..1+
   final DrivenBy drivenBy;
-  final bool isEstimate; // ODO đã cũ hoặc mốc là giả định
+  final bool odoIsStale; // P3-D-01: daysSinceOdo > 45
+  final bool baselineIsGuess; // P3-D-01: mirrors item.baselineIsGuess
+  bool get isEstimate =>
+      odoIsStale ||
+      baselineIsGuess; // ODO đã cũ hoặc mốc là giả định — derived, not stored
 
   const DueResult({
     required this.status,
@@ -66,7 +84,8 @@ class DueResult {
     required this.daysLeft,
     required this.progress,
     required this.drivenBy,
-    required this.isEstimate,
+    required this.odoIsStale,
+    required this.baselineIsGuess,
     this.kmLeft,
   });
 }
@@ -171,7 +190,8 @@ DueResult? computeDue(
     kmLeft: kmLeft,
     progress: progress,
     drivenBy: drivenBy,
-    isEstimate: daysSinceOdo > 45 || item.baselineIsGuess,
+    odoIsStale: daysSinceOdo > 45,
+    baselineIsGuess: item.baselineIsGuess,
   );
 }
 

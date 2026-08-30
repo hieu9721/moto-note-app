@@ -14,7 +14,7 @@
 // choosing silence rather than being penalised for not remembering.
 import 'package:flutter/material.dart';
 
-import 'onboarding_draft.dart';
+import '../../state/onboarding_draft.dart';
 
 class Step6LastOil extends StatelessWidget {
   const Step6LastOil({
