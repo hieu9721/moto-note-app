@@ -123,7 +123,7 @@ Plans:
   4. Recording the same item a second time prefills brand and spec from last time with "↳ giống lần trước", and the item detail screen shows the full history behind it.
   5. The user writes and pins a note and sees it on the home screen where it is visible at the workshop.
 
-**Plans**: 2/6 plans executed
+**Plans**: 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -136,8 +136,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 03-03-PLAN.md — ODO update sheet with the self-drawn keypad, and the home FAB (ODO-04, HOME-04)
-- [ ] 03-04-PLAN.md — `addServiceLog` and the multi-item service-log sheet (LOG-01…04)
+- [x] 03-03-PLAN.md — ODO update sheet with the self-drawn keypad, and the home FAB (ODO-04, HOME-04)
+- [x] 03-04-PLAN.md — `addServiceLog` and the multi-item service-log sheet (LOG-01…04)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
@@ -206,7 +206,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 |-------|----------------|--------|-----------|
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
-| 3. Home, Logging & Notes | 2/6 | In Progress|  |
+| 3. Home, Logging & Notes | 4/6 | In Progress|  |
 | 4. Local Notifications | 0/TBD | Not started | - |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
