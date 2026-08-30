@@ -73,10 +73,10 @@ cross-platform; only the release and verification surface is Android-only.
 
 - [x] **HOME-01**: Navigation uses `go_router` with a three-tab `BottomNavigationBar` — Trang chủ, Ghi chú, Cài đặt — and the app ships exactly the seven screens of §11. *(§11, §3.2)*
 - [x] **HOME-02**: The home screen shows the vehicle header in the form "Vision · 29A1-234.56 · ~18.665 km · cập nhật 10 ngày", prefixing km with `~` whenever `isEstimate` is true. *(§11.1)*
-- [ ] **HOME-03**: Home shows only items needing attention, collapses healthy items into a single row ("9 hạng mục khác đang ổn ›"), and reserves red for overdue only. *(§11.1)*
+- [x] **HOME-03**: Home shows only items needing attention, collapses healthy items into a single row ("9 hạng mục khác đang ổn ›"), and reserves red for overdue only. *(§11.1)*
 - [x] **HOME-04**: The "Cập nhật số km" `FloatingActionButton.extended` is the most prominent element on the home screen. *(§11.1)*
-- [ ] **HOME-05**: Due cards use the honest-uncertainty wording of §9.5 — plain when the data is fresh, "Còn khoảng 12 ngày · số km đã cũ 2 tháng" with a [ Cập nhật số km ] action when the ODO is stale, and "Ước tính còn 12 ngày · chưa có mốc thay thật" with a [ Tôi vừa thay ] action when the baseline is a guess. *(§9.5, §11.1, §6.1)*
-- [ ] **HOME-06**: Pinned notes appear on the home screen so they are visible at the workshop. *(§11.1)*
+- [x] **HOME-05**: Due cards use the honest-uncertainty wording of §9.5 — plain when the data is fresh, "Còn khoảng 12 ngày · số km đã cũ 2 tháng" with a [ Cập nhật số km ] action when the ODO is stale, and "Ước tính còn 12 ngày · chưa có mốc thay thật" with a [ Tôi vừa thay ] action when the baseline is a guess. *(§9.5, §11.1, §6.1)*
+- [x] **HOME-06**: Pinned notes appear on the home screen so they are visible at the workshop. *(§11.1)*
 
 ### Service Logging
 
@@ -222,10 +222,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | DUE-07 | Phase 2 | Complete |
 | HOME-01 | Phase 3 | Complete |
 | HOME-02 | Phase 3 | Complete |
-| HOME-03 | Phase 3 | Pending |
+| HOME-03 | Phase 3 | Complete |
 | HOME-04 | Phase 3 | Complete |
-| HOME-05 | Phase 3 | Pending |
-| HOME-06 | Phase 3 | Pending |
+| HOME-05 | Phase 3 | Complete |
+| HOME-06 | Phase 3 | Complete |
 | ODO-04 | Phase 3 | Complete |
 | LOG-01 | Phase 3 | Complete |
 | LOG-02 | Phase 3 | Complete |

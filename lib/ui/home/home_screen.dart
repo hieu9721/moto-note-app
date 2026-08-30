@@ -1,18 +1,19 @@
-// lib/ui/home/home_screen.dart — HOME-01/HOME-02. The tracer's destination
-// screen: a real vehicle header under P3-D-04's honesty rule plus the real
-// `dueItemsProvider` list, replacing `main.dart`'s temporary
-// `_PostOnboardingPlaceholder`/`_DueItemTile`.
+// lib/ui/home/home_screen.dart — HOME-01/HOME-02/HOME-03/HOME-04/HOME-06.
+// The finished Trang chủ: overdue in red at the top, everything needing
+// attention as a card, everything healthy folded into one collapsed row
+// that expands in place, and every pinned note above the FAB.
 //
 // Built as a plain, non-builder `ListView(children: [...])` rather than
 // `ListView.builder` — the content is bounded at roughly one vehicle's
-// fifteen items (03-RESEARCH.md Pattern 3), and a future plan's collapsed
-// `ExpansionTile` row would otherwise walk straight into three still-open
-// Flutter issues about builder-based recycling.
+// fifteen items (03-RESEARCH.md Pattern 3), and the collapsed `ExpansionTile`
+// row would otherwise walk straight into three still-open Flutter issues
+// about builder-based recycling.
 //
 // §5.3's rule holds here: this widget neither sorts, filters nor recomputes
 // any item's status — `dueItemsProvider` already returns the list sorted by
 // urgency with a deterministic tie-break, and `DueResult` (plan 02) owns
-// every status computation.
+// every status computation. This screen only PARTITIONS that already-sorted
+// list at a fixed 30-day cut (P3-D-02) — it never re-sorts either half.
 //
 // HOME-04: a `FloatingActionButton.extended` opens `odo_sheet.dart`'s
 // keypad sheet — 03-UI-SPEC.md names both the exact icon it uses below
@@ -20,6 +21,7 @@
 // the phase's five reserved accent CTAs.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
@@ -27,7 +29,9 @@ import '../../domain/odo.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../catalog_icons.dart';
+import '../notes/notes_screen.dart' show noteDisplayTitle, sortedNotes;
 import '../widgets/formatters.dart';
+import 'due_card.dart';
 import 'odo_sheet.dart';
 
 // Standalone literals rather than inlined interpolation fragments, so the
@@ -52,24 +56,90 @@ class HomeScreen extends ConsumerWidget {
     // them. This phase always shows the first one.
     final vehicle = data.vehicles.first;
     final dueItems = ref.watch(dueItemsProvider(vehicle.id));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // P3-D-02: a fixed one-month horizon, deliberately independent of
+    // Settings.leadDays (which defaults to 7 and would hide §11.1's own
+    // 14-day card). One pass over the already-sorted provider output so no
+    // item can land in both groups or in neither; neither half is re-sorted.
+    final needsAttention = <DueItem>[];
+    final healthy = <DueItem>[];
+    for (final dueItem in dueItems) {
+      if (dueItem.due.daysLeft <= 30) {
+        needsAttention.add(dueItem);
+      } else {
+        healthy.add(dueItem);
+      }
+    }
+
+    final pinnedNotes = sortedNotes(data.notes)
+        .where((note) => note.pinned)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Trang chủ')),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          // 96 = 2 × 2xl, sized to the FAB's own Material footprint so the
+          // last pinned note is never obscured by it (H1 overflow) — the
+          // one deliberate exception to the spacing token table.
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Text(
               vehicleHeaderLine(vehicle),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            for (final dueItem in dueItems)
-              ListTile(
-                leading: Icon(_iconForCatalogCode(dueItem.item.catalogCode)),
-                title: Text(dueItem.item.name),
-                subtitle: Text('Còn ${dueItem.due.daysLeft}$_daySuffix'),
+            for (var i = 0; i < needsAttention.length; i++) ...[
+              DueCard(dueItem: needsAttention[i], vehicle: vehicle),
+              if (i != needsAttention.length - 1) const SizedBox(height: 16),
+            ],
+            // H1 zero-one-many: the divider block and the collapsed row are
+            // one conditional unit on the healthy group being non-empty —
+            // omitted together at N == 0 rather than rendering a "0" count
+            // or leaving the divider stranded above an absent row.
+            if (healthy.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 8),
+              ExpansionTile(
+                // N is ALWAYS interpolated from the filtered list at
+                // runtime — never the mockup's illustrative literal
+                // (P2-D-02's rule, reapplied here per P3-D-03).
+                title: Text('${healthy.length} hạng mục khác đang ổn ›'),
+                // Claude's Discretion (03-RESEARCH.md Pitfall 4,
+                // 03-UI-SPEC.md's resolution for this surface specifically):
+                // the verbatim "›" is the only indicator on this
+                // higher-visibility row — do NOT retroactively apply this to
+                // step4_items.dart's already-shipped leading "▸" glyph.
+                trailing: const SizedBox.shrink(),
+                children: [
+                  for (final dueItem in healthy)
+                    ListTile(
+                      leading: Icon(
+                        _iconForCatalogCode(dueItem.item.catalogCode),
+                      ),
+                      title: Text(dueItem.item.name),
+                      onTap: () => context.push('/item/${dueItem.item.id}'),
+                    ),
+                ],
               ),
+            ],
+            // P3-D-16/HOME-06: no cap, no "see more" row — every pinned
+            // note renders, or the section is absent entirely.
+            if (pinnedNotes.isNotEmpty) ...[
+              const SizedBox(height: 32),
+              for (final note in pinnedNotes)
+                ListTile(
+                  leading: Icon(
+                    Icons.push_pin,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  title: Text(noteDisplayTitle(note)),
+                  onTap: () => context.push('/notes/${note.id}'),
+                ),
+            ],
           ],
         ),
       ),
