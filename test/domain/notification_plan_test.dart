@@ -27,26 +27,43 @@ Vehicle _vehicle({
   );
 }
 
-// Time-axis fixture — mirrors due_test.dart's own fixtures. Kept deliberately
-// simple (intervalMonths + lastServiceDate only) so the due date this
-// planner reads back is a predictable local civil date, never reconstructed
-// here — the planner reads `DueResult.dueDate`, it never recomputes it.
+// Sentinel distinguishing "caller omitted lastServiceDate" (falls back to
+// the default below) from "caller explicitly passed null" (stays null, to
+// exercise the km-only / no-baseline branches) — `DateTime.utc(...)` is not
+// a compile-time constant, so it cannot be a normal default parameter
+// value, and a plain `lastServiceDate ?? default` cannot tell the two
+// apart.
+const _unset = Object();
+
+// Time-axis-by-default fixture — mirrors due_test.dart's own fixtures. A
+// caller wanting the km axis instead passes `lastServiceDate: null,
+// intervalMonths: null` alongside `intervalKm`/`lastServiceOdo`. The due
+// date this planner reads back is always a predictable local civil date,
+// never reconstructed here — the planner reads `DueResult.dueDate`, it
+// never recomputes it.
 MaintenanceItem _item({
   String id = 'i1',
   String vehicleId = 'v1',
   String name = 'Nhớt máy',
   int? intervalMonths = 3,
-  DateTime? lastServiceDate,
+  Object? lastServiceDate = _unset,
+  int? intervalKm,
+  int? lastServiceOdo,
   bool enabled = true,
   bool baselineIsGuess = false,
 }) {
+  final DateTime? resolvedDate = identical(lastServiceDate, _unset)
+      ? DateTime.utc(2026, 2, 1)
+      : lastServiceDate as DateTime?;
   return MaintenanceItem(
     id: id,
     vehicleId: vehicleId,
     catalogCode: 'engine_oil',
     name: name,
     intervalMonths: intervalMonths,
-    lastServiceDate: lastServiceDate ?? DateTime.utc(2026, 2, 1),
+    lastServiceDate: resolvedDate,
+    intervalKm: intervalKm,
+    lastServiceOdo: lastServiceOdo,
     enabled: enabled,
     baselineIsGuess: baselineIsGuess,
   );
@@ -391,11 +408,13 @@ void main() {
         );
         expect(dueDayIn, hasLength(1)); // ngày 120 -> còn trong lịch
 
-        // Đẩy now lùi 1 ngày (2/1/2026) để cùng mốc 1/5 rơi ra ngoài đúng
-        // kNotificationHorizonDays + 1 ngày.
+        // Để cùng mốc 1/5 rơi ra ngoài đúng kNotificationHorizonDays + 1
+        // ngày, mốc phải cách "now" xa hơn — lùi "now" lại 1 ngày (31/12
+        // /2025), không đẩy tới, vì khoảng cách ngày = mốc - now: now càng
+        // sớm thì khoảng cách càng lớn.
         final resultOut = planNotifications(
           dataIn,
-          now: DateTime.utc(2026, 1, 2),
+          now: DateTime.utc(2025, 12, 31),
         );
         final dueDayOut = resultOut.where(
           (p) =>
@@ -409,26 +428,63 @@ void main() {
     );
 
     test('40 mốc khả lịch -> chỉ giữ đúng 30 mốc sớm nhất', () {
-      final items = List.generate(
-        40,
+      // 40 xe riêng biệt, mỗi xe một hạng mục trên trục km (kmLeft = số
+      // ngày chính xác vì avgDailyKm = 1) — khoá bucket gồm vehicleId nên
+      // không xe nào gộp chung với xe khác, dù cùng ngày. leadDays: 0 gộp
+      // "sắp tới hạn" vào "đúng hạn"; khoảng cách được chọn (>106 ngày)
+      // đẩy cả +14 lẫn +28 ra ngoài chân trời 120 ngày, nên MỖI xe chỉ còn
+      // đúng MỘT mốc sống sót — mốc "đúng hạn" của chính nó.
+      //
+      // 30 xe nhóm "sớm": mốc cách now đúng 107 ngày (còn trong chân trời,
+      // +14 = 121 ngày thì bị loại).
+      // 10 xe nhóm "muộn": mốc cách now đúng 120 ngày (đúng biên chân
+      // trời).
+      // Vì 107 < 120, toàn bộ 30 mốc "sớm" luôn xếp trước cả 10 mốc
+      // "muộn" trong bản sắp xếp — phép cắt ở 30 phải giữ NGUYÊN nhóm sớm
+      // và loại bỏ TOÀN BỘ nhóm muộn, không phụ thuộc vào tie-break.
+      final now = DateTime.utc(2026, 1, 1);
+      final earlyVehicles = List.generate(
+        30,
+        (i) => _vehicle(id: 'vE$i', odoUpdatedAt: now, avgDailyKm: 1),
+      );
+      final lateVehicles = List.generate(
+        10,
+        (i) => _vehicle(id: 'vL$i', odoUpdatedAt: now, avgDailyKm: 1),
+      );
+      final earlyItems = List.generate(
+        30,
         (i) => _item(
-          id: 'i$i',
-          name: 'Hạng mục $i',
-          // Rải đều mỗi hạng mục cách nhau 1 ngày trên trục lastServiceDate
-          // để mỗi hạng mục rơi vào một bucket-ngày riêng biệt (khác ngày),
-          // sinh ra 40 bucket độc lập thay vì gộp chung.
-          lastServiceDate: DateTime.utc(2026, 2, 1).add(Duration(days: i)),
+          id: 'ie$i',
+          vehicleId: 'vE$i',
+          intervalMonths: null,
+          lastServiceDate: null,
+          intervalKm: 107,
+          lastServiceOdo: 10000,
+        ),
+      );
+      final lateItems = List.generate(
+        10,
+        (i) => _item(
+          id: 'il$i',
+          vehicleId: 'vL$i',
+          intervalMonths: null,
+          lastServiceDate: null,
+          intervalKm: 120,
+          lastServiceOdo: 10000,
         ),
       );
       final data = _appData(
-        settings: const Settings(odoReminderEnabled: false),
-        items: items,
+        vehicles: [...earlyVehicles, ...lateVehicles],
+        settings: const Settings(odoReminderEnabled: false, leadDays: 0),
+        items: [...earlyItems, ...lateItems],
       );
-      final result = planNotifications(data, now: DateTime.utc(2026, 1, 1));
+      final result = planNotifications(data, now: now);
       expect(result, hasLength(kMaxScheduledNotifications));
       expect(result.length, 30);
-      // Kết quả phải là 30 mốc SỚM NHẤT: mỗi phần tử không muộn hơn phần
-      // tử kế tiếp — sắp xếp theo scheduledAt.
+      // Toàn bộ 30 kết quả phải thuộc nhóm "sớm" (vE*) — nhóm "muộn" (vL*)
+      // bị loại hoàn toàn.
+      expect(result.every((p) => p.payload.startsWith('due:vE')), isTrue);
+      // Kết quả vẫn phải được sắp xếp không giảm dần theo scheduledAt.
       for (var i = 1; i < result.length; i++) {
         expect(
           result[i].scheduledAt.isBefore(result[i - 1].scheduledAt),
