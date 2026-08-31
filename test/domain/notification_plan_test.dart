@@ -126,14 +126,54 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('tạo đủ sáu nhắc ODO cho một fixture khỏe mạnh', () {
-      final data = _appData();
-      final result = planNotifications(data, now: DateTime.utc(2026, 8, 29));
-      expect(result, hasLength(6));
-      for (final p in result) {
-        expect(p.payload, 'odo:v1');
-      }
-    });
+    test(
+      'mốc tháng hiện tại đã qua -> chỉ còn 5 nhắc ODO trong tương lai '
+      '(CR-01)',
+      () {
+        // now đặt trên đồng hồ giờ địa phương (không phải DateTime.utc) để
+        // cả hai vế của isAfter đều là giờ dân sự cục bộ — kết quả không
+        // phụ thuộc múi giờ máy chạy test (WR-02).
+        final now = DateTime(2026, 8, 29, 12);
+        final data = _appData();
+        final result = planNotifications(data, now: now);
+        expect(result, hasLength(5));
+        for (final p in result) {
+          expect(p.payload, 'odo:v1');
+        }
+        for (final p in result) {
+          expect(p.scheduledAt.isAfter(now), isTrue);
+        }
+        expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
+        expect(result.last.scheduledAt, DateTime(2027, 1, 1, 8));
+      },
+    );
+
+    test(
+      'mốc tháng hiện tại chưa tới -> đủ 6 nhắc ODO, kể cả tháng hiện tại',
+      () {
+        final now = DateTime(2026, 8, 1, 7);
+        final data = _appData();
+        final result = planNotifications(data, now: now);
+        expect(result, hasLength(6));
+        expect(result.first.scheduledAt, DateTime(2026, 8, 1, 8));
+        expect(result.last.scheduledAt, DateTime(2027, 1, 1, 8));
+        for (final p in result) {
+          expect(p.scheduledAt.isAfter(now), isTrue);
+        }
+      },
+    );
+
+    test(
+      'now trùng đúng mốc tháng hiện tại -> mốc đó bị loại (strictly-after, '
+      'CR-01, cùng quy tắc với due-item loop)',
+      () {
+        final now = DateTime(2026, 8, 1, 8);
+        final data = _appData();
+        final result = planNotifications(data, now: now);
+        expect(result, hasLength(5));
+        expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
+      },
+    );
 
     test('body chứa đúng tên xe kèm dấu tiếng Việt', () {
       final data = _appData(vehicles: [_vehicle(name: 'Vision Hà Nội')]);
@@ -559,7 +599,9 @@ void main() {
   // `<assumption_delta_decision>`: `zonedSchedule`'s `validateDateIsInTheFuture`
   // là điều kiện tiên quyết DUY NHẤT đúng dưới MỌI `AndroidScheduleMode`, nên
   // đây là bài test chống hồi quy nếu một phase sau này vô tình đưa giả định
-  // "chỉ chạy exact mode" trở lại.
+  // "chỉ chạy exact mode" trở lại. `now` được đặt lại trên giờ địa phương
+  // (không còn DateTime.utc) để đóng WR-02 — kết quả không còn phụ thuộc múi
+  // giờ máy chạy test.
   group('schedulable under either mode', () {
     test(
       'mọi PlannedNotification trả về đều có scheduledAt strictly sau now',
@@ -581,7 +623,7 @@ void main() {
             ),
           ],
         );
-        final now = DateTime.utc(2026, 3, 1);
+        final now = DateTime(2026, 3, 15, 12);
         final result = planNotifications(data, now: now);
         expect(result, isNotEmpty);
         for (final p in result) {
