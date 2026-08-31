@@ -9,6 +9,16 @@
 // `app_state.dart:169`'s call site needed no edit. Three new members are
 // added to the abstract class for this task: `init()`,
 // `consumeLaunchPayload()` and the settable `onNotificationOpened` callback.
+//
+// 04-03 adds five more members — the permission surface (P4-D-05/P4-D-06/
+// P4-D-07/P4-D-08): `requestNotificationsPermission()`,
+// `areNotificationsEnabled()`, `canScheduleExactNotifications()`,
+// `requestExactAlarmsPermission()`, `openAppNotificationSettings()`. Every
+// one of these is a first-party method on
+// `AndroidFlutterLocalNotificationsPlugin` in the pinned 22.3.0
+// (04-RESEARCH.md § Don't Hand-Roll) — `permission_handler` stays unused
+// despite being pinned in `pubspec.yaml`, and no `AndroidIntent` is
+// hand-rolled for the notification-settings page.
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
@@ -16,6 +26,7 @@ import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import '../domain/models/app_data.dart';
+import '../domain/models/misc.dart';
 import '../domain/notification_plan.dart';
 
 /// Reschedules every local notification from the current [AppData]. Per
@@ -37,6 +48,35 @@ abstract class NotificationService {
   /// `main.dart` sets this; the service itself never imports the router or
   /// `app_state.dart` (keeps a global router shape out of this codebase).
   set onNotificationOpened(void Function(String payload)? callback);
+
+  /// Requests `POST_NOTIFICATIONS` (P4-D-06). On Android < 13 this is a
+  /// documented plugin no-op — Pitfall 3 — and returns `false` without
+  /// showing anything; that is NOT the same as a refusal and the caller
+  /// must not treat it as one.
+  Future<bool> requestNotificationsPermission();
+
+  /// The LIVE OS state — whether this app currently has notifications
+  /// enabled — never the stored intent. Drives the Settings soft-prompt
+  /// line's visibility (P4-D-08).
+  Future<bool> areNotificationsEnabled();
+
+  /// The LIVE OS state for the exact-alarm permission. The schedule-mode
+  /// resolver below reads this every `rescheduleAll` call because the user
+  /// can revoke it from system settings at any time without the app
+  /// hearing about it (T-04-13).
+  Future<bool> canScheduleExactNotifications();
+
+  /// The one and only permitted call site is the Settings exact-alarm
+  /// opt-in row (task 3 of this plan) — never automatic, never from this
+  /// file's own `init()` or `rescheduleAll()`. On Android 12+ this throws
+  /// the user out of the app into a full system settings page (P4-D-07,
+  /// D-30). Adding a second call site is a decision, not a refactor.
+  Future<void> requestExactAlarmsPermission();
+
+  /// Opens this app's own notification settings page in the OS. The only
+  /// route back once Android has recorded a permanent `POST_NOTIFICATIONS`
+  /// denial (P4-D-08) — a plain text line would be a dead end.
+  Future<void> openAppNotificationSettings();
 }
 
 /// Phase 1 placeholder, replaced by [FlutterLocalNotificationService] as the
@@ -56,6 +96,21 @@ class NoopNotificationService implements NotificationService {
 
   @override
   set onNotificationOpened(void Function(String payload)? callback) {}
+
+  @override
+  Future<bool> requestNotificationsPermission() async => false;
+
+  @override
+  Future<bool> areNotificationsEnabled() async => false;
+
+  @override
+  Future<bool> canScheduleExactNotifications() async => false;
+
+  @override
+  Future<void> requestExactAlarmsPermission() async {}
+
+  @override
+  Future<void> openAppNotificationSettings() async {}
 }
 
 /// The real implementation, wired in by `main.dart` after `hydrate()`. Owns
@@ -71,6 +126,40 @@ class FlutterLocalNotificationService implements NotificationService {
   @override
   set onNotificationOpened(void Function(String payload)? callback) {
     _onNotificationOpened = callback;
+  }
+
+  /// Every permission-surface member below and `init()`'s channel creation
+  /// go through this same resolved implementation — the only Android-typed
+  /// handle this file holds.
+  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+
+  @override
+  Future<bool> requestNotificationsPermission() async =>
+      await _android?.requestNotificationsPermission() ?? false;
+
+  @override
+  Future<bool> areNotificationsEnabled() async =>
+      await _android?.areNotificationsEnabled() ?? false;
+
+  @override
+  Future<bool> canScheduleExactNotifications() async =>
+      await _android?.canScheduleExactNotifications() ?? false;
+
+  @override
+  Future<void> requestExactAlarmsPermission() async {
+    // The one call site is lib/ui/settings/settings_screen.dart's exact-alarm
+    // opt-in row (P4-D-07). On Android 12+ this call leaves the app entirely
+    // for a system settings page — adding a second call site is a decision,
+    // not a refactor (D-30).
+    await _android?.requestExactAlarmsPermission();
+  }
+
+  @override
+  Future<void> openAppNotificationSettings() async {
+    await _android?.openAppNotificationSettings();
   }
 
   @override
@@ -105,19 +194,14 @@ class FlutterLocalNotificationService implements NotificationService {
       onDidReceiveNotificationResponse: _onTap,
     );
 
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            'maintenance',
-            'Nhắc bảo dưỡng',
-            description:
-                'Nhắc khi tới hạn thay linh kiện và nhắc cập nhật số km',
-            importance: Importance.high,
-          ),
-        );
+    await _android?.createNotificationChannel(
+      const AndroidNotificationChannel(
+        'maintenance',
+        'Nhắc bảo dưỡng',
+        description: 'Nhắc khi tới hạn thay linh kiện và nhắc cập nhật số km',
+        importance: Importance.high,
+      ),
+    );
   }
 
   void _onTap(NotificationResponse response) {
@@ -142,6 +226,11 @@ class FlutterLocalNotificationService implements NotificationService {
     await _plugin.cancelAll();
 
     if (!data.settings.notificationsEnabled) return;
+
+    // Resolved once per invocation, not per planned item — the OS grant
+    // cannot change mid-loop, and this avoids one extra platform-channel
+    // round trip per notification.
+    final scheduleMode = await _resolveScheduleMode(data.settings);
 
     final planned = planNotifications(data);
     final now = DateTime.now();
@@ -179,7 +268,7 @@ class FlutterLocalNotificationService implements NotificationService {
               priority: Priority.high,
             ),
           ),
-          androidScheduleMode: _scheduleMode(),
+          androidScheduleMode: scheduleMode,
         );
       } catch (e) {
         _log('zonedSchedule failed for id $thisId (${p.payload}): $e');
@@ -188,14 +277,22 @@ class FlutterLocalNotificationService implements NotificationService {
   }
 
   /// The single resolver every `zonedSchedule` call reads (this plan's
-  /// `<assumption_delta_decision>`). Today this always returns
-  /// `inexactAllowWhileIdle` — never bare `inexact`, which the package's own
-  /// enum doc says may not execute in low-power idle, exactly the Doze
-  /// problem §10.6 exists to work around (P4-D-07, D-30, Pitfall 4). 04-03
-  /// gives this its second branch (the user's exact-alarm opt-in) without
-  /// any call site needing to change.
-  AndroidScheduleMode _scheduleMode() =>
-      AndroidScheduleMode.inexactAllowWhileIdle;
+  /// `<assumption_delta_decision>`). Never bare `inexact`, which the
+  /// package's own enum doc says may not execute in low-power idle, exactly
+  /// the Doze problem §10.6 exists to work around (Pitfall 4).
+  ///
+  /// 04-03's second branch: exact timing requires BOTH the user's stored
+  /// opt-in (`Settings.exactAlarmsEnabled`) AND a live
+  /// `canScheduleExactNotifications()` grant — the user can revoke the
+  /// exact-alarm permission from system settings at any time without the
+  /// app hearing about it, so the stored flag alone is not a truth about
+  /// what the OS will currently allow (T-04-13, P4-D-07, D-30).
+  Future<AndroidScheduleMode> _resolveScheduleMode(Settings settings) async {
+    if (settings.exactAlarmsEnabled && await canScheduleExactNotifications()) {
+      return AndroidScheduleMode.exactAllowWhileIdle;
+    }
+    return AndroidScheduleMode.inexactAllowWhileIdle;
+  }
 
   void _log(String message) {
     // ignore: avoid_print

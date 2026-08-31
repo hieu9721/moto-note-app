@@ -94,8 +94,8 @@ cross-platform; only the release and verification surface is Android-only.
 ### Notifications
 
 - [x] **NOTIF-01**: `NotificationService.init()` initialises timezone data, sets the local location from `FlutterTimezone.getLocalTimezone()`, initialises the plugin, and creates the Android channel `('maintenance', 'Nhắc bảo dưỡng', importance: high)` before anything is scheduled. *(§10.2)*
-- [ ] **NOTIF-02**: Notification permission is requested at the end of onboarding, after the user has seen their bike, with the §10.3 explanation; on Android `requestNotificationsPermission()` and `requestExactAlarmsPermission()` are requested as two separate steps. *(§10.3, §6)*
-- [ ] **NOTIF-03**: Declining either permission leaves the app fully usable — an exact-alarm refusal falls back to inexact scheduling, and Settings shows only a soft prompt line. *(§10.3)*
+- [x] **NOTIF-02**: Notification permission is requested at the end of onboarding, after the user has seen their bike, with the §10.3 explanation; on Android `requestNotificationsPermission()` and `requestExactAlarmsPermission()` are requested as two separate steps. *(§10.3, §6)*
+- [x] **NOTIF-03**: Declining either permission leaves the app fully usable — an exact-alarm refusal falls back to inexact scheduling, and Settings shows only a soft prompt line. *(§10.3)*
 - [ ] **NOTIF-04**: Three notification types exist: the monthly ODO reminder, "sắp tới hạn" `leadDays` before the due date at most once a day per vehicle, and "quá hạn" on the due date then every 14 days at most 3 times. *(§10.1)*
 - [ ] **NOTIF-05**: `rescheduleAll` calls `cancelAll()` first, returns immediately when notifications are disabled, schedules only concrete dates within `_horizonDays = 120`, takes at most `_maxScheduled = 30`, and uses `AndroidScheduleMode.exactAllowWhileIdle`; it runs on `AppLifecycleState.resumed` and on every state change via `_mutate`. *(§10.4, §5.2)*
 - [x] **NOTIF-06**: The monthly ODO reminder is scheduled six months ahead on `odoReminderDayOfMonth` at `notifyHour`, titled "Cập nhật số km" with body "Xe {name} đang ở khoảng {est} km. Số thật là bao nhiêu?" and payload `odo:{vehicleId}`. *(§10.4)*
@@ -235,8 +235,8 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | NOTE-01 | Phase 3 | Complete |
 | NOTE-02 | Phase 3 | Complete |
 | NOTIF-01 | Phase 4 | Complete |
-| NOTIF-02 | Phase 4 | Pending |
-| NOTIF-03 | Phase 4 | Pending |
+| NOTIF-02 | Phase 4 | Complete |
+| NOTIF-03 | Phase 4 | Complete |
 | NOTIF-04 | Phase 4 | Pending |
 | NOTIF-05 | Phase 4 | Pending |
 | NOTIF-06 | Phase 4 | Complete |

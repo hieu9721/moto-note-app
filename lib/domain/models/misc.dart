@@ -38,6 +38,10 @@ abstract class Note with _$Note {
   factory Note.fromJson(Map<String, dynamic> json) => _$NoteFromJson(json);
 }
 
+// 04-03 (P4-D-05/P4-D-07): notificationPermissionAsked and exactAlarmsEnabled
+// are [NEW, PROVISIONAL] field names (04-RESEARCH.md Assumptions Log A1) —
+// the app has never released, so renaming either before 1.0 costs nothing,
+// but D-21 makes it a one-way change after first release.
 @freezed
 abstract class Settings with _$Settings {
   const factory Settings({
@@ -51,6 +55,10 @@ abstract class Settings with _$Settings {
     String? lastBackupError,
     String? googleEmail, // chỉ để hiển thị đang backup vào đâu
     DateTime? lastNotificationFiredAt,
+    @Default(false)
+    bool notificationPermissionAsked, // one-shot ask flag (P4-D-05)
+    @Default(false)
+    bool exactAlarmsEnabled, // user's exact-timing opt-in (P4-D-07)
   }) = _Settings;
 
   factory Settings.fromJson(Map<String, dynamic> json) =>

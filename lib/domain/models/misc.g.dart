@@ -68,6 +68,9 @@ _Settings _$SettingsFromJson(Map<String, dynamic> json) => _Settings(
   lastNotificationFiredAt: json['lastNotificationFiredAt'] == null
       ? null
       : DateTime.parse(json['lastNotificationFiredAt'] as String),
+  notificationPermissionAsked:
+      json['notificationPermissionAsked'] as bool? ?? false,
+  exactAlarmsEnabled: json['exactAlarmsEnabled'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$SettingsToJson(_Settings instance) => <String, dynamic>{
@@ -82,4 +85,6 @@ Map<String, dynamic> _$SettingsToJson(_Settings instance) => <String, dynamic>{
   'googleEmail': instance.googleEmail,
   'lastNotificationFiredAt': instance.lastNotificationFiredAt
       ?.toIso8601String(),
+  'notificationPermissionAsked': instance.notificationPermissionAsked,
+  'exactAlarmsEnabled': instance.exactAlarmsEnabled,
 };

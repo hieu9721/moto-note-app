@@ -38,6 +38,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
 import '../../domain/odo.dart';
+import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../catalog_icons.dart';
@@ -66,10 +67,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // second sheet no matter how many times `build` re-runs.
   bool _consumedSheetParam = false;
 
+  // In-memory one-shot guard for [_maybeShowNotificationPermissionPrompt] —
+  // the persisted `Settings.notificationPermissionAsked` flag is what
+  // actually stops the prompt from ever asking twice across restarts
+  // (P4-D-05); this field only stops a rebuild of THIS screen instance
+  // (e.g. the very rebuild `updateSettings` triggers) from re-entering the
+  // dialog before that persisted write has propagated back through
+  // `ref.watch`.
+  bool _permissionPromptShown = false;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _consumeSheetParam());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _consumeSheetParam();
+      // 04-03: a second one-shot effect on the same lifecycle hook 04-01
+      // reserved for it, rather than converting this class a second time.
+      _maybeShowNotificationPermissionPrompt();
+    });
   }
 
   /// P4-D-02: consumes the `?sheet=odo` query parameter on `/` at most once
@@ -103,6 +118,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     // parameterised URL; `go` is an acceptable substitute if `replace`
     // misbehaves inside the StatefulShellRoute branch (untriggered here).
     context.replace('/');
+  }
+
+  /// P4-D-05/P4-D-06: the notification-permission prompt, at most once per
+  /// app install — gated on the persisted `Settings.notificationPermissionAsked`
+  /// flag, not on anything purely in-memory, so the ask survives every
+  /// rebuild, tab switch and process restart once it has happened.
+  Future<void> _maybeShowNotificationPermissionPrompt() async {
+    // Guards `context` below against the async gap between this frame
+    // being scheduled and this callback running (CLAUDE.md's
+    // context-after-await trap; same guard `_consumeSheetParam` uses).
+    if (!context.mounted) return;
+    if (_permissionPromptShown) return;
+    // The build-time defensive early return covers the render path; this
+    // callback runs outside `build`, so it needs its own guard against an
+    // empty vehicle list — §10.3's timing is "after the user has seen
+    // their bike", and the router's redirect already guarantees a vehicle
+    // before this screen builds, so this never fires in practice.
+    final data = ref.read(appProvider);
+    if (data.vehicles.isEmpty) return;
+    if (data.settings.notificationPermissionAsked) return;
+
+    // Set BEFORE awaiting the dialog — mirrors `_consumeSheetParam`'s
+    // re-entrancy guard above: an await here would otherwise leave a hole
+    // for the callback to fire again before the dialog returns.
+    _permissionPromptShown = true;
+
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        // [NEW, PROVISIONAL] — not sourced in §10.3, which quotes only the
+        // body sentence below verbatim. Recorded in 04-03-SUMMARY.md.
+        title: const Text('Bật thông báo?'),
+        // §10.3, byte-for-byte — do not reword, retranslate, reflow or
+        // shorten.
+        content: const Text(
+          'Bật thông báo để app nhắc bạn khi tới hạn thay nhớt và nhắc cập '
+          'nhật số km mỗi tháng. Không có thông báo, app chỉ nhắc khi bạn '
+          'tự mở lên.',
+        ),
+        actions: [
+          // [NEW, PROVISIONAL]
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Để sau'),
+          ),
+          // [NEW, PROVISIONAL]
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Bật thông báo'),
+          ),
+        ],
+      ),
+    );
+
+    if (!context.mounted) return;
+    // Written on ALL THREE exit paths — accept (`true`), decline
+    // (`false`), or a dismissed dialog / back gesture (`null`) — because
+    // the flag records "we asked", not "they said yes". Writing it only on
+    // acceptance would re-prompt every launch for the user who declined,
+    // exactly the hostile behaviour P4-D-05 exists to prevent.
+    await ref
+        .read(appProvider.notifier)
+        .updateSettings((s) => s.copyWith(notificationPermissionAsked: true));
+
+    // Only on the affirmative action, only after the dialog's future has
+    // resolved: Android grants exactly one chance at `POST_NOTIFICATIONS`,
+    // and asking bare is the fastest way to lose it permanently (P4-D-06).
+    // The exact-alarm permission is never requested from this screen — its
+    // one and only call site is the Settings opt-in row task 3 builds
+    // (P4-D-07).
+    if (accepted == true) {
+      if (!context.mounted) return;
+      await ref
+          .read(notificationSchedulerProvider)
+          .requestNotificationsPermission();
+    }
   }
 
   @override
