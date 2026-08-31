@@ -84,14 +84,23 @@ List<PlannedNotification> planNotifications(AppData data, {DateTime? now}) {
   if (data.settings.odoReminderEnabled && data.vehicles.isNotEmpty) {
     final v = data.vehicles.first; // P4-D-16: first only, flagged for Phase 6
     for (var m = 0; m < 6; m++) {
+      final scheduledAt = _nthMonthDay(
+        n,
+        m,
+        data.settings.odoReminderDayOfMonth,
+        data.settings.notifyHour,
+      );
+      // Strictly-after, same rule and same expression as the due-item loop
+      // below (CR-01) — for m = 0, `_nthMonthDay` hands back the CURRENT
+      // month's slot, which is in the past on most days of the month under
+      // the shipped defaults. Without this guard the stale candidate still
+      // occupies a slot in the `sort` + `take(kMaxScheduledNotifications)`
+      // cut below, where it always sorts first and can evict a legitimate
+      // future reminder.
+      if (!scheduledAt.isAfter(n)) continue;
       planned.add(
         PlannedNotification(
-          scheduledAt: _nthMonthDay(
-            n,
-            m,
-            data.settings.odoReminderDayOfMonth,
-            data.settings.notifyHour,
-          ),
+          scheduledAt: scheduledAt,
           title: 'Cập nhật số km',
           // The `~` is inside the composed body literal, not appended at a
           // call site — deliberate and unconditional (P4-D-15). `{name}` is
