@@ -166,7 +166,7 @@ Plans:
   4. Refusing the notification permission or the exact-alarm permission leaves every feature working, with only a soft prompt line in Settings and inexact scheduling as the fallback.
   5. On a Xiaomi device the app shows the Xiaomi-specific battery instructions and its button opens the system battery-optimisation page; if 45 days pass with items due and nothing fired, the "Có vẻ thông báo không hoạt động" banner appears.
 
-**Plans**: 4/4 plans executed
+**Plans**: 7 plans — 4/4 executed, 3 gap-closure plans pending (`04-VERIFICATION.md` → gaps_found)
 
 Plans:
 **Wave 1**
@@ -181,6 +181,17 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 04-04-PLAN.md — OEM battery guidance in a bottom sheet, and the dead-notification banner on Trang chủ (wave 3)
+
+**Gap closure** *(from `04-VERIFICATION.md`; run with `/gsd-execute-phase 04 --gaps-only`)*
+
+**Wave 1**
+
+- [ ] 04-05-PLAN.md — CR-01: restore the strictly-after-now filter on the monthly ODO loop, with offset-independent tests (wave 1, gap closure)
+- [ ] 04-06-PLAN.md — CR-02: move the exact-alarm grant write to the resume path so the opt-in the user grants actually sticks (wave 1, gap closure, has a decision checkpoint)
+
+**Wave 2** *(blocked on 04-05 and 04-06)*
+
+- [ ] 04-07-PLAN.md — Sync REQUIREMENTS.md's NOTIF-04/-05/-07 status, structurally blocked until CR-01 is green (wave 2, gap closure)
 
 ### Phase 5: Google Drive Backup & Restore
 
