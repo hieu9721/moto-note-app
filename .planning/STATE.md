@@ -4,11 +4,11 @@ milestone: v1.0
 current_phase: 04
 current_phase_name: Local Notifications
 status: executing
-stopped_at: Phase 4 context gathered
-last_updated: "2026-08-30T15:05:28.864Z"
-last_activity: 2026-08-30
-last_activity_desc: Phase 04 execution started
-state_head: a96952178cd0c253ffb829b6a3480882c1b752ac
+stopped_at: Phase 4 Wave 1 — 04-01 task 2 of 3 merged, SUMMARY pending
+last_updated: "2026-08-31T01:42:14.500Z"
+last_activity: 2026-08-31
+last_activity_desc: Session resumed; 04-01 awaiting task 3 + SUMMARY
+state_head: 0341e81
 progress:
   total_phases: 6
   completed_phases: 3
@@ -28,16 +28,21 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 ## Current Position
 
 Phase: 04 (Local Notifications) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 04
-Last activity: 2026-08-30 — Phase 04 execution started
+Plan: 1 of 4 (04-01, task 2 of 3 merged)
+Status: Executing Phase 04 — Wave 1 in progress
+Last activity: 2026-08-31 — session resumed from HANDOFF.json
 
-Progress: [████████████████████] 18/18 plans (Phases 01–03 of 6 complete)
+Progress: [████████████████░░░░] 18/22 plans (Phases 01–03 of 6 complete; Phase 04 0/4 plans closed)
 
-**Next command:** `/gsd-plan-phase 4` — `04-CONTEXT.md` is written and committed. Expect the
-decision-coverage gate to fail-parse the `P4-D-NN` namespace for the fifth time (see below); verify
-by grep instead of renaming ids. Note also that §10.6's OEM behaviour is only observable on the real
-SM-A066B, and that SC1's clock-move must be asked for before it is done.
+**Next command:** `/gsd-execute-phase 4` — but **04-01 must resume at task 3, not task 1**. It has a
+merged production commit (`ace598d`, the tracer) and **no `04-01-SUMMARY.md`**, so every GSD index
+reads it as never-run. Dispatch it with an explicit completed-tasks table and require the SUMMARY to
+be written in the same dispatch. Full context in
+`.planning/phases/04-local-notifications/.continue-here.md`.
+
+Also still true for Phase 04: §10.6's OEM behaviour is only observable on the real SM-A066B, SC1's
+clock-move must be asked for before it is done, and the decision-coverage gate fail-parses the
+`P4-D-NN` namespace (verify by grep, do not rename ids).
 
 ### Planning gate note — §13a decision coverage (2026-08-30, Phase 03 — closed)
 
@@ -126,13 +131,39 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-08-30T13:58:33.882Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-local-notifications/04-CONTEXT.md
+Last session: 2026-08-31T01:42:14.500Z
+Stopped at: Session resumed from HANDOFF.json; 04-01 awaiting task 3 + SUMMARY
+Resume file: .planning/phases/04-local-notifications/.continue-here.md
 
-Phase 03 is complete. Next action is `/gsd-discuss-phase 4`.
+Phase 04 Wave 1 is partly done and merged. Next action is `/gsd-execute-phase 4`, resuming 04-01 at
+task 3.
 
 Session notes:
+
+- **Phase 04 execution started 2026-08-30 and paused inside Wave 1 (commits `ace598d` … `0341e81`).**
+  Waves are W1 = 04-01, W2 = 04-02 + 04-03 (parallel — `files_modified` overlap check done, no
+  overlap), W3 = 04-04. Resolved run config: `ISOLATION=harness-worktree`, `USE_WORKTREES=true`,
+  `PARALLELIZATION=true`, `executor_model=sonnet`, `branching_strategy=none`, `AUTO_MODE=false`.
+
+- **Phase 4's only one-way door is shut.** The notification payload grammar is fixed at `{kind}:{id}`
+  — `due:{vehicleId}` → `/`, `odo:{vehicleId}` → `/?sheet=odo`, no `/vehicle/:id` route (P4-D-01,
+  P4-D-02, §10.7). Confirmed by the user at 04-01 task 1's blocking checkpoint; the versioned and
+  JSON alternatives were presented and declined. Now shipped in `ace598d` and covered by
+  `test/domain/notification_plan_test.dart`.
+
+- **04-01 has a production commit but no SUMMARY.md — the `safe_resume_gate` anomaly, live.** Read
+  `.continue-here.md`'s Critical Anti-Patterns table before dispatching: its first row is `blocking`.
+
+- **A `checkpoint:decision` whose answer is already in CONTEXT still costs a full agent.** The first
+  04-01 executor burned ~147K tokens producing nothing — it hit task 1's blocking gate and stopped to
+  ask a question P4-D-01 had already answered. `AUTO_MODE` is false, so a blocking gate always
+  surfaces. Fix is to embed a `<checkpoint_resolution>` block in the dispatch prompt.
+
+- **An executor committed past an unmet `<precondition>`.** 04-01 task 2 requires the SM-A066B
+  attached (`adb devices` shows one device); no device is connected, and the executor implemented and
+  committed anyway. Static checks pass on main (`flutter analyze` clean, 36/36 domain tests) but every
+  on-device claim (SC1, SC3, NOTIF-09) is unobserved and belongs in `04-UAT.md`, not in a SUMMARY
+  asserting verification.
 
 - **Phase 03 closed by `/gsd-verify-work 03` on 2026-08-30, driven end-to-end over adb against the
   real SM-A066B on a fresh `--release` build of `7b08689`.** All five outstanding human-verification
