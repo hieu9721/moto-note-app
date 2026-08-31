@@ -19,6 +19,18 @@
 // keypad sheet — 03-UI-SPEC.md names both the exact icon it uses below
 // and Material's own (unmodified) FAB accent colour, since this is one of
 // the phase's five reserved accent CTAs.
+//
+// 04-01 (P4-D-02/P4-D-03): converted from `ConsumerWidget` to
+// `ConsumerStatefulWidget` solely to gain a lifecycle hook — a plain
+// `ConsumerWidget.build` has no `initState`, and no way to schedule a
+// one-shot callback for the first frame, so this screen needs the stateful
+// form to consume the one-shot `?sheet=odo` deep-link query parameter
+// exactly once per screen instance. This is the first widget in `lib/ui/`
+// to need that hook; 04-03 hangs the notification-permission prompt trigger
+// off the same lifecycle hook rather than converting the class a second
+// time. Everything the screen *renders* is unchanged by this conversion —
+// only the base class and the addition of `_consumeSheetParam` below are
+// new.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -40,11 +52,61 @@ import 'odo_sheet.dart';
 const _tildePrefix = '~';
 const _daySuffix = ' ngày';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // One-shot guard for [_consumeSheetParam] — set to true immediately before
+  // the sheet is opened (never after), so a rebuild triggered by the sheet
+  // itself, or any other rebuild of this screen instance, can never open a
+  // second sheet no matter how many times `build` re-runs.
+  bool _consumedSheetParam = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _consumeSheetParam());
+  }
+
+  /// P4-D-02: consumes the `?sheet=odo` query parameter on `/` at most once
+  /// per screen instance, opening the same modal the FAB opens and then
+  /// clearing the parameter so a rebuild, a tab round-trip, or a
+  /// process-restore does not re-open it. P4-D-03: because `main.dart`
+  /// already folds a cold-start launch payload into the router's
+  /// `initialLocation`, a cold start from an `odo:` notification builds `/`
+  /// WITH this query parameter present on the very first frame, so the
+  /// sheet appears over the first home render rather than after a visible
+  /// jump.
+  void _consumeSheetParam() {
+    // Guards `context`/`GoRouterState.of(context)` below against the async
+    // gap between this frame being scheduled and this callback running
+    // (CLAUDE.md's context-after-await trap applies to post-frame callbacks
+    // too).
+    if (!context.mounted) return;
+    final sheetParam = GoRouterState.of(context).uri.queryParameters['sheet'];
+    if (sheetParam != 'odo') return;
+    if (_consumedSheetParam) return;
+    // The build-time defensive early return below covers the render path;
+    // this callback runs outside `build`, so it needs its own guard against
+    // an empty vehicle list.
+    final data = ref.read(appProvider);
+    if (data.vehicles.isEmpty) return;
+    // Set BEFORE opening — an await on `showOdoSheet` here would leave a
+    // re-entrancy hole for a callback fired again before the sheet returns.
+    _consumedSheetParam = true;
+    showOdoSheet(context, ref, data.vehicles.first);
+    // Prefer `replace` so the back gesture does not walk back into the
+    // parameterised URL; `go` is an acceptable substitute if `replace`
+    // misbehaves inside the StatefulShellRoute branch (untriggered here).
+    context.replace('/');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
     if (data.vehicles.isEmpty) {
       // The router's redirect never lets this screen build without a
