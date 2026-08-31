@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 04
 current_phase_name: Local Notifications
 status: executing
-stopped_at: Phase 4 Wave 1 — 04-01 task 2 of 3 merged, SUMMARY pending
-last_updated: "2026-08-31T01:47:16.084Z"
+stopped_at: Phase 4 — all 4 plans executed and merged; verification returned gaps_found (2 code defects)
+last_updated: "2026-08-31T02:35:00.000Z"
 last_activity: 2026-08-31
-last_activity_desc: Phase 04 execution resumed (wave continue)
-state_head: 0c19da7f651214f8cdc72b07a0e9aa1cb012c542
+last_activity_desc: Phase 04 executed end to end; verifier found 2 blocking code gaps
+state_head: 506c1a7
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 22
-  completed_plans: 18
+  completed_plans: 22
 ---
 
 # Project State
@@ -27,18 +27,20 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 04 (Local Notifications) — EXECUTING
-Plan: 1 of 4 (04-01, task 2 of 3 merged)
-Status: Executing Phase 04
-Last activity: 2026-08-31 — Phase 04 execution resumed (wave continue)
+Phase: 04 (Local Notifications) — EXECUTED, NOT VERIFIED
+Plan: 4 of 4 (all merged to `main`)
+Status: `04-VERIFICATION.md` → **gaps_found**. Phase must NOT be marked complete.
+Last activity: 2026-08-31 — Phase 04 executed end to end; verifier found 2 blocking code gaps
 
-Progress: [████████████████░░░░] 18/22 plans (Phases 01–03 of 6 complete; Phase 04 0/4 plans closed)
+Progress: [████████████████████] 22/22 plans (Phases 01–03 of 6 complete; Phase 04 4/4 plans closed,
+phase itself still open)
 
-**Next command:** `/gsd-execute-phase 4` — but **04-01 must resume at task 3, not task 1**. It has a
-merged production commit (`ace598d`, the tracer) and **no `04-01-SUMMARY.md`**, so every GSD index
-reads it as never-run. Dispatch it with an explicit completed-tasks table and require the SUMMARY to
-be written in the same dispatch. Full context in
-`.planning/phases/04-local-notifications/.continue-here.md`.
+**Next command:** `/gsd-plan-phase 04 --gaps` — then `/gsd-execute-phase 04 --gaps-only`.
+
+Phase 04 ran clean mechanically: `flutter analyze` No issues, `dart test` 103/103, regression gate
+64/64 on Phases 01–03, all three `execute:wave:post` capability gates green, `04-UI-REVIEW.md` 21/24.
+What it did **not** do is work correctly in two places, both confirmed by reading the source three
+times over (code reviewer, orchestrator, verifier) — see Blockers below.
 
 Also still true for Phase 04: §10.6's OEM behaviour is only observable on the real SM-A066B, SC1's
 clock-move must be asked for before it is done, and the decision-coverage gate fail-parses the
@@ -100,6 +102,46 @@ Decisions are logged in PROJECT.md Key Decisions table (`<decisions>` block, D-0
 None yet.
 
 ### Blockers/Concerns
+
+- **Phase 04 gap CR-01 — `lib/domain/notification_plan.dart:84-106`, the monthly ODO-reminder loop
+  never filters out past dates.** The due-item loop 30 lines below it does exactly that at line 134
+  (`if (!scheduledAt.isAfter(n)) continue;`); the ODO loop has no equivalent. For `m = 0`,
+  `_nthMonthDay` returns the CURRENT month's target day/hour, which is in the past on most days of the
+  month. The verifier reproduced it against the repo's own existing fixture
+  (`test/domain/notification_plan_test.dart:129-136`, `now = 2026-08-29`): the `m=0` candidate resolves
+  to `2026-08-01 08:00` — 28 days in the past. Nothing crashes, because
+  `notification_service.dart:248-250` re-filters before `zonedSchedule`. But the stale entry still
+  consumes a slot in the domain-level `sort` + `take(30)`, so under the 30-item cap it can evict a
+  legitimate future notification. It also directly violates a must-have `04-02-PLAN.md` states in its
+  own words: *"Every PlannedNotification planNotifications returns has a scheduledAt strictly after the
+  injected now."* The one test meant to catch it (`schedulable under either mode`) passes or fails
+  depending on the test runner's UTC offset, so it never did.
+
+- **Phase 04 gap CR-02 — `lib/ui/settings/settings_screen.dart:255-276`, the exact-alarm opt-in is
+  shipped and does not work.** `_ExactAlarmRow._onChanged` awaits `requestExactAlarmsPermission()`,
+  which on Android is fire-and-forget: it `startActivity`s the system settings page and returns
+  immediately rather than blocking until the user comes back. The next two lines query
+  `canScheduleExactNotifications()` and persist the result, so `exactAlarmsEnabled` is written `false`
+  while that settings page is still opening. On resume, `didChangeAppLifecycleState` only invalidates
+  the display provider and never re-persists a real grant. Because `build` computes
+  `value: storedOptIn && liveGranted`, the "Nhắc đúng giờ" switch can **never** durably show on, even
+  after the user genuinely grants the permission. P4-D-07's feature is non-functional. The code comment
+  above it says "Written from what the OS actually granted when the user returns" — the intent is
+  right, the implementation never waits for the return. No test covers it: it is widget-level control
+  flow, outside the pure-Dart domain suite, which is exactly the seam this project's test strategy
+  leaves uncovered.
+
+- **Phase 04: `REQUIREMENTS.md` has stale checkboxes.** NOTIF-04, NOTIF-05 and NOTIF-07 still read
+  `[ ]` / "Pending" although their code is implemented and tested. Deliberately left as-is rather than
+  ticked: NOTIF-05's own text asserts the `_maxScheduled = 30` cap behaviour that CR-01 undermines, so
+  marking it complete now would paper over a live defect. Settle it in the gap-closure cycle.
+
+- **Phase 04 was executed with NO Android device attached, so all five ROADMAP success criteria are
+  unobserved.** Every criterion for this phase is device-observable. All four SUMMARYs honestly route
+  their claims to UAT under an explicit "On-Device Verification — NOT Performed This Session" section;
+  `04-VERIFICATION.md` records them as `behavior_unverified_items`, counted neither as passes nor as
+  gaps. Phase 04 cannot be signed off until the SM-A066B is re-attached. Note P4-D-18: only Samsung is
+  available, so three of `battery_hints.dart`'s four manufacturer branches ship unexercised.
 
 - **Android test device — RESOLVED in Phase 01.** SM-A066B (Galaxy A06 5G, Android 16 / API 36, 3.43 GB RAM) was used over wireless debugging and satisfied SETUP-06 on a real `--release` build. Keep in mind for later: the device must be re-attached for Phase 4's §10.6 OEM battery-optimisation work, which is still only observable on real hardware.
 - **Phase 4 residual (from Phase 01 UAT test 4):** the legacy `auto_backup_rules.xml` (API ≤30) exclusion path carries the identical `domain="root"` fix as the API 31+ rules but has **never been exercised** — the test device is API 36, while `minSdk=26` keeps that path reachable in production. Recorded in `01-SECURITY.md` audit trail.
