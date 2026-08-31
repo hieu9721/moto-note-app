@@ -166,7 +166,7 @@ Plans:
   4. Refusing the notification permission or the exact-alarm permission leaves every feature working, with only a soft prompt line in Settings and inexact scheduling as the fallback.
   5. On a Xiaomi device the app shows the Xiaomi-specific battery instructions and its button opens the system battery-optimisation page; if 45 days pass with items due and nothing fired, the "Có vẻ thông báo không hoạt động" banner appears.
 
-**Plans**: 7 plans — 4/4 executed, 3 gap-closure plans pending (`04-VERIFICATION.md` → gaps_found)
+**Plans**: 6/7 plans executed — 4/4 executed, 3 gap-closure plans pending (`04-VERIFICATION.md` → gaps_found)
 
 Plans:
 **Wave 1**
@@ -186,8 +186,8 @@ Plans:
 
 **Wave 1**
 
-- [ ] 04-05-PLAN.md — CR-01: restore the strictly-after-now filter on the monthly ODO loop, with offset-independent tests (wave 1, gap closure)
-- [ ] 04-06-PLAN.md — CR-02: move the exact-alarm grant write to the resume path so the opt-in the user grants actually sticks (wave 1, gap closure, has a decision checkpoint)
+- [x] 04-05-PLAN.md — CR-01: restore the strictly-after-now filter on the monthly ODO loop, with offset-independent tests (wave 1, gap closure)
+- [x] 04-06-PLAN.md — CR-02: move the exact-alarm grant write to the resume path so the opt-in the user grants actually sticks (wave 1, gap closure, has a decision checkpoint)
 
 **Wave 2** *(blocked on 04-05 and 04-06)*
 
@@ -236,7 +236,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
-| 4. Local Notifications | 4/4 | In Progress|  |
+| 4. Local Notifications | 6/7 | In Progress|  |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
