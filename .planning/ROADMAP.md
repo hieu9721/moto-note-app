@@ -166,7 +166,7 @@ Plans:
   4. Refusing the notification permission or the exact-alarm permission leaves every feature working, with only a soft prompt line in Settings and inexact scheduling as the fallback.
   5. On a Xiaomi device the app shows the Xiaomi-specific battery instructions and its button opens the system battery-optimisation page; if 45 days pass with items due and nothing fired, the "Có vẻ thông báo không hoạt động" banner appears.
 
-**Plans**: 6/7 plans executed — 4/4 executed, 3 gap-closure plans pending (`04-VERIFICATION.md` → gaps_found)
+**Plans**: 7/7 plans executed — 4/4 executed, 3 gap-closure plans pending (`04-VERIFICATION.md` → gaps_found)
 
 Plans:
 **Wave 1**
@@ -191,7 +191,7 @@ Plans:
 
 **Wave 2** *(blocked on 04-05 and 04-06)*
 
-- [ ] 04-07-PLAN.md — Sync REQUIREMENTS.md's NOTIF-04/-05/-07 status, structurally blocked until CR-01 is green (wave 2, gap closure)
+- [x] 04-07-PLAN.md — Sync REQUIREMENTS.md's NOTIF-04/-05/-07 status, structurally blocked until CR-01 is green (wave 2, gap closure)
 
 ### Phase 5: Google Drive Backup & Restore
 
@@ -236,7 +236,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
-| 4. Local Notifications | 6/7 | In Progress|  |
+| 4. Local Notifications | 7/7 | In Progress|  |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
