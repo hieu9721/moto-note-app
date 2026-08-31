@@ -166,7 +166,7 @@ Plans:
   4. Refusing the notification permission or the exact-alarm permission leaves every feature working, with only a soft prompt line in Settings and inexact scheduling as the fallback.
   5. On a Xiaomi device the app shows the Xiaomi-specific battery instructions and its button opens the system battery-optimisation page; if 45 days pass with items due and nothing fired, the "Có vẻ thông báo không hoạt động" banner appears.
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 **Wave 1**
@@ -180,7 +180,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 04-04-PLAN.md — OEM battery guidance in a bottom sheet, and the dead-notification banner on Trang chủ (wave 3)
+- [x] 04-04-PLAN.md — OEM battery guidance in a bottom sheet, and the dead-notification banner on Trang chủ (wave 3)
 
 ### Phase 5: Google Drive Backup & Restore
 
@@ -225,7 +225,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. Toolchain, Scaffold & Data Layer | 6/6 | Complete    | 2026-08-29 |
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
-| 4. Local Notifications | 3/4 | In Progress|  |
+| 4. Local Notifications | 4/4 | In Progress|  |
 | 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
