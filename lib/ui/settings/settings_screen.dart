@@ -1,46 +1,137 @@
-// lib/ui/settings/settings_screen.dart — P3-D-13. Cài đặt's four groups, in
-// order, every row disabled: this phase ships no working control here —
-// notification settings are NOTIF-*, backup is BKP-*, export is BKP-*,
-// interval/vehicle/item management is SET-*, none of them Phase 3's job
-// (D-34's anti-scope-creep). Each future owner phase is named in a comment
-// beside its group so this is a slot to fill, not a screen to rebuild.
+// lib/ui/settings/settings_screen.dart — P3-D-13's four-group layout stays;
+// 04-03 (NOTIF-02/03/05) activates the Thông báo group's four rows plus the
+// exact-alarm opt-in and, when it applies, the tappable soft-prompt line
+// (P4-D-07/P4-D-08). Backup is BKP-*, export is BKP-*, interval/vehicle/item
+// management is SET-*, none of them this phase's job (D-34's
+// anti-scope-creep) — those three groups' rows, titles and captions stay
+// exactly as Phase 3 shipped them.
 //
-// Rows are inlined per-group rather than built from a shared row widget, so
-// each row's own `enabled: false` is independently visible in this file —
-// matching `welcome_screen.dart`'s existing idiom of an inline disabled
-// control plus the small grey "Sẽ có ở bản sau" caption, rather than
-// abstracting it behind a widget class.
+// Converting `SettingsScreen` from `StatelessWidget` to `ConsumerWidget` is
+// what "activating" actually requires (04-PATTERNS.md Mismatch 2) — the
+// layout does not change, the base class does. Every activated write routes
+// through `AppNotifier.updateSettings`, which goes through `_mutate` and
+// therefore reschedules on save with no extra wiring (P1-D-05/P1-D-06).
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsScreen extends StatelessWidget {
+import '../../notifications/notification_service.dart';
+import '../../state/app_state.dart';
+
+/// Bounded set of day counts for "Số ngày báo trước" (T-04-15) — a fixed
+/// picker rather than free text, so an out-of-range value can never reach
+/// `Settings.leadDays`, which feeds `_notifyDatesFor`'s first candidate
+/// directly.
+const _leadDaysOptions = [1, 3, 5, 7, 10, 14, 21, 30];
+
+/// Live OS check backing the exact-alarm row's displayed state — never the
+/// stored flag alone, since the user can revoke the permission from system
+/// settings at any time without the app hearing about it (T-04-13).
+final _canScheduleExactProvider = FutureProvider.autoDispose<bool>(
+  (ref) =>
+      ref.watch(notificationSchedulerProvider).canScheduleExactNotifications(),
+);
+
+/// Live OS check backing the soft-prompt line's visibility (P4-D-08) —
+/// never the stored `notificationPermissionAsked` intent, which only
+/// records that the app asked, not what the OS currently allows.
+final _notificationsEnabledProvider = FutureProvider.autoDispose<bool>(
+  (ref) => ref.watch(notificationSchedulerProvider).areNotificationsEnabled(),
+);
+
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(appProvider.select((d) => d.settings));
+    final notifier = ref.read(appProvider.notifier);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
       body: SafeArea(
         child: ListView(
-          children: const [
+          children: [
             _SettingsGroup(
               // Phase 4 (NOTIF-*) owns these rows.
               title: 'Thông báo',
+              showComingSoonCaption: false,
               rows: [
-                ListTile(
-                  title: Text('Nhắc bảo dưỡng'),
-                  trailing: Icon(Icons.toggle_off_outlined),
-                  enabled: false,
+                SwitchListTile(
+                  title: const Text('Nhắc bảo dưỡng'),
+                  value: settings.notificationsEnabled,
+                  onChanged: (v) => notifier.updateSettings(
+                    (s) => s.copyWith(notificationsEnabled: v),
+                  ),
+                ),
+                SwitchListTile(
+                  title: const Text('Nhắc cập nhật số km'),
+                  value: settings.odoReminderEnabled,
+                  onChanged: (v) => notifier.updateSettings(
+                    (s) => s.copyWith(odoReminderEnabled: v),
+                  ),
                 ),
                 ListTile(
-                  title: Text('Nhắc cập nhật số km'),
-                  trailing: Icon(Icons.toggle_off_outlined),
-                  enabled: false,
+                  title: const Text('Giờ nhắc'),
+                  trailing: Text(
+                    '${settings.notifyHour.toString().padLeft(2, '0')}:00',
+                  ),
+                  onTap: () async {
+                    final picked = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay(
+                        hour: settings.notifyHour,
+                        minute: 0,
+                      ),
+                    );
+                    if (picked == null) return;
+                    if (!context.mounted) return;
+                    // The model stores an hour, not a minute — the picked
+                    // minute is deliberately discarded, never silently
+                    // widening what Settings persists.
+                    await notifier.updateSettings(
+                      (s) => s.copyWith(notifyHour: picked.hour),
+                    );
+                  },
                 ),
-                ListTile(title: Text('Giờ nhắc'), enabled: false),
-                ListTile(title: Text('Số ngày báo trước'), enabled: false),
+                ListTile(
+                  title: const Text('Số ngày báo trước'),
+                  trailing: Text('${settings.leadDays} ngày'),
+                  onTap: () async {
+                    final picked = await showDialog<int>(
+                      context: context,
+                      builder: (ctx) => SimpleDialog(
+                        title: const Text('Số ngày báo trước'),
+                        children: [
+                          RadioGroup<int>(
+                            groupValue: settings.leadDays,
+                            onChanged: (v) => Navigator.of(ctx).pop(v),
+                            child: Column(
+                              children: [
+                                for (final d in _leadDaysOptions)
+                                  RadioListTile<int>(
+                                    title: Text('$d ngày'),
+                                    value: d,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (picked == null) return;
+                    if (!context.mounted) return;
+                    // Bounded by construction (_leadDaysOptions) — never an
+                    // out-of-range value reaches Settings (T-04-15).
+                    await notifier.updateSettings(
+                      (s) => s.copyWith(leadDays: picked),
+                    );
+                  },
+                ),
+                const _ExactAlarmRow(),
+                const _NotificationSoftPromptRow(),
               ],
             ),
-            _SettingsGroup(
+            const _SettingsGroup(
               // Phase 5 (BKP-*) owns sign-in and the backup rows.
               title: 'Sao lưu Drive',
               rows: [
@@ -52,14 +143,14 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            _SettingsGroup(
+            const _SettingsGroup(
               // Phase 5 (BKP-*) owns the export row.
               title: 'Xuất file',
               rows: [
                 ListTile(title: Text('Xuất file dữ liệu'), enabled: false),
               ],
             ),
-            _SettingsGroup(
+            const _SettingsGroup(
               // Phase 6 (SET-*) owns vehicle and item management.
               title: 'Quản lý xe/hạng mục',
               rows: [
@@ -74,14 +165,23 @@ class SettingsScreen extends StatelessWidget {
   }
 }
 
-/// A section header followed by its (disabled) rows and one shared caption —
-/// the same "disabled control + caption" idiom `welcome_screen.dart` already
-/// ships for its Drive-restore button, scaled to a row group.
+/// A section header followed by its rows and, optionally, the shared "Sẽ có
+/// ở bản sau" caption — the same "disabled control + caption" idiom
+/// `welcome_screen.dart` already ships for its Drive-restore button, scaled
+/// to a row group. 04-03 adds [showComingSoonCaption]: once a group's rows
+/// actually work, the caption directly beneath them would read as actively
+/// misleading, so the Thông báo group is the one call site that passes
+/// `false` — the other three groups keep the default (T-04-14).
 class _SettingsGroup extends StatelessWidget {
-  const _SettingsGroup({required this.title, required this.rows});
+  const _SettingsGroup({
+    required this.title,
+    required this.rows,
+    this.showComingSoonCaption = true,
+  });
 
   final String title;
   final List<Widget> rows;
+  final bool showComingSoonCaption;
 
   @override
   Widget build(BuildContext context) {
@@ -96,14 +196,143 @@ class _SettingsGroup extends StatelessWidget {
           ),
         ),
         ...rows,
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Text(
-            'Sẽ có ở bản sau',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+        if (showComingSoonCaption)
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(
+              'Sẽ có ở bản sau',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ),
-        ),
       ],
+    );
+  }
+}
+
+/// The exact-alarm opt-in row (P4-D-07) — a `ConsumerStatefulWidget` rather
+/// than folded into `SettingsScreen` itself, so its `WidgetsBindingObserver`
+/// can re-check the live OS grant on resume (the only signal available for
+/// "the user just came back from the exact-alarm settings page") without
+/// making the rest of the screen wait on anything (D-19).
+class _ExactAlarmRow extends ConsumerStatefulWidget {
+  const _ExactAlarmRow();
+
+  @override
+  ConsumerState<_ExactAlarmRow> createState() => _ExactAlarmRowState();
+}
+
+class _ExactAlarmRowState extends ConsumerState<_ExactAlarmRow>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(_canScheduleExactProvider);
+    }
+  }
+
+  Future<void> _onChanged(bool wantsOn) async {
+    final service = ref.read(notificationSchedulerProvider);
+    final notifier = ref.read(appProvider.notifier);
+    if (!wantsOn) {
+      await notifier.updateSettings(
+        (s) => s.copyWith(exactAlarmsEnabled: false),
+      );
+      return;
+    }
+    // The one and only call site in the whole app (P4-D-07) — on Android
+    // 12+ this leaves the app entirely for a system settings page (D-30).
+    await service.requestExactAlarmsPermission();
+    if (!mounted) return;
+    ref.invalidate(_canScheduleExactProvider);
+    // Written from what the OS actually granted when the user returns,
+    // never optimistically from the tap (T-04-13).
+    final granted = await service.canScheduleExactNotifications();
+    if (!mounted) return;
+    await notifier.updateSettings(
+      (s) => s.copyWith(exactAlarmsEnabled: granted),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final storedOptIn = ref.watch(
+      appProvider.select((d) => d.settings.exactAlarmsEnabled),
+    );
+    final liveGranted = ref.watch(_canScheduleExactProvider).value ?? false;
+    return SwitchListTile(
+      // [NEW, PROVISIONAL] — entirely new surface, not in §10.3.
+      title: const Text('Nhắc đúng giờ'),
+      subtitle: const Text(
+        'Cần quyền báo thức chính xác. Không bật thì thông báo vẫn tới, có '
+        'thể trễ vài giờ.',
+      ),
+      value: storedOptIn && liveGranted,
+      onChanged: _onChanged,
+    );
+  }
+}
+
+/// P4-D-08: the tappable soft-prompt line, shown only while the OS
+/// currently has notifications off for this app — the LIVE state, never
+/// the stored `notificationPermissionAsked` intent. Once Android has
+/// recorded a permanent denial, this is the only route back — a plain text
+/// line would be a dead end.
+class _NotificationSoftPromptRow extends ConsumerStatefulWidget {
+  const _NotificationSoftPromptRow();
+
+  @override
+  ConsumerState<_NotificationSoftPromptRow> createState() =>
+      _NotificationSoftPromptRowState();
+}
+
+class _NotificationSoftPromptRowState
+    extends ConsumerState<_NotificationSoftPromptRow>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(_notificationsEnabledProvider);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // D-19: the row itself renders only once the live check resolves to
+    // `false` — absent while unknown (still loading) and absent while
+    // enabled, never a spinner in its place.
+    final enabled = ref.watch(_notificationsEnabledProvider).value;
+    if (enabled != false) return const SizedBox.shrink();
+    return ListTile(
+      // [NEW, PROVISIONAL] — §10.3 describes "một dòng nhắc nhẹ" but never
+      // quotes it (P4-D-08).
+      title: const Text('Thông báo đang tắt'),
+      subtitle: const Text('Bấm để bật lại trong cài đặt máy.'),
+      onTap: () =>
+          ref.read(notificationSchedulerProvider).openAppNotificationSettings(),
     );
   }
 }
