@@ -37,6 +37,13 @@ const int kNotificationHorizonDays = 120;
 /// `rescheduleAll` call will ever hand to the OS.
 const int kMaxScheduledNotifications = 30;
 
+/// §10.6's dead-notification threshold — the number of days that must have
+/// passed with a demonstrably missed "quá hạn" opportunity, and no tap,
+/// before [shouldShowDeadNotificationBanner] turns true. Shared by the
+/// widget (04-04) and the tests here so the number lives in exactly one
+/// place.
+const int kDeadNotificationDays = 45;
+
 /// One notification `rescheduleAll` should schedule. [scheduledAt] is a
 /// local wall-clock `DateTime` — NEVER a UTC one and NEVER a `TZDateTime`;
 /// `NotificationService` converts to `tz.TZDateTime` at the one execution
@@ -190,6 +197,77 @@ String notificationRouteFor(String? payload, AppData data) {
     'due' => '/',
     _ => '/',
   };
+}
+
+/// §10.6's "Có vẻ thông báo không hoạt động" banner predicate (NOTIF-11,
+/// RESEARCH.md Pattern 3). True only when ALL FOUR hold — each condition
+/// exists to rule out one specific false positive, because telling a
+/// healthy user their app is broken is worse than missing a genuinely dead
+/// installation:
+///
+/// 1. [Settings.notificationsEnabled] is true — there is no point telling a
+///    user their notifications look broken when they are the one who
+///    turned them off.
+/// 2 & 3. At least one item is CURRENTLY overdue (`DueStatus.overdue`, read
+///    from `computeDue` — never re-derived from raw dates, §5.3) AND that
+///    SAME item's due date is more than [kDeadNotificationDays] days in the
+///    past. Written as one existence test over the items so conditions 2
+///    and 3 cannot be satisfied by two DIFFERENT items — an item overdue by
+///    46 days only counts once it is the item that is 46 days overdue.
+///    45 days gives all three "quá hạn" occurrences (day 0/14/28) time to
+///    have fired and been missed; the boundary is strict — exactly 45 is
+///    false, 46 is true.
+/// 4. [Settings.lastNotificationFiredAt] is null, or itself more than
+///    [kDeadNotificationDays] days old.
+///
+/// The predicate never lies: it fires only when there was concrete,
+/// computable opportunity for a notification to have been tapped and it
+/// demonstrably was not.
+///
+/// A note on the field's name: a local notification firing does NOT wake
+/// Dart code — Android shows it entirely at the OS level. The only two
+/// moments the app can observe are the warm tap
+/// (`onDidReceiveNotificationResponse`) and the cold-start tap
+/// (`getNotificationAppLaunchDetails`), and §10.6's own Vietnamese text
+/// says "được mở" — *opened*, not fired. `lastNotificationFiredAt` is
+/// honest only read as "last opened"; 04-01 already made those two tap
+/// paths its only writers. A reader who assumes the field means "fired"
+/// will conclude condition 4 below is wrong — it is not; the name is just
+/// misleading (RESEARCH.md Pattern 3).
+bool shouldShowDeadNotificationBanner(AppData data, {DateTime? now}) {
+  final n = now ?? DateTime.now().toUtc();
+  if (!data.settings.notificationsEnabled) return false;
+
+  var hasMissedOverdueItem = false;
+  for (final item in data.items) {
+    Vehicle? vehicle;
+    for (final v in data.vehicles) {
+      if (v.id == item.vehicleId) {
+        vehicle = v;
+        break;
+      }
+    }
+    if (vehicle == null) continue; // honest no-op: dangling reference
+
+    final due = computeDue(item, vehicle, data.settings.leadDays, now: n);
+    if (due == null) continue;
+
+    // Conditions 2 and 3, both against this SAME item: currently overdue,
+    // and overdue by more than kDeadNotificationDays. `due.daysLeft` is
+    // already computed by computeDue (negative when overdue) — reusing it
+    // here means this file never re-derives overdue-ness from raw dates.
+    if (due.status == DueStatus.overdue &&
+        -due.daysLeft > kDeadNotificationDays) {
+      hasMissedOverdueItem = true;
+      break;
+    }
+  }
+  if (!hasMissedOverdueItem) return false;
+
+  final lastFired = data.settings.lastNotificationFiredAt;
+  if (lastFired == null) return true;
+  final daysSinceFired = _dateOnly(n).difference(_dateOnly(lastFired)).inDays;
+  return daysSinceFired > kDeadNotificationDays;
 }
 
 /// §10.4's own `_nthMonthDay`-equivalent: the local `DateTime` for the
