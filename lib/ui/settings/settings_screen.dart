@@ -11,6 +11,8 @@
 // layout does not change, the base class does. Every activated write routes
 // through `AppNotifier.updateSettings`, which goes through `_mutate` and
 // therefore reschedules on save with no extra wiring (P1-D-05/P1-D-06).
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -233,6 +235,15 @@ class _ExactAlarmRow extends ConsumerStatefulWidget {
 
 class _ExactAlarmRowState extends ConsumerState<_ExactAlarmRow>
     with WidgetsBindingObserver {
+  /// Set when the user taps the switch ON and the app hands control to the
+  /// system exact-alarm settings page. The request call below is
+  /// fire-and-forget — it returns before the user has decided anything — so
+  /// the next resume is the first moment the app can learn what was
+  /// actually granted (CR-02). Cleared on that very next resume regardless
+  /// of outcome, so it can never be consumed by an unrelated later resume
+  /// (T-04-26).
+  bool _awaitingExactAlarmResume = false;
+
   @override
   void initState() {
     super.initState();
@@ -249,11 +260,16 @@ class _ExactAlarmRowState extends ConsumerState<_ExactAlarmRow>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(_canScheduleExactProvider);
+      if (_awaitingExactAlarmResume) {
+        // Clear first: a failed or refused round trip must not leave the
+        // flag armed for an unrelated later resume (T-04-26).
+        _awaitingExactAlarmResume = false;
+        unawaited(_syncExactAlarmGrant());
+      }
     }
   }
 
   Future<void> _onChanged(bool wantsOn) async {
-    final service = ref.read(notificationSchedulerProvider);
     final notifier = ref.read(appProvider.notifier);
     if (!wantsOn) {
       await notifier.updateSettings(
@@ -263,16 +279,28 @@ class _ExactAlarmRowState extends ConsumerState<_ExactAlarmRow>
     }
     // The one and only call site in the whole app (P4-D-07) — on Android
     // 12+ this leaves the app entirely for a system settings page (D-30).
+    // The call is fire-and-forget and returns before the user has decided
+    // anything, so nothing is read or persisted here (CR-02) — the resume
+    // path (`didChangeAppLifecycleState` -> `_syncExactAlarmGrant`) is what
+    // actually records what the OS granted, once there is something to
+    // record.
+    _awaitingExactAlarmResume = true;
+    final service = ref.read(notificationSchedulerProvider);
     await service.requestExactAlarmsPermission();
-    if (!mounted) return;
-    ref.invalidate(_canScheduleExactProvider);
-    // Written from what the OS actually granted when the user returns,
-    // never optimistically from the tap (T-04-13).
+  }
+
+  /// Persists exactly what the OS currently grants, once the user has
+  /// returned from the exact-alarm settings page (CR-02). This is the only
+  /// place in the file that writes a non-literal value into
+  /// `exactAlarmsEnabled` — `_onChanged`'s OFF branch writes `false`
+  /// directly, since revoking the app's own opt-in needs no OS round trip.
+  Future<void> _syncExactAlarmGrant() async {
+    final service = ref.read(notificationSchedulerProvider);
     final granted = await service.canScheduleExactNotifications();
     if (!mounted) return;
-    await notifier.updateSettings(
-      (s) => s.copyWith(exactAlarmsEnabled: granted),
-    );
+    await ref
+        .read(appProvider.notifier)
+        .updateSettings((s) => s.copyWith(exactAlarmsEnabled: granted));
   }
 
   @override
