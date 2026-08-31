@@ -16,6 +16,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
+import '../notifications/battery_hint_sheet.dart';
 
 /// Bounded set of day counts for "Số ngày báo trước" (T-04-15) — a fixed
 /// picker rather than free text, so an out-of-range value can never reach
@@ -128,6 +129,15 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 const _ExactAlarmRow(),
+                ListTile(
+                  // [NEW, PROVISIONAL] — opens the battery-guidance sheet
+                  // (P4-D-09: one implementation, two entry points).
+                  title: const Text('Thông báo không tới?'),
+                  subtitle: const Text(
+                    'Cách để máy không chặn thông báo của app.',
+                  ),
+                  onTap: () => showBatteryHintSheet(context),
+                ),
                 const _NotificationSoftPromptRow(),
               ],
             ),
