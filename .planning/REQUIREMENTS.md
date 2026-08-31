@@ -93,15 +93,15 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Notifications
 
-- [ ] **NOTIF-01**: `NotificationService.init()` initialises timezone data, sets the local location from `FlutterTimezone.getLocalTimezone()`, initialises the plugin, and creates the Android channel `('maintenance', 'Nhắc bảo dưỡng', importance: high)` before anything is scheduled. *(§10.2)*
+- [x] **NOTIF-01**: `NotificationService.init()` initialises timezone data, sets the local location from `FlutterTimezone.getLocalTimezone()`, initialises the plugin, and creates the Android channel `('maintenance', 'Nhắc bảo dưỡng', importance: high)` before anything is scheduled. *(§10.2)*
 - [ ] **NOTIF-02**: Notification permission is requested at the end of onboarding, after the user has seen their bike, with the §10.3 explanation; on Android `requestNotificationsPermission()` and `requestExactAlarmsPermission()` are requested as two separate steps. *(§10.3, §6)*
 - [ ] **NOTIF-03**: Declining either permission leaves the app fully usable — an exact-alarm refusal falls back to inexact scheduling, and Settings shows only a soft prompt line. *(§10.3)*
 - [ ] **NOTIF-04**: Three notification types exist: the monthly ODO reminder, "sắp tới hạn" `leadDays` before the due date at most once a day per vehicle, and "quá hạn" on the due date then every 14 days at most 3 times. *(§10.1)*
 - [ ] **NOTIF-05**: `rescheduleAll` calls `cancelAll()` first, returns immediately when notifications are disabled, schedules only concrete dates within `_horizonDays = 120`, takes at most `_maxScheduled = 30`, and uses `AndroidScheduleMode.exactAllowWhileIdle`; it runs on `AppLifecycleState.resumed` and on every state change via `_mutate`. *(§10.4, §5.2)*
-- [ ] **NOTIF-06**: The monthly ODO reminder is scheduled six months ahead on `odoReminderDayOfMonth` at `notifyHour`, titled "Cập nhật số km" with body "Xe {name} đang ở khoảng {est} km. Số thật là bao nhiêu?" and payload `odo:{vehicleId}`. *(§10.4)*
+- [x] **NOTIF-06**: The monthly ODO reminder is scheduled six months ahead on `odoReminderDayOfMonth` at `notifyHour`, titled "Cập nhật số km" with body "Xe {name} đang ở khoảng {est} km. Số thật là bao nhiêu?" and payload `odo:{vehicleId}`. *(§10.4)*
 - [ ] **NOTIF-07**: Items due for the same vehicle on the same day are bucketed into one notification composed per §10.5 — one item, two items joined by "và", or "{name} có {n} hạng mục sắp tới hạn". *(§10.4, §10.5)*
-- [ ] **NOTIF-08**: Tapping a notification routes on the `{kind}:{id}` payload to `/vehicle/$id?tab=due` or `/vehicle/$id?sheet=odo`, including the cold-start case handled through `getNotificationAppLaunchDetails()`. *(§10.7)*
-- [ ] **NOTIF-09**: The AndroidManifest declares `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM` and/or `USE_EXACT_ALARM`, and `RECEIVE_BOOT_COMPLETED`, and scheduled notifications still fire after the device is rebooted. *(Appendix B Android)*
+- [x] **NOTIF-08**: Tapping a notification routes on the `{kind}:{id}` payload to `/vehicle/$id?tab=due` or `/vehicle/$id?sheet=odo`, including the cold-start case handled through `getNotificationAppLaunchDetails()`. *(§10.7)*
+- [x] **NOTIF-09**: The AndroidManifest declares `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM` and/or `USE_EXACT_ALARM`, and `RECEIVE_BOOT_COMPLETED`, and scheduled notifications still fire after the device is rebooted. *(Appendix B Android)*
 - [ ] **NOTIF-10**: On Android the app detects the manufacturer via `device_info_plus` and shows the matching battery-optimisation guidance for xiaomi/redmi/poco, oppo/realme/oneplus, vivo and samsung, with a button that opens `android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS` through `android_intent_plus`. *(§10.6)*
 - [ ] **NOTIF-11**: `settings.lastNotificationFiredAt` is recorded whenever a notification is opened, and if more than 45 days pass with items due and nothing fired the app shows the banner "Có vẻ thông báo không hoạt động. Xem cách khắc phục." *(§10.6)*
 
@@ -234,15 +234,15 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | LOG-05 | Phase 3 | Complete |
 | NOTE-01 | Phase 3 | Complete |
 | NOTE-02 | Phase 3 | Complete |
-| NOTIF-01 | Phase 4 | Pending |
+| NOTIF-01 | Phase 4 | Complete |
 | NOTIF-02 | Phase 4 | Pending |
 | NOTIF-03 | Phase 4 | Pending |
 | NOTIF-04 | Phase 4 | Pending |
 | NOTIF-05 | Phase 4 | Pending |
-| NOTIF-06 | Phase 4 | Pending |
+| NOTIF-06 | Phase 4 | Complete |
 | NOTIF-07 | Phase 4 | Pending |
-| NOTIF-08 | Phase 4 | Pending |
-| NOTIF-09 | Phase 4 | Pending |
+| NOTIF-08 | Phase 4 | Complete |
+| NOTIF-09 | Phase 4 | Complete |
 | NOTIF-10 | Phase 4 | Pending |
 | NOTIF-11 | Phase 4 | Pending |
 | BKP-01 | Phase 5 | Pending |
