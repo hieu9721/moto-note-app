@@ -37,12 +37,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
+import '../../domain/notification_plan.dart';
 import '../../domain/odo.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../catalog_icons.dart';
 import '../notes/notes_screen.dart' show noteDisplayTitle, sortedNotes;
+import '../notifications/battery_hint_sheet.dart';
 import '../widgets/formatters.dart';
 import 'due_card.dart';
 import 'odo_sheet.dart';
@@ -243,6 +245,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
+            // NOTIF-11/P4-D-12: visibility comes entirely from the domain
+            // predicate below — this widget re-derives no threshold. Placed
+            // above the due-card loop deliberately: the user whose
+            // notifications have gone quiet is precisely the user who
+            // never opens Cài đặt, so the banner has to be where they
+            // already look.
+            if (shouldShowDeadNotificationBanner(data)) ...[
+              const DeadNotificationBanner(),
+              const SizedBox(height: 16),
+            ],
             for (var i = 0; i < needsAttention.length; i++) ...[
               DueCard(dueItem: needsAttention[i], vehicle: vehicle),
               if (i != needsAttention.length - 1) const SizedBox(height: 16),
@@ -306,6 +318,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         icon: const Icon(Icons.speed),
         label: const Text('Cập nhật số km'),
         onPressed: () => showOdoSheet(context, ref, vehicle),
+      ),
+    );
+  }
+}
+
+/// §10.6 point 3 (NOTIF-11, P4-D-12) — the control that turns a silent
+/// notification failure into a visible one. The domain predicate this
+/// screen's `build` calls owns the whole decision of when this renders;
+/// this widget re-derives nothing (§5.3, the same discipline
+/// `due_card.dart` holds for `DueResult`'s booleans). Tapping it opens the
+/// same battery-guidance sheet Cài đặt does — one implementation, two
+/// entry points (P4-D-09).
+///
+/// Colour is the one hard constraint: never the error role. T-03-30
+/// reserves red for overdue items only, verified on device this week, and
+/// both home files carry a negative criterion against literal colour
+/// constants. `tertiaryContainer`/`onTertiaryContainer` is a theme
+/// container role that survives Phase 6's palette swap (REL-02) — the
+/// specific choice of `tertiaryContainer` over `secondaryContainer` is
+/// discretionary and flagged for UAT in 04-04-SUMMARY.md; the constraint
+/// that binds is "not red", not which container role satisfies it.
+class DeadNotificationBanner extends StatelessWidget {
+  const DeadNotificationBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.tertiaryContainer,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => showBatteryHintSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // A neutral informational glyph, never the overdue card's
+              // warning icon (T-03-30) — sharing it would dilute the
+              // signal that icon protects.
+              Icon(Icons.info_outline, color: colorScheme.onTertiaryContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  // §10.6, byte-for-byte — do not reword, retranslate,
+                  // reflow or shorten, and no exclamation mark: this
+                  // reports a device setting the app cannot change on its
+                  // own, not the user's neglect.
+                  'Có vẻ thông báo không hoạt động. Xem cách khắc phục.',
+                  style: TextStyle(color: colorScheme.onTertiaryContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -102,8 +102,8 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **NOTIF-07**: Items due for the same vehicle on the same day are bucketed into one notification composed per §10.5 — one item, two items joined by "và", or "{name} có {n} hạng mục sắp tới hạn". *(§10.4, §10.5)*
 - [x] **NOTIF-08**: Tapping a notification routes on the `{kind}:{id}` payload to `/vehicle/$id?tab=due` or `/vehicle/$id?sheet=odo`, including the cold-start case handled through `getNotificationAppLaunchDetails()`. *(§10.7)*
 - [x] **NOTIF-09**: The AndroidManifest declares `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM` and/or `USE_EXACT_ALARM`, and `RECEIVE_BOOT_COMPLETED`, and scheduled notifications still fire after the device is rebooted. *(Appendix B Android)*
-- [ ] **NOTIF-10**: On Android the app detects the manufacturer via `device_info_plus` and shows the matching battery-optimisation guidance for xiaomi/redmi/poco, oppo/realme/oneplus, vivo and samsung, with a button that opens `android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS` through `android_intent_plus`. *(§10.6)*
-- [ ] **NOTIF-11**: `settings.lastNotificationFiredAt` is recorded whenever a notification is opened, and if more than 45 days pass with items due and nothing fired the app shows the banner "Có vẻ thông báo không hoạt động. Xem cách khắc phục." *(§10.6)*
+- [x] **NOTIF-10**: On Android the app detects the manufacturer via `device_info_plus` and shows the matching battery-optimisation guidance for xiaomi/redmi/poco, oppo/realme/oneplus, vivo and samsung, with a button that opens `android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS` through `android_intent_plus`. *(§10.6)*
+- [x] **NOTIF-11**: `settings.lastNotificationFiredAt` is recorded whenever a notification is opened, and if more than 45 days pass with items due and nothing fired the app shows the banner "Có vẻ thông báo không hoạt động. Xem cách khắc phục." *(§10.6)*
 
 ### Backup, Restore & Export
 
@@ -243,8 +243,8 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | NOTIF-07 | Phase 4 | Pending |
 | NOTIF-08 | Phase 4 | Complete |
 | NOTIF-09 | Phase 4 | Complete |
-| NOTIF-10 | Phase 4 | Pending |
-| NOTIF-11 | Phase 4 | Pending |
+| NOTIF-10 | Phase 4 | Complete |
+| NOTIF-11 | Phase 4 | Complete |
 | BKP-01 | Phase 5 | Pending |
 | BKP-02 | Phase 5 | Pending |
 | BKP-03 | Phase 5 | Pending |
