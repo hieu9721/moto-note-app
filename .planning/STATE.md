@@ -4,15 +4,15 @@ milestone: v1.0
 current_phase: 04
 current_phase_name: Local Notifications
 status: executing
-stopped_at: Phase 4 — all 4 plans executed and merged; verification returned gaps_found (2 code defects)
-last_updated: "2026-08-31T02:35:00.000Z"
+stopped_at: Phase 4 — gap-closure planned; 04-05/04-06/04-07 ready for `/gsd-execute-phase 04 --gaps-only`
+last_updated: "2026-08-31T03:57:09.270Z"
 last_activity: 2026-08-31
-last_activity_desc: Phase 04 executed end to end; verifier found 2 blocking code gaps
-state_head: 506c1a7
+last_activity_desc: Phase 04 gap-closure plans written for CR-01, CR-02 and the REQUIREMENTS sync
+state_head: e1289672ac906d226d1949862f1b91a97c5c6963
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 22
+  total_plans: 25
   completed_plans: 22
 ---
 
@@ -27,15 +27,86 @@ See: .planning/PROJECT.md (updated 2026-08-30)
 
 ## Current Position
 
-Phase: 04 (Local Notifications) — EXECUTED, NOT VERIFIED
-Plan: 4 of 4 (all merged to `main`)
+Phase: 04 (Local Notifications) — GAP CLOSURE READY TO EXECUTE
+Plan: 4 of 7 executed (04-01…04-04 merged to `main`); 04-05, 04-06, 04-07 planned and pending
 Status: `04-VERIFICATION.md` → **gaps_found**. Phase must NOT be marked complete.
-Last activity: 2026-08-31 — Phase 04 executed end to end; verifier found 2 blocking code gaps
+Last activity: 2026-08-31 — `/gsd-plan-phase 04 --gaps` wrote three gap-closure plans (commit `e128967`)
 
-Progress: [████████████████████] 22/22 plans (Phases 01–03 of 6 complete; Phase 04 4/4 plans closed,
-phase itself still open)
+Progress: [██████████████████░░] 22/25 plans (Phases 01–03 of 6 complete; Phase 04 4/4 original plans
+closed, 3 gap-closure plans open, phase itself still open)
 
-**Next command:** `/gsd-plan-phase 04 --gaps` — then `/gsd-execute-phase 04 --gaps-only`.
+**Next command:** `/gsd-execute-phase 04 --gaps-only` — then `/gsd-verify-work 04` on the SM-A066B.
+
+### Gap-closure plan set (planned 2026-08-31, `/gsd-plan-phase 04 --gaps`)
+
+Scope was **closed by the user** to exactly three items; the rest was routed to BACKLOG.md under D-34.
+
+| Plan | Wave | Closes | Autonomous |
+|------|------|--------|------------|
+| `04-05` | 1 | CR-01 — strictly-after-now filter on the monthly ODO loop + offset-independent tests | yes |
+| `04-06` | 1 | CR-02 — exact-alarm grant written from the resume path behind a consumable pending flag | **no** (one `checkpoint:decision`) |
+| `04-07` | 2 (`depends_on: 04-05, 04-06`) | REQUIREMENTS.md NOTIF-04/-05/-07 checkbox + traceability sync | yes |
+
+`gsd-plan-checker` returned **VERIFICATION PASSED on iteration 1**, zero blockers, zero warnings, and
+independently re-derived the CR-01 arithmetic, the D-32 amendment count, and the 7-in/7-out edge-probe
+accounting. `04-01`…`04-04` are byte-identical — commit `e128967` touches only the three new plans,
+`COVERAGE.md` and `ROADMAP.md`.
+
+Three things to know before dispatching:
+
+1. **`04-06` task 1 is a blocking `checkpoint:decision` rated `one-way`, and `AUTO_MODE` is false, so it
+   WILL surface.** The question: introduce this project's first `flutter_test` widget test for the
+   exact-alarm round-trip (Option A — a third amendment to locked D-32, against the one clause its text
+   still names explicitly), or route it to a scoped UAT row (Option B). The planner recommends **B** on a
+   substantive argument, not a cost one: Option A's fake has to model
+   `requestExactAlarmsPermission()`'s fire-and-forget semantics correctly to catch anything, and
+   misreading that exact semantic is what *caused* CR-02 — a fake written from the same mental model
+   passes against the broken code. If A is chosen, the plan records it as `P4-D-19`.
+   Note the phase's own recorded anti-pattern: a `checkpoint:decision` whose answer was already in
+   CONTEXT once burned ~147K tokens producing nothing. This one is genuinely unresolved in CONTEXT —
+   embed the answer in the dispatch prompt via a `<checkpoint_resolution>` block once it is made.
+
+2. **CR-01's fix changes an existing assertion from 6 to 5, and that is correct, not a regression.**
+   Once the filter lands, `planNotifications` returns **5** ODO reminders whenever `now` is at or past
+   the current month's `odoReminderDayOfMonth`/`notifyHour` — most days under the defaults. The
+   `hasLength(6)` assertion is repaired to 5, and a new test at `now = 1 Aug 2026 07:00` local pins 6 so
+   NOTIF-06's six-month span stays literally covered. The loop was deliberately NOT widened to seven
+   months to preserve the count; the checker confirmed NOTIF-06 is not narrowed by this (the candidate
+   window is intact, only an already-passed slot is dropped) and that NOTIF-06 is outside `04-07`'s
+   re-tick scope anyway.
+
+3. **A real latent defect was found and deliberately left out — file it to BACKLOG.** WR-02's timezone
+   fragility is not confined to the one named test: fixtures throughout `notification_plan_test.dart`
+   state `now`/`lastServiceDate` via `DateTime.utc(...)` while `due.dart` normalises through `toLocal()`,
+   so several due-date assertions can shift by a calendar day at extreme offsets. Both the planner and
+   the checker confirmed this by grep. `04-05` fixes only the ODO branch and the one named test; the
+   four new/repaired tests are self-contained with local-clock fixtures, so they can still be trusted.
+   Re-basing every fixture is a much larger repair than the closed scope allowed.
+
+**Also written:** `04-local-notifications/COVERAGE.md` — a reasoned *no external API integration*
+declaration. The api-coverage detector fired `detected: true` on the noun `sdk` inside `04-02-PLAN.md`'s
+D-31 purity phrase *"imports no Flutter SDK library"* — i.e. it matched a claim of integrating with
+**nothing**. Confirmed a false positive by re-reading scope; a declaration was written rather than a
+fabricated matrix, which the seal-time gate accepts.
+
+Deferred to BACKLOG under D-34, by explicit user decision, not oversight: WR-01 (the two independent
+one-shot post-frame effects in `home_screen.dart:82-90`), the `Colors.grey` literal at
+`settings_screen.dart:173`, merging the two near-duplicate battery-hint fallback strings, and the
+UTC-fixture fragility in item 3. All five `behavior_unverified_items` stay with `/gsd-verify-work 04`.
+
+### Planning gate note — §13a decision coverage (2026-08-31, Phase 04 gap closure — sixth recurrence)
+
+`check.decision-coverage-plan` returned the same `passed: false`, `reason: could-not-parse`, `total: 0`,
+`uncovered: []` against `04-CONTEXT.md`'s `P4-D-NN` namespace. **Parser mismatch, not a coverage gap** —
+the gate named no missing decision because it extracted none. Coverage was verified twice
+independently, by the orchestrator's grep and by `gsd-plan-checker`, and is **18/18** across all seven
+plans: P4-D-01 (04-01, 04-05), P4-D-02/03/04 (04-01), P4-D-05/06 (04-03), P4-D-07 (04-01, 04-02, 04-03,
+04-06), P4-D-08 (04-03), P4-D-09 (04-01, 04-04), P4-D-10/11 (04-04), P4-D-12 (04-02, 04-04),
+P4-D-13 (04-01, 04-02, 04-05, 04-06, 04-07), P4-D-14 (04-02, 04-04, 04-05, 04-07), P4-D-15 (04-01,
+04-05), P4-D-16 (04-01, 04-02, 04-05), P4-D-17 (04-01, 04-02, 04-05, 04-07), P4-D-18 (04-01, 04-02,
+04-04). Proceeded on the precedent already recorded five times below rather than renaming the ids.
+The advisory `gap-analysis.plan-post` gate reported the same `extracted 0 of N` for the same reason,
+alongside `✓ All 11 items covered by plans`. Verify-phase should re-surface the *parser* issue.
 
 Phase 04 ran clean mechanically: `flutter analyze` No issues, `dart test` 103/103, regression gate
 64/64 on Phases 01–03, all three `execute:wave:post` capability gates green, `04-UI-REVIEW.md` 21/24.
