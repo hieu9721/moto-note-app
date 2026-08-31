@@ -69,6 +69,26 @@ MaintenanceItem _item({
   );
 }
 
+// A km-axis item overdue by exactly [daysOverdue] days as of whatever `now`
+// the caller passes to `computeDue`/`shouldShowDeadNotificationBanner`,
+// PROVIDED the paired vehicle has `odoUpdatedAt: now` and `avgDailyKm: 1`
+// (zeroes `daysSinceOdo` and makes `kmLeft` a 1:1 day count) — the same
+// exact-day-offset trick the `planNotifications` horizon/cap tests use.
+MaintenanceItem _overdueItem({
+  required String id,
+  required String vehicleId,
+  required int daysOverdue,
+}) {
+  return _item(
+    id: id,
+    vehicleId: vehicleId,
+    intervalMonths: null,
+    lastServiceDate: null,
+    intervalKm: -daysOverdue,
+    lastServiceOdo: 10000,
+  );
+}
+
 AppData _appData({
   List<Vehicle>? vehicles,
   List<MaintenanceItem>? items,
@@ -569,5 +589,110 @@ void main() {
         }
       },
     );
+  });
+
+  group('dead notification', () {
+    test('mới cài đặt, lastNotificationFiredAt null, không có hạng mục quá hạn '
+        '-> false', () {
+      final now = DateTime.utc(2026, 6, 1);
+      final data = _appData(
+        vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+      );
+      expect(shouldShowDeadNotificationBanner(data, now: now), isFalse);
+    });
+
+    test('notificationsEnabled: false -> false dù mọi điều kiện khác đúng', () {
+      final now = DateTime.utc(2026, 6, 1);
+      final data = _appData(
+        vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+        settings: const Settings(notificationsEnabled: false),
+        items: [_overdueItem(id: 'i1', vehicleId: 'v1', daysOverdue: 90)],
+      );
+      expect(shouldShowDeadNotificationBanner(data, now: now), isFalse);
+    });
+
+    test(
+      'quá hạn đúng 45 ngày, lastNotificationFiredAt null -> false (ranh giới)',
+      () {
+        final now = DateTime.utc(2026, 6, 1);
+        final data = _appData(
+          vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+          items: [_overdueItem(id: 'i1', vehicleId: 'v1', daysOverdue: 45)],
+        );
+        expect(shouldShowDeadNotificationBanner(data, now: now), isFalse);
+      },
+    );
+
+    test(
+      'quá hạn 46 ngày, lastNotificationFiredAt null -> true (ranh giới)',
+      () {
+        final now = DateTime.utc(2026, 6, 1);
+        final data = _appData(
+          vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+          items: [_overdueItem(id: 'i1', vehicleId: 'v1', daysOverdue: 46)],
+        );
+        expect(shouldShowDeadNotificationBanner(data, now: now), isTrue);
+      },
+    );
+
+    test('quá hạn 90 ngày nhưng lastNotificationFiredAt cách đây 10 ngày '
+        '-> false', () {
+      final now = DateTime.utc(2026, 6, 1);
+      final data = _appData(
+        vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+        settings: Settings(
+          lastNotificationFiredAt: now.subtract(const Duration(days: 10)),
+        ),
+        items: [_overdueItem(id: 'i1', vehicleId: 'v1', daysOverdue: 90)],
+      );
+      expect(shouldShowDeadNotificationBanner(data, now: now), isFalse);
+    });
+
+    test(
+      'quá hạn 90 ngày và lastNotificationFiredAt cách đây 60 ngày -> true',
+      () {
+        final now = DateTime.utc(2026, 6, 1);
+        final data = _appData(
+          vehicles: [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)],
+          settings: Settings(
+            lastNotificationFiredAt: now.subtract(const Duration(days: 60)),
+          ),
+          items: [_overdueItem(id: 'i1', vehicleId: 'v1', daysOverdue: 90)],
+        );
+        expect(shouldShowDeadNotificationBanner(data, now: now), isTrue);
+      },
+    );
+
+    test('không xe, không hạng mục -> false, không ném lỗi', () {
+      final data = _appData(vehicles: const [], items: const []);
+      expect(() => shouldShowDeadNotificationBanner(data), returnsNormally);
+      expect(shouldShowDeadNotificationBanner(data), isFalse);
+    });
+
+    test('hai hạng mục quá hạn, một đạt điều kiện một không -> cùng kết quả '
+        'dù đổi thứ tự danh sách', () {
+      final now = DateTime.utc(2026, 6, 1);
+      final qualifying = _overdueItem(
+        id: 'i1',
+        vehicleId: 'v1',
+        daysOverdue: 90,
+      );
+      final notQualifying = _overdueItem(
+        id: 'i2',
+        vehicleId: 'v1',
+        daysOverdue: 10,
+      );
+      final vehicles = [_vehicle(odoUpdatedAt: now, avgDailyKm: 1)];
+      final dataOrder1 = _appData(
+        vehicles: vehicles,
+        items: [qualifying, notQualifying],
+      );
+      final dataOrder2 = _appData(
+        vehicles: vehicles,
+        items: [notQualifying, qualifying],
+      );
+      expect(shouldShowDeadNotificationBanner(dataOrder1, now: now), isTrue);
+      expect(shouldShowDeadNotificationBanner(dataOrder2, now: now), isTrue);
+    });
   });
 }
