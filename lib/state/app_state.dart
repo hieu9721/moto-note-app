@@ -454,6 +454,30 @@ class AppNotifier extends Notifier<AppData> {
     });
   }
 
+  /// 04-03: the single `_mutate`-routed entry point for every settings
+  /// write this phase's Cài đặt screen and home-screen permission prompt
+  /// make — one general method rather than eight near-identical named
+  /// setters (five toggles/pickers plus the two permission-flow flags),
+  /// because that many one-field methods would be pure ceremony for what
+  /// is structurally the same operation every time.
+  ///
+  /// Two things load-bearing here, neither obvious from the one-line body:
+  /// 1. Because this goes through `_mutate` like every other mutation
+  ///    (DATA-06 — `_mutate` is the sole writer; nothing here may assign
+  ///    `state` directly), every settings change automatically persists
+  ///    before it is assigned (P1-D-06) **and** triggers `rescheduleAll`
+  ///    (P1-D-05). Changing `notifyHour` or `leadDays` therefore re-plans
+  ///    every notification with no extra wiring — exactly what §10.4's
+  ///    "call it on every state change" asks for, and why NOTIF-05's
+  ///    second half needed no new code here.
+  /// 2. `transform` receives `current.settings`, not `current` — callers
+  ///    never need to reach through `AppData` themselves.
+  Future<void> updateSettings(Settings Function(Settings) transform) {
+    return _mutate(
+      (current) => current.copyWith(settings: transform(current.settings)),
+    );
+  }
+
   /// NOTIF-11: records that a notification was *opened* — not that one
   /// fired. A local notification firing never wakes Dart code (there is no
   /// observable OS "fired" event), so the only two honest moments this can
