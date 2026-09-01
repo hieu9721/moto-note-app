@@ -21,6 +21,7 @@ import '../../backup/google_auth.dart';
 import '../../domain/backup_timing.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
+import '../backup/restore_sheet.dart';
 import '../notifications/battery_hint_sheet.dart';
 
 /// Bounded set of day counts for "Số ngày báo trước" (T-04-15) — a fixed
@@ -255,6 +256,23 @@ class SettingsScreen extends ConsumerWidget {
                     // already in flight — neither is a failure, so nothing
                     // is persisted and nothing is reported.
                   },
+                ),
+                // §7.6 Layer 1: the third and only entry point into the
+                // restore sheet that is reachable with data already on the
+                // device — a deliberate, separately-confirmed trip into
+                // Settings, never gated on sign-in (P5-D-02): the sheet
+                // handles sign-in itself, and hiding this row while signed
+                // out would leave a signed-out user with no visible route
+                // to their own backup.
+                ListTile(
+                  title: const Text('Khôi phục từ Google Drive'),
+                  // [NEW, PROVISIONAL] — states plainly, before the tap,
+                  // that the sheet behind this row is about replacement,
+                  // not about merging.
+                  subtitle: const Text(
+                    'Sẽ thay thế toàn bộ dữ liệu hiện có trên máy.',
+                  ),
+                  onTap: () => showRestoreSheet(context),
                 ),
                 // §7.1's three sign-in facts, reproduced verbatim from
                 // constraints.md — never paraphrase, reorder or abbreviate.
