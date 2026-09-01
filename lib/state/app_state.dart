@@ -328,6 +328,50 @@ class AppNotifier extends Notifier<AppData> {
     });
   }
 
+  /// BKP-08/P5-D-04: the whole-document replace behind the restore sheet
+  /// (`lib/ui/backup/restore_sheet.dart`). One `_mutate` call whose
+  /// transform DISCARDS `current` entirely and returns the downloaded
+  /// document, following `completeOnboarding`'s shape above — a real
+  /// overwrite, not a merge (D-06, D-24).
+  ///
+  /// Two things this method deliberately does NOT do:
+  /// 1. It does not suppress the backup. The restored data is now the
+  ///    device's own canonical data and should go back up like any other
+  ///    write; `_mutate`'s unconditional `scheduleDebounced()` call is
+  ///    correct here — the backup-skip path belongs to undo (P5-D-08),
+  ///    which is 05-05, not to restore.
+  /// 2. It does not validate or migrate `downloaded`. `restoreFrom` takes a
+  ///    fully constructed [AppData]; that boundary is
+  ///    `DriveService.download()` (`migrateRaw` + `AppData.fromJson`), so
+  ///    this method has exactly one job.
+  ///
+  /// T-05-04/P5-D-24: every `ServiceLog.photoPaths` and `Vehicle.photoPath`
+  /// is stripped before the document is committed. The restore sheet tells
+  /// the user in so many words that receipt photos are not restored (D-20),
+  /// so keeping paths that point at files which do not exist on this device
+  /// would make the document disagree with what the app just said — and it
+  /// closes `01-SECURITY.md`'s carried-forward accepted risk R-01 while the
+  /// fields are still empty in practice (photo capture is BL-03, backlog).
+  Future<void> restoreFrom(AppData downloaded) async {
+    await _mutate(
+      (_) => downloaded.copyWith(
+        logs: downloaded.logs
+            .map((log) => log.copyWith(photoPaths: const []))
+            .toList(),
+        vehicles: downloaded.vehicles
+            .map((v) => v.copyWith(photoPath: null))
+            .toList(),
+      ),
+    );
+    // What lets a restore started from `/data-issue` actually leave that
+    // screen — the router's redirect re-reads this on every invocation
+    // instead of a value captured once at `buildRouter()` call time
+    // (P5-D-04, RESEARCH Pitfall 8).
+    ref
+        .read(hydrateOutcomeProvider.notifier)
+        .setOutcome(HydrateOutcome.loaded);
+  }
+
   /// LOG-01…03: records one workshop visit across however many items were
   /// actually touched, taking the domain [ServiceLog] type directly — never
   /// a draft/form type from `lib/ui/`. Plan 02 just finished removing exactly
@@ -566,5 +610,27 @@ class AppNotifier extends Notifier<AppData> {
     print('AppNotifier: $message');
   }
 }
+
+/// P5-D-04/RESEARCH Pitfall 8: promotes `HydrateOutcome` from a value
+/// `buildRouter` used to capture once at router-construction time into live
+/// state the router's `redirect` re-reads on every invocation. `main.dart`
+/// seeds this with `hydrate()`'s return value before the router is built;
+/// `AppNotifier.restoreFrom` above is the only method that advances it past
+/// that seeded value.
+class HydrateOutcomeNotifier extends Notifier<HydrateOutcome> {
+  // Defaults to `notFound` deliberately: if anything ever fails to seed
+  // this before the router is built, the app routes to onboarding, which
+  // destroys nothing — the alternative defaults (`loaded` or either
+  // data-issue variant) would route into a screen the user cannot leave.
+  @override
+  HydrateOutcome build() => HydrateOutcome.notFound;
+
+  void setOutcome(HydrateOutcome outcome) => state = outcome;
+}
+
+final hydrateOutcomeProvider =
+    NotifierProvider<HydrateOutcomeNotifier, HydrateOutcome>(
+      HydrateOutcomeNotifier.new,
+    );
 
 final appProvider = NotifierProvider<AppNotifier, AppData>(AppNotifier.new);

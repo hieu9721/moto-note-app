@@ -45,7 +45,6 @@ import 'settings/settings_screen.dart';
 
 GoRouter buildRouter({
   required ProviderContainer container,
-  required HydrateOutcome outcome,
   // P4-D-03: cold start routes straight to the destination a notification
   // promised — main.dart resolves this from the launch payload before the
   // router is built, so the first frame is already correct with no flash of
@@ -61,6 +60,14 @@ GoRouter buildRouter({
       // into the same branch as `notFound` (P1-D-09) — all three leave
       // `AppData.vehicles` empty, so a vehicle-count-only check cannot tell
       // a quarantined document from a first run.
+      //
+      // P5-D-04/RESEARCH Pitfall 8: read the LIVE outcome from the provider
+      // on every invocation rather than a value closed over once at
+      // `buildRouter()` call time — a restore triggered from `/data-issue`
+      // updates this provider directly (`AppNotifier.restoreFrom`), and a
+      // stale closed-over value would route back to `/data-issue` forever
+      // even after the document is valid again.
+      final outcome = container.read(hydrateOutcomeProvider);
       final isDataIssue =
           outcome == HydrateOutcome.undecodable ||
           outcome == HydrateOutcome.schemaTooNew;
@@ -80,7 +87,7 @@ GoRouter buildRouter({
       ),
       GoRoute(
         path: '/data-issue',
-        builder: (context, state) => DataIssueScreen(outcome: outcome),
+        builder: (context, state) => const DataIssueScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => ScaffoldWithNavBar(shell: shell),
@@ -202,13 +209,16 @@ class ScaffoldWithNavBar extends StatelessWidget {
 /// read it" — reachable only from the redirect above, never from any normal
 /// navigation flow. It takes no action and offers no button; Phase 5 owns
 /// restore (P1-D-09) and may give this screen its first action.
-class DataIssueScreen extends StatelessWidget {
-  const DataIssueScreen({super.key, required this.outcome});
-
-  final HydrateOutcome outcome;
+class DataIssueScreen extends ConsumerWidget {
+  const DataIssueScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // P5-D-04: reads the same live provider the redirect above reads, so a
+    // restore that resolves this screen's outcome to `loaded` is reflected
+    // here too on the one frame between the mutation committing and the
+    // redirect navigating away.
+    final outcome = ref.watch(hydrateOutcomeProvider);
     final message = switch (outcome) {
       HydrateOutcome.undecodable =>
         'Không đọc được dữ liệu trên máy. Tệp gốc vẫn được giữ lại, chưa bị '
