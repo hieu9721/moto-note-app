@@ -3,6 +3,7 @@
   "workflow": {
     "_auto_chain_active": false,
     "build_command": "flutter analyze",
-    "test_command": "dart test"
+    "test_command": "dart test",
+    "ui_safety_gate": false
   }
 }
