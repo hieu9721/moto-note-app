@@ -3,6 +3,7 @@
 // translated, paraphrased or abbreviated.
 import 'package:flutter/material.dart';
 
+import '../backup/restore_sheet.dart';
 import 'onboarding_flow.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -30,16 +31,12 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 48),
-              // Drive restore is Phase 5 (BKP-08) — disabled here.
-              const OutlinedButton(
-                onPressed: null,
-                child: Text('Khôi phục từ Google Drive'),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Sẽ có ở bản sau',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+              // BKP-08: live as of Phase 5. showRestoreSheet derives its own
+              // mode from appProvider (P5-D-03) — this call is identical at
+              // every one of the sheet's entry points.
+              OutlinedButton(
+                onPressed: () => showRestoreSheet(context),
+                child: const Text('Khôi phục từ Google Drive'),
               ),
               const SizedBox(height: 16),
               FilledButton(
