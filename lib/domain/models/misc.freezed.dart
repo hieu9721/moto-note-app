@@ -575,7 +575,7 @@ as DateTime,
 /// @nodoc
 mixin _$Settings {
 
- bool get notificationsEnabled; bool get odoReminderEnabled; int get odoReminderDayOfMonth; int get notifyHour; int get leadDays; bool get driveBackupEnabled; DateTime? get lastBackupAt; String? get lastBackupError; String? get googleEmail; DateTime? get lastNotificationFiredAt; bool get notificationPermissionAsked; bool get exactAlarmsEnabled;
+ bool get notificationsEnabled; bool get odoReminderEnabled; int get odoReminderDayOfMonth; int get notifyHour; int get leadDays; bool get driveBackupEnabled; DateTime? get lastBackupAt; String? get lastBackupError; String? get googleEmail; DateTime? get lastNotificationFiredAt; bool get notificationPermissionAsked; bool get exactAlarmsEnabled; bool get driveBackupPromptShown;
 /// Create a copy of Settings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -588,16 +588,16 @@ $SettingsCopyWith<Settings> get copyWith => _$SettingsCopyWithImpl<Settings>(thi
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Settings&&(identical(other.notificationsEnabled, notificationsEnabled) || other.notificationsEnabled == notificationsEnabled)&&(identical(other.odoReminderEnabled, odoReminderEnabled) || other.odoReminderEnabled == odoReminderEnabled)&&(identical(other.odoReminderDayOfMonth, odoReminderDayOfMonth) || other.odoReminderDayOfMonth == odoReminderDayOfMonth)&&(identical(other.notifyHour, notifyHour) || other.notifyHour == notifyHour)&&(identical(other.leadDays, leadDays) || other.leadDays == leadDays)&&(identical(other.driveBackupEnabled, driveBackupEnabled) || other.driveBackupEnabled == driveBackupEnabled)&&(identical(other.lastBackupAt, lastBackupAt) || other.lastBackupAt == lastBackupAt)&&(identical(other.lastBackupError, lastBackupError) || other.lastBackupError == lastBackupError)&&(identical(other.googleEmail, googleEmail) || other.googleEmail == googleEmail)&&(identical(other.lastNotificationFiredAt, lastNotificationFiredAt) || other.lastNotificationFiredAt == lastNotificationFiredAt)&&(identical(other.notificationPermissionAsked, notificationPermissionAsked) || other.notificationPermissionAsked == notificationPermissionAsked)&&(identical(other.exactAlarmsEnabled, exactAlarmsEnabled) || other.exactAlarmsEnabled == exactAlarmsEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Settings&&(identical(other.notificationsEnabled, notificationsEnabled) || other.notificationsEnabled == notificationsEnabled)&&(identical(other.odoReminderEnabled, odoReminderEnabled) || other.odoReminderEnabled == odoReminderEnabled)&&(identical(other.odoReminderDayOfMonth, odoReminderDayOfMonth) || other.odoReminderDayOfMonth == odoReminderDayOfMonth)&&(identical(other.notifyHour, notifyHour) || other.notifyHour == notifyHour)&&(identical(other.leadDays, leadDays) || other.leadDays == leadDays)&&(identical(other.driveBackupEnabled, driveBackupEnabled) || other.driveBackupEnabled == driveBackupEnabled)&&(identical(other.lastBackupAt, lastBackupAt) || other.lastBackupAt == lastBackupAt)&&(identical(other.lastBackupError, lastBackupError) || other.lastBackupError == lastBackupError)&&(identical(other.googleEmail, googleEmail) || other.googleEmail == googleEmail)&&(identical(other.lastNotificationFiredAt, lastNotificationFiredAt) || other.lastNotificationFiredAt == lastNotificationFiredAt)&&(identical(other.notificationPermissionAsked, notificationPermissionAsked) || other.notificationPermissionAsked == notificationPermissionAsked)&&(identical(other.exactAlarmsEnabled, exactAlarmsEnabled) || other.exactAlarmsEnabled == exactAlarmsEnabled)&&(identical(other.driveBackupPromptShown, driveBackupPromptShown) || other.driveBackupPromptShown == driveBackupPromptShown));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,notificationsEnabled,odoReminderEnabled,odoReminderDayOfMonth,notifyHour,leadDays,driveBackupEnabled,lastBackupAt,lastBackupError,googleEmail,lastNotificationFiredAt,notificationPermissionAsked,exactAlarmsEnabled);
+int get hashCode => Object.hash(runtimeType,notificationsEnabled,odoReminderEnabled,odoReminderDayOfMonth,notifyHour,leadDays,driveBackupEnabled,lastBackupAt,lastBackupError,googleEmail,lastNotificationFiredAt,notificationPermissionAsked,exactAlarmsEnabled,driveBackupPromptShown);
 
 @override
 String toString() {
-  return 'Settings(notificationsEnabled: $notificationsEnabled, odoReminderEnabled: $odoReminderEnabled, odoReminderDayOfMonth: $odoReminderDayOfMonth, notifyHour: $notifyHour, leadDays: $leadDays, driveBackupEnabled: $driveBackupEnabled, lastBackupAt: $lastBackupAt, lastBackupError: $lastBackupError, googleEmail: $googleEmail, lastNotificationFiredAt: $lastNotificationFiredAt, notificationPermissionAsked: $notificationPermissionAsked, exactAlarmsEnabled: $exactAlarmsEnabled)';
+  return 'Settings(notificationsEnabled: $notificationsEnabled, odoReminderEnabled: $odoReminderEnabled, odoReminderDayOfMonth: $odoReminderDayOfMonth, notifyHour: $notifyHour, leadDays: $leadDays, driveBackupEnabled: $driveBackupEnabled, lastBackupAt: $lastBackupAt, lastBackupError: $lastBackupError, googleEmail: $googleEmail, lastNotificationFiredAt: $lastNotificationFiredAt, notificationPermissionAsked: $notificationPermissionAsked, exactAlarmsEnabled: $exactAlarmsEnabled, driveBackupPromptShown: $driveBackupPromptShown)';
 }
 
 
@@ -608,7 +608,7 @@ abstract mixin class $SettingsCopyWith<$Res>  {
   factory $SettingsCopyWith(Settings value, $Res Function(Settings) _then) = _$SettingsCopyWithImpl;
 @useResult
 $Res call({
- bool notificationsEnabled, bool odoReminderEnabled, int odoReminderDayOfMonth, int notifyHour, int leadDays, bool driveBackupEnabled, DateTime? lastBackupAt, String? lastBackupError, String? googleEmail, DateTime? lastNotificationFiredAt, bool notificationPermissionAsked, bool exactAlarmsEnabled
+ bool notificationsEnabled, bool odoReminderEnabled, int odoReminderDayOfMonth, int notifyHour, int leadDays, bool driveBackupEnabled, DateTime? lastBackupAt, String? lastBackupError, String? googleEmail, DateTime? lastNotificationFiredAt, bool notificationPermissionAsked, bool exactAlarmsEnabled, bool driveBackupPromptShown
 });
 
 
@@ -625,7 +625,7 @@ class _$SettingsCopyWithImpl<$Res>
 
 /// Create a copy of Settings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? notificationsEnabled = null,Object? odoReminderEnabled = null,Object? odoReminderDayOfMonth = null,Object? notifyHour = null,Object? leadDays = null,Object? driveBackupEnabled = null,Object? lastBackupAt = freezed,Object? lastBackupError = freezed,Object? googleEmail = freezed,Object? lastNotificationFiredAt = freezed,Object? notificationPermissionAsked = null,Object? exactAlarmsEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? notificationsEnabled = null,Object? odoReminderEnabled = null,Object? odoReminderDayOfMonth = null,Object? notifyHour = null,Object? leadDays = null,Object? driveBackupEnabled = null,Object? lastBackupAt = freezed,Object? lastBackupError = freezed,Object? googleEmail = freezed,Object? lastNotificationFiredAt = freezed,Object? notificationPermissionAsked = null,Object? exactAlarmsEnabled = null,Object? driveBackupPromptShown = null,}) {
   return _then(Settings(
 notificationsEnabled: null == notificationsEnabled ? _self.notificationsEnabled : notificationsEnabled // ignore: cast_nullable_to_non_nullable
 as bool,odoReminderEnabled: null == odoReminderEnabled ? _self.odoReminderEnabled : odoReminderEnabled // ignore: cast_nullable_to_non_nullable
@@ -639,6 +639,7 @@ as String?,googleEmail: freezed == googleEmail ? _self.googleEmail : googleEmail
 as String?,lastNotificationFiredAt: freezed == lastNotificationFiredAt ? _self.lastNotificationFiredAt : lastNotificationFiredAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,notificationPermissionAsked: null == notificationPermissionAsked ? _self.notificationPermissionAsked : notificationPermissionAsked // ignore: cast_nullable_to_non_nullable
 as bool,exactAlarmsEnabled: null == exactAlarmsEnabled ? _self.exactAlarmsEnabled : exactAlarmsEnabled // ignore: cast_nullable_to_non_nullable
+as bool,driveBackupPromptShown: null == driveBackupPromptShown ? _self.driveBackupPromptShown : driveBackupPromptShown // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -724,10 +725,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled,  bool driveBackupPromptShown)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Settings() when $default != null:
-return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled);case _:
+return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled,_that.driveBackupPromptShown);case _:
   return orElse();
 
 }
@@ -745,10 +746,10 @@ return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoRem
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled,  bool driveBackupPromptShown)  $default,) {final _that = this;
 switch (_that) {
 case _Settings():
-return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled);case _:
+return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled,_that.driveBackupPromptShown);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -765,10 +766,10 @@ return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoRem
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool notificationsEnabled,  bool odoReminderEnabled,  int odoReminderDayOfMonth,  int notifyHour,  int leadDays,  bool driveBackupEnabled,  DateTime? lastBackupAt,  String? lastBackupError,  String? googleEmail,  DateTime? lastNotificationFiredAt,  bool notificationPermissionAsked,  bool exactAlarmsEnabled,  bool driveBackupPromptShown)?  $default,) {final _that = this;
 switch (_that) {
 case _Settings() when $default != null:
-return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled);case _:
+return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoReminderDayOfMonth,_that.notifyHour,_that.leadDays,_that.driveBackupEnabled,_that.lastBackupAt,_that.lastBackupError,_that.googleEmail,_that.lastNotificationFiredAt,_that.notificationPermissionAsked,_that.exactAlarmsEnabled,_that.driveBackupPromptShown);case _:
   return null;
 
 }
@@ -780,7 +781,7 @@ return $default(_that.notificationsEnabled,_that.odoReminderEnabled,_that.odoRem
 @JsonSerializable()
 
 class _Settings implements Settings {
-  const _Settings({this.notificationsEnabled = true, this.odoReminderEnabled = true, this.odoReminderDayOfMonth = 1, this.notifyHour = 8, this.leadDays = 7, this.driveBackupEnabled = false, this.lastBackupAt, this.lastBackupError, this.googleEmail, this.lastNotificationFiredAt, this.notificationPermissionAsked = false, this.exactAlarmsEnabled = false});
+  const _Settings({this.notificationsEnabled = true, this.odoReminderEnabled = true, this.odoReminderDayOfMonth = 1, this.notifyHour = 8, this.leadDays = 7, this.driveBackupEnabled = false, this.lastBackupAt, this.lastBackupError, this.googleEmail, this.lastNotificationFiredAt, this.notificationPermissionAsked = false, this.exactAlarmsEnabled = false, this.driveBackupPromptShown = false});
   factory _Settings.fromJson(Map<String, dynamic> json) => _$SettingsFromJson(json);
 
 @override@JsonKey() final  bool notificationsEnabled;
@@ -795,6 +796,7 @@ class _Settings implements Settings {
 @override final  DateTime? lastNotificationFiredAt;
 @override@JsonKey() final  bool notificationPermissionAsked;
 @override@JsonKey() final  bool exactAlarmsEnabled;
+@override@JsonKey() final  bool driveBackupPromptShown;
 
 /// Create a copy of Settings
 /// with the given fields replaced by the non-null parameter values.
@@ -809,16 +811,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Settings&&(identical(other.notificationsEnabled, notificationsEnabled) || other.notificationsEnabled == notificationsEnabled)&&(identical(other.odoReminderEnabled, odoReminderEnabled) || other.odoReminderEnabled == odoReminderEnabled)&&(identical(other.odoReminderDayOfMonth, odoReminderDayOfMonth) || other.odoReminderDayOfMonth == odoReminderDayOfMonth)&&(identical(other.notifyHour, notifyHour) || other.notifyHour == notifyHour)&&(identical(other.leadDays, leadDays) || other.leadDays == leadDays)&&(identical(other.driveBackupEnabled, driveBackupEnabled) || other.driveBackupEnabled == driveBackupEnabled)&&(identical(other.lastBackupAt, lastBackupAt) || other.lastBackupAt == lastBackupAt)&&(identical(other.lastBackupError, lastBackupError) || other.lastBackupError == lastBackupError)&&(identical(other.googleEmail, googleEmail) || other.googleEmail == googleEmail)&&(identical(other.lastNotificationFiredAt, lastNotificationFiredAt) || other.lastNotificationFiredAt == lastNotificationFiredAt)&&(identical(other.notificationPermissionAsked, notificationPermissionAsked) || other.notificationPermissionAsked == notificationPermissionAsked)&&(identical(other.exactAlarmsEnabled, exactAlarmsEnabled) || other.exactAlarmsEnabled == exactAlarmsEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Settings&&(identical(other.notificationsEnabled, notificationsEnabled) || other.notificationsEnabled == notificationsEnabled)&&(identical(other.odoReminderEnabled, odoReminderEnabled) || other.odoReminderEnabled == odoReminderEnabled)&&(identical(other.odoReminderDayOfMonth, odoReminderDayOfMonth) || other.odoReminderDayOfMonth == odoReminderDayOfMonth)&&(identical(other.notifyHour, notifyHour) || other.notifyHour == notifyHour)&&(identical(other.leadDays, leadDays) || other.leadDays == leadDays)&&(identical(other.driveBackupEnabled, driveBackupEnabled) || other.driveBackupEnabled == driveBackupEnabled)&&(identical(other.lastBackupAt, lastBackupAt) || other.lastBackupAt == lastBackupAt)&&(identical(other.lastBackupError, lastBackupError) || other.lastBackupError == lastBackupError)&&(identical(other.googleEmail, googleEmail) || other.googleEmail == googleEmail)&&(identical(other.lastNotificationFiredAt, lastNotificationFiredAt) || other.lastNotificationFiredAt == lastNotificationFiredAt)&&(identical(other.notificationPermissionAsked, notificationPermissionAsked) || other.notificationPermissionAsked == notificationPermissionAsked)&&(identical(other.exactAlarmsEnabled, exactAlarmsEnabled) || other.exactAlarmsEnabled == exactAlarmsEnabled)&&(identical(other.driveBackupPromptShown, driveBackupPromptShown) || other.driveBackupPromptShown == driveBackupPromptShown));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,notificationsEnabled,odoReminderEnabled,odoReminderDayOfMonth,notifyHour,leadDays,driveBackupEnabled,lastBackupAt,lastBackupError,googleEmail,lastNotificationFiredAt,notificationPermissionAsked,exactAlarmsEnabled);
+int get hashCode => Object.hash(runtimeType,notificationsEnabled,odoReminderEnabled,odoReminderDayOfMonth,notifyHour,leadDays,driveBackupEnabled,lastBackupAt,lastBackupError,googleEmail,lastNotificationFiredAt,notificationPermissionAsked,exactAlarmsEnabled,driveBackupPromptShown);
 
 @override
 String toString() {
-  return 'Settings(notificationsEnabled: $notificationsEnabled, odoReminderEnabled: $odoReminderEnabled, odoReminderDayOfMonth: $odoReminderDayOfMonth, notifyHour: $notifyHour, leadDays: $leadDays, driveBackupEnabled: $driveBackupEnabled, lastBackupAt: $lastBackupAt, lastBackupError: $lastBackupError, googleEmail: $googleEmail, lastNotificationFiredAt: $lastNotificationFiredAt, notificationPermissionAsked: $notificationPermissionAsked, exactAlarmsEnabled: $exactAlarmsEnabled)';
+  return 'Settings(notificationsEnabled: $notificationsEnabled, odoReminderEnabled: $odoReminderEnabled, odoReminderDayOfMonth: $odoReminderDayOfMonth, notifyHour: $notifyHour, leadDays: $leadDays, driveBackupEnabled: $driveBackupEnabled, lastBackupAt: $lastBackupAt, lastBackupError: $lastBackupError, googleEmail: $googleEmail, lastNotificationFiredAt: $lastNotificationFiredAt, notificationPermissionAsked: $notificationPermissionAsked, exactAlarmsEnabled: $exactAlarmsEnabled, driveBackupPromptShown: $driveBackupPromptShown)';
 }
 
 
@@ -829,7 +831,7 @@ abstract mixin class _$SettingsCopyWith<$Res> implements $SettingsCopyWith<$Res>
   factory _$SettingsCopyWith(_Settings value, $Res Function(_Settings) _then) = __$SettingsCopyWithImpl;
 @override @useResult
 $Res call({
- bool notificationsEnabled, bool odoReminderEnabled, int odoReminderDayOfMonth, int notifyHour, int leadDays, bool driveBackupEnabled, DateTime? lastBackupAt, String? lastBackupError, String? googleEmail, DateTime? lastNotificationFiredAt, bool notificationPermissionAsked, bool exactAlarmsEnabled
+ bool notificationsEnabled, bool odoReminderEnabled, int odoReminderDayOfMonth, int notifyHour, int leadDays, bool driveBackupEnabled, DateTime? lastBackupAt, String? lastBackupError, String? googleEmail, DateTime? lastNotificationFiredAt, bool notificationPermissionAsked, bool exactAlarmsEnabled, bool driveBackupPromptShown
 });
 
 
@@ -846,7 +848,7 @@ class __$SettingsCopyWithImpl<$Res>
 
 /// Create a copy of Settings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? notificationsEnabled = null,Object? odoReminderEnabled = null,Object? odoReminderDayOfMonth = null,Object? notifyHour = null,Object? leadDays = null,Object? driveBackupEnabled = null,Object? lastBackupAt = freezed,Object? lastBackupError = freezed,Object? googleEmail = freezed,Object? lastNotificationFiredAt = freezed,Object? notificationPermissionAsked = null,Object? exactAlarmsEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? notificationsEnabled = null,Object? odoReminderEnabled = null,Object? odoReminderDayOfMonth = null,Object? notifyHour = null,Object? leadDays = null,Object? driveBackupEnabled = null,Object? lastBackupAt = freezed,Object? lastBackupError = freezed,Object? googleEmail = freezed,Object? lastNotificationFiredAt = freezed,Object? notificationPermissionAsked = null,Object? exactAlarmsEnabled = null,Object? driveBackupPromptShown = null,}) {
   return _then(_Settings(
 notificationsEnabled: null == notificationsEnabled ? _self.notificationsEnabled : notificationsEnabled // ignore: cast_nullable_to_non_nullable
 as bool,odoReminderEnabled: null == odoReminderEnabled ? _self.odoReminderEnabled : odoReminderEnabled // ignore: cast_nullable_to_non_nullable
@@ -860,6 +862,7 @@ as String?,googleEmail: freezed == googleEmail ? _self.googleEmail : googleEmail
 as String?,lastNotificationFiredAt: freezed == lastNotificationFiredAt ? _self.lastNotificationFiredAt : lastNotificationFiredAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,notificationPermissionAsked: null == notificationPermissionAsked ? _self.notificationPermissionAsked : notificationPermissionAsked // ignore: cast_nullable_to_non_nullable
 as bool,exactAlarmsEnabled: null == exactAlarmsEnabled ? _self.exactAlarmsEnabled : exactAlarmsEnabled // ignore: cast_nullable_to_non_nullable
+as bool,driveBackupPromptShown: null == driveBackupPromptShown ? _self.driveBackupPromptShown : driveBackupPromptShown // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
