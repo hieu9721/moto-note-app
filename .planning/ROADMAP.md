@@ -206,7 +206,7 @@ Plans:
   4. Restoring over existing data shows the side-by-side comparison first (including "⚠ Bản trên Drive CŨ HƠN" when it applies), and "Hoàn tác khôi phục" puts the previous data back within 7 days.
   5. Every feature still works for a user who has never signed into Google, and "Xuất file" hands them their JSON.
 
-**Plans**: 8/10 plans executed across 8 waves — 3 gap-closure plans added 2026-09-01 after `/gsd-verify-work` returned `gaps_found` (8/11 must-haves)
+**Plans**: 10/10 plans executed across 8 waves — 3 gap-closure plans added 2026-09-01 after `/gsd-verify-work` returned `gaps_found` (8/11 must-haves)
 
 Plans:
 **Wave 1**
@@ -240,8 +240,8 @@ Plans:
 
 **Wave 8** *(gap closure — blocked on Wave 7; 05-09 and 05-10 have no file overlap and run in parallel)*
 
-- [ ] 05-09-PLAN.md — Settings cleanup: "Sao lưu ngay" through `recordBackupResult` (WR-01), the export row's raw-exception leak (CR-03), undo error handling (WR-02), IN-01 documented (wave 8, gap closure)
-- [ ] 05-10-PLAN.md — The restore sheet's local-write message (WR-03) and the stale BKP-11/BKP-12/BKP-15 checkboxes in REQUIREMENTS.md (wave 8, gap closure)
+- [x] 05-09-PLAN.md — Settings cleanup: "Sao lưu ngay" through `recordBackupResult` (WR-01), the export row's raw-exception leak (CR-03), undo error handling (WR-02), IN-01 documented (wave 8, gap closure)
+- [x] 05-10-PLAN.md — The restore sheet's local-write message (WR-03) and the stale BKP-11/BKP-12/BKP-15 checkboxes in REQUIREMENTS.md (wave 8, gap closure)
 
 **UI hint**: yes
 **Notes**: §15 R6 — a missing SHA-1 makes sign-in fail *silently* with no clear error, and §13 records that the OAuth work always takes longer than expected. §15 R7 — read only the `google_sign_in` official README; ignore any article written before 2025. **Two environment blockers stand between these plans and any on-device proof:** no Google Cloud project exists in this repo yet (05-01 task 1 is a blocking human-action checkpoint that creates it), and no Android device is attached — every OAuth and Drive behaviour is a `<verify><human-check>` harvested into `05-UAT.md` at end of phase, never an automated claim. **BKP-01 closes partial by design** (P5-D-11): the debug-keystore SHA-1 and the Web client ID land here; the release-keystore SHA-1 (REL-03) and the Play App Signing SHA-1 (REL-09) are named Phase 6 handover items.
@@ -273,7 +273,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
-| 5. Google Drive Backup & Restore | 8/10 | In Progress|  |
+| 5. Google Drive Backup & Restore | 10/10 | In Progress|  |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
 ---
