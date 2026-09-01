@@ -69,10 +69,14 @@ class AppDataRepository {
   static const _fileName = 'appdata.json';
   static const _tmpName = 'appdata.json.tmp';
   static const _backupName = 'appdata.backup.json';
+  static const _preRestoreName = 'appdata.pre-restore.json';
+  static const _preRestoreTmpName = 'appdata.pre-restore.json.tmp';
 
   File get _target => File('${_dir.path}/$_fileName');
   File get _tmp => File('${_dir.path}/$_tmpName');
   File get _backup => File('${_dir.path}/$_backupName');
+  File get _preRestore => File('${_dir.path}/$_preRestoreName');
+  File get _preRestoreTmp => File('${_dir.path}/$_preRestoreTmpName');
 
   /// P1-D-06/T-01-11: chains every [save] call onto the previous write, so
   /// only one write is ever in flight against [_tmp]. Closes an open Dart
@@ -215,5 +219,51 @@ class AppDataRepository {
     // 3. Atomic rename over the target — the atomic step, since the tmp
     //    file and target are always in the same directory (same filesystem).
     await _tmp.rename(_target.path);
+  }
+
+  /// A fourth file in the same atomic-write family (§7.6 Layer 3, BKP-10):
+  /// the document about to be overwritten by a restore, written through the
+  /// identical write-to-temp-then-rename discipline [_writeAtomic] uses —
+  /// minus the backup-copy step, because there is no previous snapshot
+  /// worth preserving. A second restore inside the undo window deliberately
+  /// replaces the first snapshot rather than keeping it, so a second
+  /// restore in a row destroys the device's original data — an accepted,
+  /// recorded cost, not a defect. The rename is what moves the file's own
+  /// modification time forward, which is what resets the seven-day undo
+  /// clock — the single source of truth for the undo window; no field was
+  /// added to the document for it, because that metadata is device-local
+  /// and must never travel to Drive.
+  Future<void> writePreRestoreSnapshot(AppData data) async {
+    await _preRestoreTmp.writeAsString(
+      jsonEncode(data.toJson()),
+      flush: true,
+    );
+    await _preRestoreTmp.rename(_preRestore.path);
+  }
+
+  /// The only fact this repository knows about the undo window — the
+  /// snapshot file's own modification time, or null when no snapshot
+  /// exists. The seven-day judgment itself belongs to `canUndoRestore` in
+  /// `lib/domain/backup_timing.dart`, kept there so the boundary stays
+  /// reachable under plain `dart test`; this method does no interval math.
+  Future<DateTime?> preRestoreSnapshotModifiedAt() async {
+    if (!await _preRestore.exists()) return null;
+    return _preRestore.lastModified();
+  }
+
+  /// Reads the snapshot through the exact same decode → migrate → validate
+  /// boundary [load] uses for the primary document — a device-local file
+  /// earns no weaker validation than a downloaded one.
+  /// Returns null when the file does not exist. Deliberately does NOT catch
+  /// [SchemaTooNewException]: the caller decides what to tell the user, the
+  /// same division [load] already uses. Deliberately does NOT apply the
+  /// undo-window check here either — reading the document and deciding
+  /// whether the window is still open are separate concerns, composed by
+  /// the caller.
+  Future<AppData?> readPreRestoreSnapshot() async {
+    if (!await _preRestore.exists()) return null;
+    final raw =
+        jsonDecode(await _preRestore.readAsString()) as Map<String, dynamic>;
+    return AppData.fromJson(migrateRaw(raw));
   }
 }
