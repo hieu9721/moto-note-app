@@ -1,5 +1,5 @@
-// lib/ui/backup/restore_sheet.dart — BKP-08. The ONE restore surface the
-// whole phase shares, per P5-D-03: it derives its own mode from the
+// lib/ui/backup/restore_sheet.dart — BKP-08/BKP-09. The ONE restore surface
+// the whole phase shares, per P5-D-03: it derives its own mode from the
 // presence of local data (read from `appProvider`) rather than a flag any
 // caller passes, so the sign-in, the metadata read, the photo warning and
 // the overwrite path are structurally incapable of drifting apart between
@@ -7,11 +7,10 @@
 // `lib/ui/widgets/odometer_confirm_dialog.dart` established for the
 // P3-D-12 confirmation (03-07/CR-01 precedent).
 //
-// This plan (05-03) implements the no-local-data branch only (§7.6 Layer
-// 1). The comparison branch — Layer 2's side-by-side comparison and Layer
-// 3's pre-restore snapshot — is 05-04's job; it is a single, clearly-marked
-// unimplemented arm below, not a partial comparison that would render
-// something plausible but unprotected.
+// 05-03 built the no-local-data branch (§7.6 Layer 1). This plan (05-04)
+// fills in the comparison branch — Layer 2's side-by-side comparison, its
+// "⚠ Bản trên Drive CŨ HƠN" warning, and Layer 3's pre-restore snapshot
+// written before anything is overwritten.
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../backup/drive_service.dart';
 import '../../backup/google_auth.dart';
 import '../../data/migrations.dart';
+import '../../domain/backup_timing.dart';
 import '../../state/app_state.dart';
 import '../widgets/formatters.dart';
 
@@ -116,12 +116,14 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
     }
   }
 
-  /// Step 6: download, then commit through the one whole-document replace
-  /// (`AppNotifier.restoreFrom`), then dismiss. Step 7's three distinct
-  /// failure cases (P5-D-22) all keep the sheet open with an inline error —
-  /// nothing is written on any of them, matching `_mutate`'s own
-  /// persist-before-assign/rethrow-on-failure contract that
-  /// `odo_sheet.dart`'s `_save` already codifies for its own save path.
+  /// Step 6: download, snapshot the current document when there is one
+  /// worth protecting (§7.6 Layer 3 / BKP-10), then commit through the one
+  /// whole-document replace (`AppNotifier.restoreFrom`), then dismiss.
+  /// Step 7's three distinct failure cases (P5-D-22) all keep the sheet
+  /// open with an inline error — nothing is written on any of them,
+  /// matching `_mutate`'s own persist-before-assign/rethrow-on-failure
+  /// contract that `odo_sheet.dart`'s `_save` already codifies for its own
+  /// save path.
   Future<void> _restore() async {
     final driveService = _driveService;
     if (driveService == null) return;
@@ -132,6 +134,19 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
     try {
       final downloaded = await driveService.download();
       if (!mounted) return;
+      // §7.6 Layer 3 / BKP-10: the CURRENT document is snapshotted before
+      // anything is overwritten — the state right before the restore that
+      // is about to happen, never the downloaded one. Must run strictly
+      // before restoreFrom below and must not be merged with it: once the
+      // whole-document replace has run there is no way to reconstruct what
+      // was here a moment ago. Only when the device actually holds data
+      // worth protecting — a device with nothing on it has nothing to
+      // snapshot.
+      final current = ref.read(appProvider);
+      if (current.vehicles.isNotEmpty) {
+        await ref.read(repositoryProvider).writePreRestoreSnapshot(current);
+        if (!mounted) return;
+      }
       await ref.read(appProvider.notifier).restoreFrom(downloaded);
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -190,31 +205,18 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: hasLocalData
-              ? _buildComparisonModePlaceholder(colorScheme)
-              : _buildNoLocalDataFlow(colorScheme),
+          children: _buildFlow(colorScheme, hasLocalData),
         ),
       ),
     );
   }
 
-  /// This plan implements the no-local-data branch only (§7.6 Layer 1). The
-  /// comparison branch — Layer 2's side-by-side comparison and Layer 3's
-  /// pre-restore snapshot — is 05-04's job. A single, clearly-marked,
-  /// unimplemented arm, not a partial comparison that would render
-  /// something plausible but unprotected.
-  List<Widget> _buildComparisonModePlaceholder(ColorScheme colorScheme) {
-    return [
-      Text(
-        'Khôi phục khi máy đã có dữ liệu sẽ có ở bản cập nhật sau.',
-        // [NEW, PROVISIONAL]
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
-      ),
-    ];
-  }
-
-  List<Widget> _buildNoLocalDataFlow(ColorScheme colorScheme) {
+  /// The sign-in/peek stage machine (`_stage`) is shared by both modes —
+  /// finding (or not finding) a Drive backup is the same question whether
+  /// or not the device already has data. Only the [_Stage.summary] render
+  /// differs by [hasLocalData]: the no-data mode's single confirm step
+  /// (05-03) versus the comparison mode's §7.6 Layer 2 frame (this plan).
+  List<Widget> _buildFlow(ColorScheme colorScheme, bool hasLocalData) {
     final children = <Widget>[];
 
     switch (_stage) {
@@ -237,6 +239,9 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
           ),
         ]);
       case _Stage.noBackupFound:
+        // BKP-09 edge (empty): the account holds no backup, so this mode
+        // cannot render a comparison and does not pretend to — no restore
+        // action renders at all, in either mode.
         children.addAll([
           Text(
             _noBackupLine,
@@ -246,53 +251,11 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
           FilledButton(onPressed: _startOver, child: const Text('Bắt đầu mới')),
         ]);
       case _Stage.summary:
-        final info = _info!;
-        final summaryLine =
-            '${formatShortDate(info.modifiedAt.toLocal())} · '
-            '${info.vehicleCount} xe · ${info.logCount} log · '
-            '${(info.sizeBytes / 1024).round()}KB';
-        children.addAll([
-          Text(
-            summaryLine,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // D-20: the photo exclusion is stated ON THIS SURFACE, verbatim —
-          // not in an FAQ, not in a help screen — because the sentence
-          // exists to change a decision at the moment it is being made.
-          Text(
-            '⚠ Ảnh hoá đơn không khôi phục được',
-            style: TextStyle(fontSize: 14, color: colorScheme.error),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _working ? null : _startOver,
-                  child: const Text('Bắt đầu mới'),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FilledButton(
-                  onPressed: _working ? null : _restore,
-                  child: _working
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Khôi phục'),
-                ),
-              ),
-            ],
-          ),
-        ]);
+        children.addAll(
+          hasLocalData
+              ? _buildComparisonSummary(colorScheme)
+              : _buildNoDataSummary(colorScheme),
+        );
     }
 
     if (_error != null) {
@@ -303,6 +266,140 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
     }
 
     return children;
+  }
+
+  /// 05-03's no-local-data confirm step (§7.6 Layer 1): one summary line,
+  /// the photo-exclusion warning, and a single confirm action — there is
+  /// nothing on the device to compare against, so no comparison renders.
+  List<Widget> _buildNoDataSummary(ColorScheme colorScheme) {
+    final info = _info!;
+    final summaryLine =
+        '${formatShortDate(info.modifiedAt.toLocal())} · '
+        '${info.vehicleCount} xe · ${info.logCount} log · '
+        '${(info.sizeBytes / 1024).round()}KB';
+    return [
+      Text(
+        summaryLine,
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      const SizedBox(height: 8),
+      // D-20: the photo exclusion is stated ON THIS SURFACE, verbatim —
+      // not in an FAQ, not in a help screen — because the sentence exists
+      // to change a decision at the moment it is being made.
+      Text(
+        '⚠ Ảnh hoá đơn không khôi phục được',
+        style: TextStyle(fontSize: 14, color: colorScheme.error),
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _working ? null : _startOver,
+              child: const Text('Bắt đầu mới'),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: FilledButton(
+              onPressed: _working ? null : _restore,
+              child: _working
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Khôi phục'),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  /// §7.6 Layer 2 — the comparison the user must read before anything is
+  /// overwritten, rendered once `peek()` has returned a [BackupInfo]. Every
+  /// string here is quoted verbatim from constraints.md's "Restore safety
+  /// protocol" — do not paraphrase or reorder. `Huỷ` renders as the
+  /// visually-primary [FilledButton] and `Vẫn khôi phục` as the secondary
+  /// [OutlinedButton] — the destructive action is never the default or the
+  /// easier-to-hit one.
+  List<Widget> _buildComparisonSummary(ColorScheme colorScheme) {
+    final info = _info!;
+    final local = ref.watch(appProvider);
+    final isOlder = driveCopyIsOlder(
+      driveModifiedAt: info.modifiedAt,
+      localUpdatedAt: local.updatedAt,
+    );
+    final deviceLine =
+        'Trên máy: ${local.vehicles.length} xe · ${local.logs.length} log'
+        ', sửa ${relativeVi(local.updatedAt)}';
+    final driveLine =
+        'Trên Drive: ${info.vehicleCount} xe · ${info.logCount} log'
+        ', sao lưu ${relativeVi(info.modifiedAt)}';
+
+    return [
+      Text(
+        'Khôi phục sẽ THAY THẾ dữ liệu hiện có trên máy.',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: colorScheme.onSurface,
+        ),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        deviceLine,
+        style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        driveLine,
+        style: TextStyle(fontSize: 14, color: colorScheme.onSurface),
+      ),
+      if (isOlder) ...[
+        const SizedBox(height: 12),
+        Text(
+          '⚠ Bản trên Drive CŨ HƠN',
+          style: TextStyle(fontSize: 14, color: colorScheme.error),
+        ),
+      ],
+      const SizedBox(height: 8),
+      // D-20, same sentence as the no-data mode above — reproduced on this
+      // surface too rather than assumed already seen.
+      Text(
+        '⚠ Ảnh hoá đơn không khôi phục được',
+        style: TextStyle(fontSize: 14, color: colorScheme.error),
+      ),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: FilledButton(
+              onPressed: _working ? null : _startOver,
+              child: const Text('Huỷ'),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: OutlinedButton(
+              onPressed: _working ? null : _restore,
+              child: _working
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Vẫn khôi phục'),
+            ),
+          ),
+        ],
+      ),
+    ];
   }
 }
 
