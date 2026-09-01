@@ -206,12 +206,12 @@ Plans:
   4. Restoring over existing data shows the side-by-side comparison first (including "⚠ Bản trên Drive CŨ HƠN" when it applies), and "Hoàn tác khôi phục" puts the previous data back within 7 days.
   5. Every feature still works for a user who has never signed into Google, and "Xuất file" hands them their JSON.
 
-**Plans**: 7 plans across 6 waves
+**Plans**: 1/7 plans executed across 6 waves
 
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Tracer: OAuth configured, "Sao lưu ngay" signs in and puts the document in the user's own `appDataFolder` (wave 1, has a human-action checkpoint)
+- [x] 05-01-PLAN.md — Tracer: OAuth configured, "Sao lưu ngay" signs in and puts the document in the user's own `appDataFolder` (wave 1, has a human-action checkpoint)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -264,7 +264,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
-| 5. Google Drive Backup & Restore | 0/TBD | Not started | - |
+| 5. Google Drive Backup & Restore | 1/7 | In Progress|  |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
 ---
