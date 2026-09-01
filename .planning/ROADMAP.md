@@ -206,9 +206,36 @@ Plans:
   4. Restoring over existing data shows the side-by-side comparison first (including "⚠ Bản trên Drive CŨ HƠN" when it applies), and "Hoàn tác khôi phục" puts the previous data back within 7 days.
   5. Every feature still works for a user who has never signed into Google, and "Xuất file" hands them their JSON.
 
-**Plans**: TBD
+**Plans**: 7 plans across 6 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Tracer: OAuth configured, "Sao lưu ngay" signs in and puts the document in the user's own `appDataFolder` (wave 1, has a human-action checkpoint)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — Automatic backup: the three §7.5 triggers, the closed error-code set, the `hydrate()` fix, and one honest status line (wave 2, has a decision checkpoint)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 05-03-PLAN.md — Restore into a device with no data: the one sheet, live `HydrateOutcome`, and a way out of the `/data-issue` trap (wave 3)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 05-04-PLAN.md — Restore over existing data: the §7.6 comparison, the "CŨ HƠN" predicate, and the pre-restore snapshot (wave 4)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 05-05-PLAN.md — "Hoàn tác khôi phục": the 7-day undo that puts the previous data back without touching Drive (wave 5)
+
+**Wave 6** *(blocked on Wave 5; 05-06 and 05-07 have no file overlap and run in parallel)*
+
+- [ ] 05-06-PLAN.md — "Xuất file" through `share_plus`, and the audited guarantee that a never-signed-in user loses nothing (wave 6)
+- [ ] 05-07-PLAN.md — The one-time Drive-backup offer after onboarding, BKP-13 verified, and BKP-01 recorded partial (wave 6)
+
 **UI hint**: yes
-**Notes**: §15 R6 — a missing SHA-1 makes sign-in fail *silently* with no clear error, and §13 records that the OAuth work always takes longer than expected. §15 R7 — read only the `google_sign_in` official README; ignore any article written before 2025.
+**Notes**: §15 R6 — a missing SHA-1 makes sign-in fail *silently* with no clear error, and §13 records that the OAuth work always takes longer than expected. §15 R7 — read only the `google_sign_in` official README; ignore any article written before 2025. **Two environment blockers stand between these plans and any on-device proof:** no Google Cloud project exists in this repo yet (05-01 task 1 is a blocking human-action checkpoint that creates it), and no Android device is attached — every OAuth and Drive behaviour is a `<verify><human-check>` harvested into `05-UAT.md` at end of phase, never an automated claim. **BKP-01 closes partial by design** (P5-D-11): the debug-keystore SHA-1 and the Web client ID land here; the release-keystore SHA-1 (REL-03) and the Play App Signing SHA-1 (REL-09) are named Phase 6 handover items.
 
 ### Phase 6: Polish & Play Store Release
 
