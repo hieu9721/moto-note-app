@@ -290,3 +290,40 @@ field.
 **Natural moment to do it:** if `04-UAT.md`-style end-of-phase or later real-world use ever surfaces
 this exact sequence (undo → kill within 24h → cold start past 24h → no other change) in practice,
 promote it then rather than pre-emptively building for a sequence that may never occur.
+
+---
+
+### BL-12 — `home_screen.dart` now hangs three one-shot post-frame effects off the same `initState` hook
+
+**Raised:** 2026-09-01, by `05-07-PLAN.md`'s own "Flagged assumptions" item 3, filed here per the
+plan's own `<output>` instruction rather than consolidated in this plan.
+
+`04-REVIEW.md`'s WR-01 already flagged that two independent one-shot effects on `HomeScreen`'s single
+`addPostFrameCallback` — `_consumeSheetParam` (04-01) and `_maybeShowNotificationPermissionPrompt`
+(04-03) — could in principle open two modals on the same frame; the gap-closure round that produced
+`04-REVIEW.md` did not touch `home_screen.dart` and left it unresolved. 05-07 adds a third,
+`_maybeShowDriveBackupPrompt` (BKP-15), following the identical pattern rather than inventing a new
+one. Its own gate reads `_permissionPromptShown` to avoid stacking with the notification prompt on the
+same frame, which keeps this plan's addition safe on its own terms, but does not address the
+underlying accumulation WR-01 named.
+
+**Flagged plan-authoring discrepancy (not a defect in this backlog item, recorded for the record):**
+`05-07-PLAN.md`'s own text cites this finding as "`01-REVIEW.md`'s WR-01" — but `01-REVIEW.md`'s own
+`WR-01` is an unrelated finding (`_tryDecodeBackup` swallowing `SchemaTooNewException`). The actual
+source, confirmed by reading both files, is `04-REVIEW.md`'s `WR-01`
+("Hai postFrameCallback trong `HomeScreen.initState` vẫn có thể mở đồng thời hai modal"). This entry
+cites the verified source rather than the plan's misattributed one.
+
+**Why deferred:** each effect works correctly in isolation and 05-07's own gate prevents the one new
+stacking risk it introduces; consolidating three independent one-shot effects into a single ordered
+sequence is a structural refactor with no user-visible defect today, and D-34/§13.2 route exactly this
+shape of finding here rather than into the version being built.
+
+**What promoting it looks like:** replace the three independent boolean-guarded effects with one
+ordered sequence (or a small state machine) inside a single method called from `initState`'s
+`addPostFrameCallback`, so the ordering and mutual-exclusion rules between them are enforced in one
+place instead of replicated pairwise (as `_maybeShowDriveBackupPrompt`'s read of
+`_permissionPromptShown` does today).
+
+**Natural moment to do it:** Phase 6 polish, or the next time a fourth one-shot effect needs to be
+added to this same hook.
