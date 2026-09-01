@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../backup/backup_service.dart';
 import '../../backup/google_auth.dart';
+import '../../backup/local_export.dart';
 import '../../domain/backup_timing.dart';
 import '../../domain/models/app_data.dart';
 import '../../notifications/notification_service.dart';
@@ -314,11 +315,49 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const _SettingsGroup(
-              // Phase 5 (BKP-*) owns the export row.
+            _SettingsGroup(
+              // Phase 5 (BKP-*) owns the export row. Live as of 05-06 — the
+              // caption below would read as actively misleading under a
+              // working row (T-04-14).
               title: 'Xuất file',
+              showComingSoonCaption: false,
               rows: [
-                ListTile(title: Text('Xuất file dữ liệu'), enabled: false),
+                ListTile(
+                  title: const Text('Xuất file dữ liệu'),
+                  // [NEW, PROVISIONAL] — states plainly what the file is.
+                  subtitle: const Text('Bản sao toàn bộ dữ liệu trong app.'),
+                  // BKP-11/BKP-12/D-18: this row does not depend on sign-in
+                  // state in any way. §7.2 names "Xuất file" as the
+                  // mitigation for the one thing the drive.appdata scope
+                  // costs the user, and D-18's user — who has never signed
+                  // in — is exactly who this button is for. A later
+                  // contributor tidying "backup-related" rows into one
+                  // signed-in-gated block would break the requirement
+                  // without noticing.
+                  onTap: () async {
+                    try {
+                      await exportAppData(
+                        ref.read(appProvider),
+                        ref.read(repositoryProvider).documentsDirectory,
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          // [NEW, PROVISIONAL]
+                          content: Text('Đã tạo file xuất dữ liệu'),
+                        ),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          // [NEW, PROVISIONAL]
+                          content: Text('Xuất file thất bại: $e'),
+                        ),
+                      );
+                    }
+                  },
+                ),
               ],
             ),
             const _SettingsGroup(

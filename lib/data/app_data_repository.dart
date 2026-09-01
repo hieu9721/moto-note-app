@@ -66,6 +66,12 @@ class AppDataRepository {
 
   final Directory _dir;
 
+  /// The injected documents directory (P1-D-11), exposed read-only so a
+  /// caller that already holds the repository — e.g. the "Xuất file" row,
+  /// per 05-06-PLAN.md's own read_first note — can reuse it instead of
+  /// resolving it a second time through `path_provider`.
+  Directory get documentsDirectory => _dir;
+
   static const _fileName = 'appdata.json';
   static const _tmpName = 'appdata.json.tmp';
   static const _backupName = 'appdata.backup.json';
