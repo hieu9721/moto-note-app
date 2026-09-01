@@ -31,10 +31,20 @@
 // time. Everything the screen *renders* is unchanged by this conversion —
 // only the base class and the addition of `_consumeSheetParam` below are
 // new.
+//
+// 05-07 (P5-D-25/P5-D-26/BKP-15): hangs a THIRD one-shot effect off the
+// same hook — the Drive-backup offer, reusing home's first-render-after-
+// onboarding moment rather than adding an onboarding step (the standing
+// refusal to edit `onboarding_flow.dart`, P4-D-05/P4-D-11). `04-REVIEW.md`'s
+// WR-01 already flags two independent one-shot effects on this hook that
+// could open two modals at once; a third makes the case for consolidating
+// them stronger, but that refactor belongs in `.planning/BACKLOG.md` under
+// D-34 (filed by this plan), not in this plan itself.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../backup/google_auth.dart';
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
 import '../../domain/notification_plan.dart';
@@ -78,6 +88,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // `ref.watch`.
   bool _permissionPromptShown = false;
 
+  // In-memory one-shot guard for [_maybeShowDriveBackupPrompt] — the
+  // persisted `Settings.driveBackupPromptShown` flag is what actually stops
+  // the offer from ever asking twice across restarts (P5-D-26); this field
+  // only stops a rebuild of THIS screen instance from re-entering the sheet
+  // before that persisted write has propagated back through `ref.watch`,
+  // mirroring [_permissionPromptShown]'s role above.
+  bool _driveBackupPromptShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -86,6 +104,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // 04-03: a second one-shot effect on the same lifecycle hook 04-01
       // reserved for it, rather than converting this class a second time.
       _maybeShowNotificationPermissionPrompt();
+      // 05-07: a third one-shot effect on the same hook — BKP-15's
+      // Drive-backup offer. Called unawaited, same as the line above; its
+      // own gate reads [_permissionPromptShown] to avoid stacking two
+      // modals on the same frame (see the method's doc comment).
+      _maybeShowDriveBackupPrompt();
     });
   }
 
@@ -196,6 +219,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           .read(notificationSchedulerProvider)
           .requestNotificationsPermission();
     }
+  }
+
+  /// P5-D-25/P5-D-26 (BKP-15): the Drive-backup offer, at most once per app
+  /// install — gated on the persisted `Settings.driveBackupPromptShown`
+  /// flag, the identical shape [_maybeShowNotificationPermissionPrompt]
+  /// uses above. Reuses home's first-render-after-onboarding moment rather
+  /// than adding an onboarding step (P4-D-05/P4-D-11's standing refusal to
+  /// edit `onboarding_flow.dart`).
+  Future<void> _maybeShowDriveBackupPrompt() async {
+    // Guards `context` below against the async gap between this frame
+    // being scheduled and this callback running (CLAUDE.md's
+    // context-after-await trap; same guard the two effects above use).
+    if (!context.mounted) return;
+    if (_driveBackupPromptShown) return;
+    // The build-time defensive early return covers the render path; this
+    // callback runs outside `build`, so it needs its own guard against an
+    // empty vehicle list — the offer only makes sense once the user has
+    // something worth protecting.
+    final data = ref.read(appProvider);
+    if (data.vehicles.isEmpty) return;
+    if (data.settings.driveBackupPromptShown) return;
+    if (data.settings.driveBackupEnabled) return;
+    // Keep the two prompts from stacking on the same frame: when the
+    // notification-permission prompt above is about to show for the first
+    // time, it sets [_permissionPromptShown] synchronously, before its own
+    // first `await` — and because both calls in `initState`'s callback run
+    // synchronously up to their first suspension point, that flag already
+    // reflects the outcome by the time this method runs. If it is already
+    // set, the notification dialog is opening (or already open) this same
+    // frame, so this offer waits for a later app open instead of piling a
+    // second modal on top of it.
+    if (_permissionPromptShown) return;
+
+    // Set BEFORE opening the sheet — mirrors the two effects above: an
+    // await here would otherwise leave a re-entrancy hole for the callback
+    // to fire again before the sheet returns.
+    _driveBackupPromptShown = true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (ctx) => const _DriveBackupPromptSheet(),
+    );
   }
 
   @override
@@ -377,6 +444,181 @@ class DeadNotificationBanner extends StatelessWidget {
     );
   }
 }
+
+/// BKP-15's offer, opened by [_HomeScreenState._maybeShowDriveBackupPrompt].
+/// A modal sheet, not a dialog and not a screen — D-33's cap is untouched,
+/// the same call `battery_hint_sheet.dart` and `restore_sheet.dart` both
+/// make, for the same reason P4-D-09/P5-D-01 give: accepting waits on the
+/// network for sign-in, which a dialog is the wrong container for.
+///
+/// Both exit paths (accept, decline) write `driveBackupPromptShown: true`
+/// and dismiss — the flag records "we asked", not "they said yes", the
+/// identical rule [_HomeScreenState._maybeShowNotificationPermissionPrompt]
+/// follows for its own persisted flag. A cancelled interactive sign-in is
+/// the one path that changes nothing and leaves the sheet open: it is not a
+/// decline, and spending the one-shot on it would deny the user the offer
+/// they were in the middle of accepting.
+class _DriveBackupPromptSheet extends ConsumerStatefulWidget {
+  const _DriveBackupPromptSheet();
+
+  @override
+  ConsumerState<_DriveBackupPromptSheet> createState() =>
+      _DriveBackupPromptSheetState();
+}
+
+class _DriveBackupPromptSheetState
+    extends ConsumerState<_DriveBackupPromptSheet> {
+  // Copies `restore_sheet.dart`'s `_working`/inline-error shape — the
+  // closest existing precedent in this codebase for a sheet whose primary
+  // action waits on a real network round trip (sign-in) rather than
+  // resolving instantly.
+  bool _working = false;
+  String? _error;
+
+  Future<void> _accept() async {
+    setState(() {
+      _working = true;
+      _error = null;
+    });
+    try {
+      final result = await ref
+          .read(googleAuthServiceProvider)
+          .signInAndAuthorize();
+      // CLAUDE.md trap: BuildContext/State used after an await.
+      if (!mounted) return;
+      if (result == null) {
+        // A cancelled interactive sign-in is not a decline — leave the
+        // sheet open and change nothing, so the user can try again.
+        setState(() => _working = false);
+        return;
+      }
+      // One updateSettings call sets all three fields together — no
+      // intermediate state exists where the app believes backup is on
+      // with no account, or where the prompt is spent but backup is not
+      // actually enabled.
+      await ref
+          .read(appProvider.notifier)
+          .updateSettings(
+            (s) => s.copyWith(
+              driveBackupEnabled: true,
+              googleEmail: result.email,
+              driveBackupPromptShown: true,
+            ),
+          );
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _working = false;
+        _error = _driveBackupGenericFailureMessage;
+      });
+    }
+  }
+
+  Future<void> _decline() async {
+    await ref
+        .read(appProvider.notifier)
+        .updateSettings((s) => s.copyWith(driveBackupPromptShown: true));
+    if (!mounted) return;
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // [NEW, PROVISIONAL] — sheet title, not sourced verbatim anywhere.
+          Text(
+            _driveBackupPromptTitle,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // [NEW, PROVISIONAL] — the offer, framed as protection against
+          // losing the phone. Deliberately does not say the app "stores"
+          // anything — it never does (D-15/D-16); the data goes straight
+          // to the user's own Drive.
+          Text(
+            _driveBackupPromptOfferLine,
+            style: TextStyle(fontSize: 16, color: colorScheme.onSurface),
+          ),
+          const SizedBox(height: 8),
+          // §7.1, byte-for-byte — the single most likely reason to decline
+          // is not knowing what access is being granted, and this is the
+          // sentence that answers it. Do not reword, retranslate, reflow
+          // or shorten; enforced by the drive.appdata scope (D-22), not
+          // merely asserted here.
+          Text(
+            'App chỉ thấy đúng file của nó.',
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 8),
+          // [NEW, PROVISIONAL] — states plainly that declining is not
+          // final, so the choice does not feel like a one-way door.
+          Text(
+            _driveBackupPromptLaterLine,
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 16),
+          if (_error != null) ...[
+            Text(_error!, style: TextStyle(color: colorScheme.error)),
+            const SizedBox(height: 16),
+          ],
+          Row(
+            children: [
+              // A plain, neutral refusal — never framed as a loss (no
+              // "skip and risk losing your data", no guilt). D-18 and
+              // prohibition P-05-06 both live here: a user who never signs
+              // into Google is a first-class user of this app, not one who
+              // failed to finish setup. Reuses the identical "Để sau"
+              // label [_HomeScreenState._maybeShowNotificationPermissionPrompt]
+              // already established for a neutral decline in this codebase.
+              TextButton(
+                onPressed: _working ? null : _decline,
+                child: const Text('Để sau'),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: _working ? null : _accept,
+                child: _working
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text(_driveBackupAcceptLabel),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Invented Vietnamese strings for this sheet — [NEW, PROVISIONAL], recorded
+// verbatim in 05-07-SUMMARY.md per this plan's own <output> requirement.
+// The "Để sau" decline label is NOT invented here — it reuses
+// `_maybeShowNotificationPermissionPrompt`'s existing decline label
+// verbatim, the established neutral-refusal idiom in this codebase.
+const _driveBackupPromptTitle = 'Sao lưu lên Google Drive?';
+const _driveBackupPromptOfferLine =
+    'Nếu mất máy, dữ liệu bảo dưỡng của bạn vẫn còn nguyên trên Google Drive '
+    'của chính bạn.';
+const _driveBackupPromptLaterLine =
+    'Bạn có thể bật việc này bất cứ lúc nào trong Cài đặt.';
+const _driveBackupAcceptLabel = 'Bật sao lưu';
+const _driveBackupGenericFailureMessage =
+    'Không thể kết nối tới Google Drive. Vui lòng thử lại.';
 
 /// `{name} · {plate} · {km} km · cập nhật {N} ngày` — §11.1's own example:
 /// "Vision · 29A1-234.56 · ~18.665 km · cập nhật 10 ngày".

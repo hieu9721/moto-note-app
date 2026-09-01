@@ -59,6 +59,13 @@ abstract class Settings with _$Settings {
     bool notificationPermissionAsked, // one-shot ask flag (P4-D-05)
     @Default(false)
     bool exactAlarmsEnabled, // user's exact-timing opt-in (P4-D-07)
+    // 05-07 (P5-D-25/P5-D-26): gates the one-time Drive-backup offer shown on
+    // home's first render after onboarding. [NEW, PROVISIONAL] — the app has
+    // never released, so renaming this before 1.0 costs nothing; D-21 makes
+    // it a migration concern the moment it does. Persisted deliberately: an
+    // in-memory flag would let the prompt re-ask on every cold start, which
+    // is the nag prohibition this field exists to prevent.
+    @Default(false) bool driveBackupPromptShown,
   }) = _Settings;
 
   factory Settings.fromJson(Map<String, dynamic> json) =>
