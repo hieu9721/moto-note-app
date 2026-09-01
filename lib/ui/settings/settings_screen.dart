@@ -32,6 +32,17 @@ import '../notifications/battery_hint_sheet.dart';
 /// directly.
 const _leadDaysOptions = [1, 3, 5, 7, 10, 14, 21, 30];
 
+// [NEW, PROVISIONAL] — the same fixed-message-on-catch-all shape
+// `_RestoreSheetBodyState._signIn`'s `_genericFailureMessage` already uses,
+// applied to the two Google auth call sites in this file that previously had
+// no try/catch at all (CR-02, 05-VERIFICATION.md gap #2). Neither string
+// interpolates the caught object — the raw exception must never reach a
+// user-facing SnackBar (P5-D-16).
+const _googleSignInFailureMessage =
+    'Không thể kết nối tới Google. Vui lòng thử lại.';
+const _googleSignOutFailureMessage =
+    'Không thể đăng xuất khỏi Google. Vui lòng thử lại.';
+
 /// Live OS check backing the exact-alarm row's displayed state — never the
 /// stored flag alone, since the user can revoke the permission from system
 /// settings at any time without the app hearing about it (T-04-13).
@@ -201,19 +212,35 @@ class SettingsScreen extends ConsumerWidget {
                     final signedIn =
                         ref.read(_backupAccountProvider).value != null;
                     if (!signedIn) {
-                      final result = await ref
-                          .read(googleAuthServiceProvider)
-                          .signInAndAuthorize();
-                      if (!context.mounted) return;
-                      if (result == null) return; // cancelled — write nothing
-                      await notifier.updateSettings(
-                        (s) => s.copyWith(
-                          driveBackupEnabled: true,
-                          googleEmail: result.email,
-                        ),
-                      );
-                      if (!context.mounted) return;
-                      ref.invalidate(_backupAccountProvider);
+                      try {
+                        final result = await ref
+                            .read(googleAuthServiceProvider)
+                            .signInAndAuthorize();
+                        if (!context.mounted) return;
+                        if (result == null) {
+                          return; // cancelled — write nothing
+                        }
+                        await notifier.updateSettings(
+                          (s) => s.copyWith(
+                            driveBackupEnabled: true,
+                            googleEmail: result.email,
+                          ),
+                        );
+                        if (!context.mounted) return;
+                        ref.invalidate(_backupAccountProvider);
+                      } catch (_) {
+                        // CR-02: a config/SHA-1 mismatch must not strand the
+                        // switch mid-flight. Nothing is written on this path
+                        // — driveBackupEnabled stays false, so the switch
+                        // renders itself back to off from appProvider with
+                        // no manual state fiddling here.
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(_googleSignInFailureMessage),
+                          ),
+                        );
+                      }
                       return;
                     }
                     await notifier.updateSettings(
@@ -261,9 +288,8 @@ class SettingsScreen extends ConsumerWidget {
                         (s) => s.copyWith(lastBackupError: message),
                       );
                       if (!context.mounted) return;
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text(message)));
+                      ScaffoldMessenger.of(context)
+                          .showSnackBar(SnackBar(content: Text(message)));
                     }
                     // outcome.code == null && !succeeded: the user
                     // cancelled the interactive sign-in, or a run was
@@ -613,7 +639,19 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
       final confirmed = await _confirmGoogleSignOut(context);
       if (!mounted) return;
       if (confirmed != true) return;
-      await ref.read(googleAuthServiceProvider).signOut();
+      try {
+        await ref.read(googleAuthServiceProvider).signOut();
+      } catch (_) {
+        // CR-02: a failed signOut() must leave googleEmail and
+        // driveBackupEnabled EXACTLY as they were — the updateSettings
+        // call below that clears them must NOT run, or the app would
+        // claim signed-out while the platform still holds the account.
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(_googleSignOutFailureMessage)),
+        );
+        return;
+      }
       if (!mounted) return;
       // One updateSettings call clearing googleEmail and disabling
       // driveBackupEnabled together — no intermediate state exists where
@@ -633,16 +671,23 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
       ref.invalidate(_backupAccountProvider);
       return;
     }
-    final result = await ref
-        .read(googleAuthServiceProvider)
-        .signInAndAuthorize();
-    if (!mounted) return;
-    if (result == null) return; // user cancelled — nothing to persist.
-    await ref
-        .read(appProvider.notifier)
-        .updateSettings((s) => s.copyWith(googleEmail: result.email));
-    if (!mounted) return;
-    ref.invalidate(_backupAccountProvider);
+    try {
+      final result = await ref
+          .read(googleAuthServiceProvider)
+          .signInAndAuthorize();
+      if (!mounted) return;
+      if (result == null) return; // user cancelled — nothing to persist.
+      await ref
+          .read(appProvider.notifier)
+          .updateSettings((s) => s.copyWith(googleEmail: result.email));
+      if (!mounted) return;
+      ref.invalidate(_backupAccountProvider);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(_googleSignInFailureMessage)),
+      );
+    }
   }
 
   @override

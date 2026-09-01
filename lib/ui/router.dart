@@ -77,8 +77,14 @@ GoRouter buildRouter({
       }
       final hasVehicle = container.read(appProvider).vehicles.isNotEmpty;
       final atOnboarding = state.matchedLocation == '/onboarding';
+      final atDataIssue = state.matchedLocation == '/data-issue';
       if (!hasVehicle && !atOnboarding) return '/onboarding';
-      if (hasVehicle && atOnboarding) return '/';
+      // P5-D-02: this is the line that lets a restore committed from
+      // `/data-issue` reach `Trang chủ` in the same session — without the
+      // `atDataIssue` disjunct, a healthy outcome with at least one vehicle
+      // falls through every branch above and the redirect returns `null`,
+      // leaving the user parked on `/data-issue` after a successful restore.
+      if (hasVehicle && (atOnboarding || atDataIssue)) return '/';
       return null;
     },
     routes: [
@@ -155,15 +161,28 @@ GoRouter buildRouter({
 /// `refreshListenable` contract, so the redirect above re-runs the instant
 /// `appProvider` changes (e.g. the moment onboarding commits a vehicle).
 class _AppRefreshNotifier extends ChangeNotifier {
+  // Two subscriptions, not one. `AppNotifier.restoreFrom` calls `_mutate`
+  // (which notifies `appProvider`) BEFORE it calls
+  // `hydrateOutcomeProvider.notifier.setOutcome(...)` — so the `appProvider`
+  // notification that `_mutate` produces arrives while the outcome is still
+  // `undecodable`, and the redirect it triggers is a no-op. Without this
+  // second subscription to `hydrateOutcomeProvider`, nothing ever re-runs
+  // the redirect once the outcome itself flips to `loaded` (CR-01, gap #1
+  // in 05-VERIFICATION.md).
   _AppRefreshNotifier(ProviderContainer container) {
-    _sub = container.listen(appProvider, (_, _) => notifyListeners());
+    _appSub = container.listen(appProvider, (_, _) => notifyListeners());
+    _outcomeSub = container.listen(hydrateOutcomeProvider, (_, _) {
+      notifyListeners();
+    });
   }
 
-  late final ProviderSubscription<dynamic> _sub;
+  late final ProviderSubscription<dynamic> _appSub;
+  late final ProviderSubscription<dynamic> _outcomeSub;
 
   @override
   void dispose() {
-    _sub.close();
+    _appSub.close();
+    _outcomeSub.close();
     super.dispose();
   }
 }
