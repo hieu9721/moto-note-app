@@ -1,14 +1,16 @@
 // lib/backup/backup_service.dart — the backup seam `_mutate` calls on every
-// mutation (P1-D-05). This plan (05-01) adds the one manual path: "Sao lưu
-// ngay" in Settings, wired through `runManual()`. `scheduleDebounced()`
-// stays deliberately inert here — 05-02 owns the debounce timer, the >24h
-// cold-start trigger, the paused-lifecycle flush, and the P5-D-19
-// suppression that makes writing the backup result safe to call from
-// inside `_mutate` without an unbounded reschedule loop.
-import 'dart:async' show TimeoutException;
+// mutation (P1-D-05). 05-01 built the one manual path: "Sao lưu ngay" in
+// Settings, wired through `runManual()`. This plan (05-02) fills in
+// `scheduleDebounced()` for real, adds the three §7.5 automatic triggers
+// (the debounce `Timer`, the `AppLifecycleState.paused` flush, and the
+// cold-start >24h rule fired from `main.dart`) and the P5-D-19 one-shot
+// suppression that makes writing the backup result safe to call from inside
+// `_mutate` without an unbounded reschedule loop (P5-D-17).
+import 'dart:async' show TimeoutException, Timer, unawaited;
 import 'dart:io' show SocketException;
 
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
+import 'package:flutter/widgets.dart' show WidgetsBinding, WidgetsBindingObserver, AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/app_state.dart' show appProvider;
@@ -24,10 +26,22 @@ import 'google_auth.dart';
 abstract class BackupService {
   void scheduleDebounced();
 
-  /// The one path this plan builds — a user-triggered upload from Settings'
-  /// "Sao lưu ngay" (BKP-07). `runSilent()` for the three automatic
-  /// triggers is 05-02's job and does not exist yet.
+  /// The one path 05-01 built — a user-triggered upload from Settings'
+  /// "Sao lưu ngay" (BKP-07).
   Future<BackupOutcome> runManual();
+
+  /// The silent path behind all three §7.5 automatic triggers (cold-start
+  /// >24h, the debounce, the `paused` flush) — BKP-04/BKP-06. Structurally
+  /// incapable of showing a dialog: it never reaches the interactive
+  /// sign-in entry point.
+  Future<void> runSilent();
+
+  /// The P5-D-19 one-shot: consumed by the very next `scheduleDebounced()`
+  /// call so that writing this cycle's own result (which itself routes
+  /// through `_mutate`, whose unconditional post-persist call is
+  /// `scheduleDebounced()`) cannot start an unbounded
+  /// record-upload-record loop.
+  void pauseNextAutomaticBackup();
 }
 
 /// The closed set P5-D-16 requires — only a value from this enum, mapped to
@@ -71,24 +85,138 @@ class NoopBackupService implements BackupService {
   @override
   Future<BackupOutcome> runManual() async =>
       const BackupOutcome(succeeded: false, at: null, code: null);
+
+  @override
+  Future<void> runSilent() async {}
+
+  @override
+  void pauseNextAutomaticBackup() {}
 }
 
-class RealBackupService implements BackupService {
-  RealBackupService(this._ref);
+class RealBackupService with WidgetsBindingObserver implements BackupService {
+  RealBackupService(this._ref) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   final Ref _ref;
 
   /// Non-reentrancy guard (RESEARCH Pitfall 6). Without it, two overlapping
   /// runs would each evaluate `DriveService`'s create-or-update decision
-  /// against the same missing file and create two remote files.
+  /// against the same missing file and create two remote files. Shared by
+  /// `runManual()` and `runSilent()` — only one Drive upload cycle may be
+  /// in flight at a time regardless of which trigger started it.
   bool _inFlight = false;
 
-  /// Deliberately inert in this plan — see the file header. `_mutate`
-  /// calls this unconditionally after every write (P1-D-05); wiring a real
-  /// timer here before 05-02's suppression exists would make the
-  /// result-write below re-trigger itself in an unbounded loop.
+  /// §7.5's 30-second debounce timer, owned by this service rather than by
+  /// `app_state.dart` (P5-D-17) — `_LifecycleRescheduler` in `main.dart`
+  /// registers its own observer too late to catch a cold start, which is
+  /// exactly why this class needs its own `WidgetsBindingObserver` instead
+  /// of reusing that one.
+  Timer? _debounce;
+
+  /// The P5-D-19 one-shot consumed by the very next `scheduleDebounced()`
+  /// call. An in-memory field, deliberately not a `Settings` field — it
+  /// only has to survive until the next mutation in this same process
+  /// (RESEARCH Pitfall 11).
+  bool _suppressNextSchedule = false;
+
   @override
-  void scheduleDebounced() {}
+  void pauseNextAutomaticBackup() => _suppressNextSchedule = true;
+
+  @override
+  void scheduleDebounced() {
+    if (_suppressNextSchedule) {
+      // The one-shot fires exactly once: this cycle's own result write
+      // (`pauseNextAutomaticBackup()` immediately before
+      // `recordBackupResult`) must not schedule another upload of the
+      // document it just finished uploading.
+      _suppressNextSchedule = false;
+      return;
+    }
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(seconds: 30), () {
+      _debounce = null;
+      unawaited(runSilent());
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.paused) return;
+    if (_debounce == null) return;
+    // A flush, not an extra run (P5-D-17): Android can freeze the process
+    // the instant it backgrounds, so a pending 30-second timer commonly
+    // never fires at all. Cancel the pending cycle and run immediately
+    // instead of waiting on it.
+    _debounce!.cancel();
+    _debounce = null;
+    unawaited(runSilent());
+  }
+
+  /// Removes this service's lifecycle observer. `main.dart` owns a single
+  /// long-lived `RealBackupService` for the app's process lifetime, so
+  /// nothing calls this today — provided for symmetry with the
+  /// registration above and for any future test harness that constructs
+  /// and tears down a service per test.
+  void dispose() => WidgetsBinding.instance.removeObserver(this);
+
+  /// BKP-04/BKP-06's silent path — the reason D-23 exists. Every early
+  /// return below happens before anything user-visible could occur.
+  @override
+  Future<void> runSilent() async {
+    // BKP-12/D-18: nothing in this method may run for a user who has not
+    // opted in — no network, no auth attempt, nothing.
+    if (!_ref.read(appProvider).settings.driveBackupEnabled) return;
+    if (_inFlight) return; // already running — this cycle has nothing to do
+    _inFlight = true;
+    try {
+      final authService = _ref.read(googleAuthServiceProvider);
+      // Silent ONLY — this method never reaches the interactive sign-in
+      // entry point that `runManual()` legitimately uses below. That is
+      // what makes this path structurally incapable of showing a dialog,
+      // not merely careful not to (T-05-03).
+      final result = await authService.silentAuthorization();
+      if (result == null) {
+        // BKP-04's exact case: no cached/authorized account. Never a
+        // dialog, never a toast — just the mapped Settings line.
+        await _recordResult(
+          const BackupOutcome(succeeded: false, at: null, code: BackupErrorCode.needsReauth),
+        );
+        return;
+      }
+      // Bridge to an authenticated client and build a FRESH DriveService
+      // every cycle — never cache the client or the service across calls.
+      // The bridged credentials carry an arbitrary far-future expiry and no
+      // refresh token, so re-deriving the authorization each cycle IS the
+      // refresh mechanism (RESEARCH Pitfall 4), not a missed optimisation.
+      final client = result.authorization.authClient(scopes: kDriveScopes);
+      final driveService = DriveService(client);
+      await driveService.upload(_ref.read(appProvider));
+      await _recordResult(
+        BackupOutcome(succeeded: true, at: DateTime.now().toUtc(), code: null),
+      );
+    } catch (e) {
+      _log('runSilent failed: $e');
+      await _recordResult(
+        BackupOutcome(succeeded: false, at: null, code: _classifyError(e)),
+      );
+    } finally {
+      _inFlight = false;
+    }
+  }
+
+  /// The one call site every result write goes through (both success and
+  /// failure). `pauseNextAutomaticBackup()` runs immediately before
+  /// `recordBackupResult`, which itself routes through `_mutate` — whose
+  /// unconditional post-persist call is `scheduleDebounced()` (P1-D-05).
+  /// Without the pause, recording a result would schedule another upload,
+  /// which would record another result, without bound (P5-D-19). This
+  /// reasoning is invisible from either side alone, which is why it is
+  /// written here rather than only at `scheduleDebounced()`'s check above.
+  Future<void> _recordResult(BackupOutcome outcome) async {
+    pauseNextAutomaticBackup();
+    await _ref.read(appProvider.notifier).recordBackupResult(outcome);
+  }
 
   @override
   Future<BackupOutcome> runManual() async {

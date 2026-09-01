@@ -31,7 +31,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'backup/backup_service.dart';
 import 'data/app_data_repository.dart';
+import 'domain/backup_timing.dart';
 import 'domain/notification_plan.dart';
 import 'notifications/notification_service.dart';
 import 'state/app_state.dart';
@@ -55,6 +57,20 @@ Future<void> main() async {
   );
 
   final outcome = await container.read(appProvider.notifier).hydrate();
+
+  // BKP-06's >24h cold-start trigger (P5-D-17). Runs synchronously here,
+  // never from a `WidgetsBindingObserver.didChangeAppLifecycleState` —
+  // Phase 4's own on-device UAT recorded `_LifecycleRescheduler` registering
+  // its observer AFTER the app is already resumed, so a cold start never
+  // reaches it, and a cold start is exactly when this rule has to fire.
+  // Deliberately NOT awaited (D-19: no screen waits on the network, and
+  // this runs before the first frame) — `runSilent()` itself is silent by
+  // construction (D-23), so nothing here can show anything.
+  final coldStartSettings = container.read(appProvider).settings;
+  if (coldStartSettings.driveBackupEnabled &&
+      isBackupDue(coldStartSettings.lastBackupAt)) {
+    unawaited(container.read(backupServiceProvider).runSilent());
+  }
 
   // Defensive, cheap insurance for later phases (Settings' notification-hour
   // display, a future month-name string) — synchronous under the hood

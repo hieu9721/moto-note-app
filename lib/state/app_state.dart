@@ -1,7 +1,17 @@
 // lib/state/app_state.dart — the single mutation funnel (§5.2), rewritten
-// per P1-D-05/P1-D-06/P1-D-07/P1-D-10 (plan 01-05). Every state change in
+// per P1-D-05/P1-D-06/P1-D-07/P1-D-10 (plan 01-05). Every state CHANGE in
 // MotoNote passes through `_mutate`; no other member of `AppNotifier` may
-// assign `state` (DATA-06).
+// MUTATE `state` (DATA-06).
+//
+// P5-D-27 (05-02): one named exception. `hydrate()`'s no-write branch
+// ADOPTS a freshly-loaded document into `state` through the private
+// `_adopt` below — nothing is persisted, `updatedAt` is not bumped, no
+// reschedule and no backup are owed, because nothing changed. This is not a
+// second writer of `state`: `build()` already establishes that the initial
+// value of `state` does not come from `_mutate` either, so adoption was
+// always narrower than "every assignment goes through `_mutate`" literally
+// read. The distinction that matters is MUTATE vs ADOPT, not "assign" vs
+// "don't assign" — see `_mutate`'s doc comment point 4 below for why.
 import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
@@ -89,9 +99,18 @@ class AppNotifier extends Notifier<AppData> {
         final label = data.deviceLabel.isEmpty
             ? await _readDeviceLabel()
             : null;
-        await _mutate(
-          (_) => label == null ? data : data.copyWith(deviceLabel: label),
-        );
+        if (label == null) {
+          // P5-D-27/P5-D-15: nothing to write — adopt, don't mutate. Every
+          // app open used to reach `_mutate` unconditionally here, bumping
+          // `updatedAt` and scheduling a silent ~200 KB upload 30 seconds
+          // later on every cold start, regardless of whether anything
+          // actually changed (RESEARCH Pitfall 9). `updatedAt` now means
+          // "when the user last changed something", which is what 05-03's
+          // "⚠ Bản trên Drive CŨ HƠN" comparison needs it to mean.
+          _adopt(data);
+        } else {
+          await _mutate((_) => data.copyWith(deviceLabel: label));
+        }
         return HydrateOutcome.loaded;
 
       case AppDataNotFound():
@@ -124,6 +143,16 @@ class AppNotifier extends Notifier<AppData> {
     }
   }
 
+  /// P5-D-27: the hydration adoption exception's private, single-purpose
+  /// step — the ONLY member of [AppNotifier] other than [_mutate] permitted
+  /// to assign `state`, and permitted only because it does not constitute a
+  /// mutation: no persist, no `updatedAt` bump, no reschedule, no backup.
+  /// `hydrate()` is the sole caller. Do not reuse this for any future
+  /// no-write case that skips a REAL change — [_mutate]'s "not
+  /// short-circuiting" property (P1-D-06 point 5) still governs every path
+  /// where something might have changed.
+  void _adopt(AppData data) => state = data;
+
   /// P1-D-10: reads the device model (e.g. "Redmi Note 12") to seed
   /// `deviceLabel` when it is empty. Guarded by platform and wrapped in
   /// try/catch — an unlabelled backup is a nuisance, a blocked launch is a
@@ -154,9 +183,17 @@ class AppNotifier extends Notifier<AppData> {
   ///    failure (G-01-W3). The notification reschedule and the debounced
   ///    backup are each run behind their own [runReportingFailure] boundary
   ///    and are still called every time.
-  /// 4. Sole writer — this is the only member of [AppNotifier] that assigns
-  ///    `state`. Every future operation (`addOdoReading`, `addServiceLog`,
-  ///    ...) goes through this method; none of them exist yet (Phases 2/3).
+  /// 4. Sole mutator — this is the only member of [AppNotifier] that
+  ///    MUTATES `state`. Every operation that commits a real change
+  ///    (`addOdoReading`, `addServiceLog`, `recordBackupResult`, ...) goes
+  ///    through this method. **P5-D-27 (05-02), one named exception:**
+  ///    [_adopt] also assigns `state`, but only in `hydrate()`'s no-write
+  ///    branch, where the freshly-loaded document is being ADOPTED, not
+  ///    mutated — nothing changed, so nothing is persisted, `updatedAt` is
+  ///    not bumped, and no reschedule/backup is owed. The distinction that
+  ///    matters is mutate vs adopt, not "assigns `state`" read literally —
+  ///    [build] already assigns the very first `state` outside this method
+  ///    too, so the exception is narrower than it first reads.
   /// 5. Not short-circuiting — an identity function still bumps `updatedAt`
   ///    and still writes. Whether anything "really" changed is not this
   ///    method's decision to make.
@@ -494,6 +531,34 @@ class AppNotifier extends Notifier<AppData> {
         ),
       ),
     );
+  }
+
+  /// BKP-06/BKP-07: the only writer of either `lastBackupAt` or
+  /// `lastBackupError` — [RealBackupService.runSilent]'s `_recordResult`
+  /// and the manual "Sao lưu ngay" row both call this, never `Settings`
+  /// fields directly. On success, `lastBackupAt` moves to the outcome's
+  /// timestamp and `lastBackupError` clears; on failure, `lastBackupError`
+  /// is set to the mapped Vietnamese string from [kBackupErrorMessages]
+  /// and `lastBackupAt` is left EXACTLY where it was — a failed attempt
+  /// must never advance the timestamp, or the Settings line claims a
+  /// backup that did not happen (prohibition P-05-03). Goes through
+  /// `_mutate` like every other real change (DATA-06); the caller is
+  /// responsible for calling `pauseNextAutomaticBackup()` first so this
+  /// write's own post-persist debounce trigger does not start another cycle
+  /// (P5-D-19).
+  Future<void> recordBackupResult(BackupOutcome outcome) {
+    return _mutate((current) {
+      final settings = current.settings;
+      return current.copyWith(
+        settings: outcome.succeeded
+            ? settings.copyWith(lastBackupAt: outcome.at, lastBackupError: null)
+            : settings.copyWith(
+                lastBackupError: outcome.code == null
+                    ? settings.lastBackupError
+                    : kBackupErrorMessages[outcome.code]!,
+              ),
+      );
+    });
   }
 
   void _log(String message) {

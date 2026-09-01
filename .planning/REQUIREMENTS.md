@@ -110,10 +110,10 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **BKP-01**: A Google Cloud project exists with the Drive API enabled, a completed OAuth consent screen, an Android OAuth client carrying the SHA-1 of all three keys (debug keystore, release keystore and Play App Signing) and a Web client ID supplying `serverClientId`. *(Appendix B; §15 R6 — a missing SHA-1 makes sign-in fail silently)*
 - [x] **BKP-02**: The app requests only the `https://www.googleapis.com/auth/drive.appdata` scope. *(§7.2)*
 - [x] **BKP-03**: `GoogleAuthService` follows the google_sign_in v7 flow — `initialize()`, then `authenticate()`, then `authorizationClient.authorizeScopes()` — is reachable only from a user action, and returns null rather than throwing when the user cancels. *(§7.3)*
-- [ ] **BKP-04**: Automatic backup uses `silentToken()` only; a null token records the error "Cần đăng nhập lại Google" and never opens a sign-in dialog mid-flow. *(§7.3, §7.5)*
+- [x] **BKP-04**: Automatic backup uses `silentToken()` only; a null token records the error "Cần đăng nhập lại Google" and never opens a sign-in dialog mid-flow. *(§7.3, §7.5)*
 - [x] **BKP-05**: `DriveService` creates or updates `motonote-backup.json` in `appDataFolder` with `appProperties = { vehicles, logs, schema }`, and `peek()` returns modifiedAt / sizeBytes / vehicleCount / logCount from metadata without downloading the file. *(§7.4)*
-- [ ] **BKP-06**: Automatic backup runs on app open when the last backup is older than 24 hours, 30 seconds after a service log or ODO entry (debounced), and when the app goes to background — showing no toast and no spinner. *(§7.5)*
-- [ ] **BKP-07**: Settings shows "Lần sao lưu cuối: 3 ngày trước · Có lỗi" from `lastBackupAt` / `lastBackupError`, plus a "Sao lưu ngay" button that reports its result clearly. *(§7.5)*
+- [x] **BKP-06**: Automatic backup runs on app open when the last backup is older than 24 hours, 30 seconds after a service log or ODO entry (debounced), and when the app goes to background — showing no toast and no spinner. *(§7.5)*
+- [x] **BKP-07**: Settings shows "Lần sao lưu cuối: 3 ngày trước · Có lỗi" from `lastBackupAt` / `lastBackupError`, plus a "Sao lưu ngay" button that reports its result clearly. *(§7.5)*
 - [ ] **BKP-08**: The onboarding restore path signs in, finds the backup, and shows a summary ("24/08 · 1 xe · 34 log · 187KB") with the warning "⚠ Ảnh hoá đơn không khôi phục được" and the choice [ Khôi phục ] / [ Bắt đầu mới ]. *(§6, §4.3)*
 - [ ] **BKP-09**: Restore replaces all data with no merge, running `migrateRaw` on the downloaded document; when the device already has data it is reachable only from Settings and shows the explicit comparison — "Khôi phục sẽ THAY THẾ dữ liệu hiện có trên máy.", device side versus Drive side, "⚠ Bản trên Drive CŨ HƠN" when applicable — with [ Huỷ ] / [ Vẫn khôi phục ]. *(§7.6)*
 - [ ] **BKP-10**: Before overwriting, the current state is written to `appdata.pre-restore.json` and a "Hoàn tác khôi phục" button remains available for 7 days. *(§7.6, §15 R4)*
@@ -248,10 +248,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | BKP-01 | Phase 5 | Pending |
 | BKP-02 | Phase 5 | Complete |
 | BKP-03 | Phase 5 | Complete |
-| BKP-04 | Phase 5 | Pending |
+| BKP-04 | Phase 5 | Complete |
 | BKP-05 | Phase 5 | Complete |
-| BKP-06 | Phase 5 | Pending |
-| BKP-07 | Phase 5 | Pending |
+| BKP-06 | Phase 5 | Complete |
+| BKP-07 | Phase 5 | Complete |
 | BKP-08 | Phase 5 | Pending |
 | BKP-09 | Phase 5 | Pending |
 | BKP-10 | Phase 5 | Pending |

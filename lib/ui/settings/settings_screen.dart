@@ -18,6 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../backup/backup_service.dart';
 import '../../backup/google_auth.dart';
+import '../../domain/backup_timing.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../notifications/battery_hint_sheet.dart';
@@ -165,12 +166,54 @@ class SettingsScreen extends ConsumerWidget {
               showComingSoonCaption: false,
               rows: [
                 const _GoogleAccountRow(),
-                // 05-02 owns the switch (the >24h/debounce/paused
-                // triggers); left disabled with its existing shape here.
-                const ListTile(
-                  title: Text('Tự động sao lưu'),
-                  trailing: Icon(Icons.toggle_off_outlined),
-                  enabled: false,
+                SwitchListTile(
+                  title: const Text('Tự động sao lưu'),
+                  value: settings.driveBackupEnabled,
+                  onChanged: (v) async {
+                    if (!v) {
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(driveBackupEnabled: false),
+                      );
+                      return;
+                    }
+                    // Turning ON while nobody is signed in must run the
+                    // interactive sign-in from this gesture handler first
+                    // and only enable the setting if it succeeds — an
+                    // enabled switch with no account would itself produce
+                    // the exact silent failure BKP-04 exists to make
+                    // visible. On cancellation, leave the switch off and
+                    // write nothing.
+                    final signedIn =
+                        ref.read(_backupAccountProvider).value != null;
+                    if (!signedIn) {
+                      final result = await ref
+                          .read(googleAuthServiceProvider)
+                          .signInAndAuthorize();
+                      if (!context.mounted) return;
+                      if (result == null) return; // cancelled — write nothing
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(
+                          driveBackupEnabled: true,
+                          googleEmail: result.email,
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      ref.invalidate(_backupAccountProvider);
+                      return;
+                    }
+                    await notifier.updateSettings(
+                      (s) => s.copyWith(driveBackupEnabled: true),
+                    );
+                  },
+                ),
+                // This one line is the entire visible surface of automatic
+                // backup (D-23) — everything else about an automatic
+                // backup is silent by requirement, and a future
+                // contributor reaching for a toast/spinner here should
+                // find the reason it is not there.
+                _BackupStatusRow(
+                  lastBackupAt: settings.lastBackupAt,
+                  lastBackupError: settings.lastBackupError,
                 ),
                 ListTile(
                   title: const Text('Sao lưu ngay'),
@@ -569,4 +612,49 @@ Future<bool?> _confirmGoogleSignOut(BuildContext context) {
       ],
     ),
   );
+}
+
+/// BKP-06/BKP-07's one honest line — the whole visible surface of automatic
+/// backup (D-23). Takes the relative-time string from [relativeVi], never
+/// an inline duration calculation here — the whole point of task 2's
+/// `lib/domain/backup_timing.dart` is that this line and the >24h rule can
+/// never disagree about what a day is. A plain widget rather than a
+/// `ConsumerWidget` — both fields it renders already come from
+/// `SettingsScreen`'s own `ref.watch(appProvider.select(...))`, so this
+/// widget needs no provider access of its own.
+class _BackupStatusRow extends StatelessWidget {
+  const _BackupStatusRow({
+    required this.lastBackupAt,
+    required this.lastBackupError,
+  });
+
+  final DateTime? lastBackupAt;
+  final String? lastBackupError;
+
+  @override
+  Widget build(BuildContext context) {
+    if (lastBackupAt == null && lastBackupError == null) {
+      // Never backed up, and no attempt has failed yet.
+      return const ListTile(title: Text('Chưa sao lưu lần nào'));
+      // [NEW, PROVISIONAL]
+    }
+    final at = lastBackupAt;
+    final prefix = at == null ? null : 'Lần sao lưu cuối: ${relativeVi(at)}';
+    if (lastBackupError == null) {
+      // lastBackupAt set, no error.
+      return ListTile(title: Text(prefix!));
+    }
+    if (prefix == null) {
+      // Never backed up, and the very first attempt already failed — the
+      // error half alone, without a relative time this case has none of.
+      return ListTile(title: Text(lastBackupError!));
+    }
+    // §7.5's verbatim composed head: "Lần sao lưu cuối: 3 ngày trước · Có
+    // lỗi", with the mapped error string as the subtitle so the user can
+    // see WHICH failure it was.
+    return ListTile(
+      title: Text('$prefix · Có lỗi'),
+      subtitle: Text(lastBackupError!),
+    );
+  }
 }
