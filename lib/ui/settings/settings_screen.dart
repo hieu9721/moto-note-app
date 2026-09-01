@@ -16,6 +16,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../backup/backup_service.dart';
+import '../../backup/google_auth.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../notifications/battery_hint_sheet.dart';
@@ -39,6 +41,14 @@ final _canScheduleExactProvider = FutureProvider.autoDispose<bool>(
 /// records that the app asked, not what the OS currently allows.
 final _notificationsEnabledProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(notificationSchedulerProvider).areNotificationsEnabled(),
+);
+
+/// Live-derived signed-in account address, never the stored `googleEmail`
+/// alone — the same "live OS state over stored intent" rule the
+/// exact-alarm row already follows (T-04-13/P4-D-08, BKP-14). Null means
+/// nobody is currently signed in.
+final _backupAccountProvider = FutureProvider.autoDispose<String?>(
+  (ref) => ref.watch(googleAuthServiceProvider).currentEmail(),
 );
 
 class SettingsScreen extends ConsumerWidget {
@@ -143,15 +153,61 @@ class SettingsScreen extends ConsumerWidget {
                 const _NotificationSoftPromptRow(),
               ],
             ),
-            const _SettingsGroup(
-              // Phase 5 (BKP-*) owns sign-in and the backup rows.
+            _SettingsGroup(
+              // Phase 5 (BKP-*) owns sign-in and the backup rows. Live as
+              // of 05-01 — the caption below would read as actively
+              // misleading under working rows (T-04-14).
               title: 'Sao lưu Drive',
+              showComingSoonCaption: false,
               rows: [
-                ListTile(title: Text('Đăng nhập Google'), enabled: false),
-                ListTile(
+                const _GoogleAccountRow(),
+                // 05-02 owns the switch (the >24h/debounce/paused
+                // triggers); left disabled with its existing shape here.
+                const ListTile(
                   title: Text('Tự động sao lưu'),
                   trailing: Icon(Icons.toggle_off_outlined),
                   enabled: false,
+                ),
+                ListTile(
+                  title: const Text('Sao lưu ngay'),
+                  onTap: () async {
+                    final outcome = await ref
+                        .read(backupServiceProvider)
+                        .runManual();
+                    if (!context.mounted) return;
+                    if (outcome.succeeded) {
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(
+                          lastBackupAt: outcome.at,
+                          lastBackupError: null,
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          // [NEW, PROVISIONAL]
+                          content: Text('Đã sao lưu thành công'),
+                        ),
+                      );
+                    } else if (outcome.code != null) {
+                      // BKP-07: the manual button reports its result
+                      // clearly — the deliberate opposite of the automatic
+                      // path's silence (D-23). Do not "fix" this into
+                      // silence.
+                      final message = kBackupErrorMessages[outcome.code]!;
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(lastBackupError: message),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(message)));
+                    }
+                    // outcome.code == null && !succeeded: the user
+                    // cancelled the interactive sign-in, or a run was
+                    // already in flight — neither is a failure, so nothing
+                    // is persisted and nothing is reported.
+                  },
                 ),
               ],
             ),
@@ -371,6 +427,71 @@ class _NotificationSoftPromptRowState
       subtitle: const Text('Bấm để bật lại trong cài đặt máy.'),
       onTap: () =>
           ref.read(notificationSchedulerProvider).openAppNotificationSettings(),
+    );
+  }
+}
+
+/// The "Đăng nhập Google" row (BKP-03/BKP-14) — a `ConsumerStatefulWidget`
+/// in `_ExactAlarmRow`'s exact shape (05-PATTERNS.md). It re-derives the
+/// live signed-in account through `currentEmail()` rather than trusting the
+/// stored `googleEmail` alone (T-04-13/P4-D-08), and re-checks on resume
+/// the same way `_ExactAlarmRow` does — the OS-level grant can be revoked
+/// outside the app at any time.
+class _GoogleAccountRow extends ConsumerStatefulWidget {
+  const _GoogleAccountRow();
+
+  @override
+  ConsumerState<_GoogleAccountRow> createState() => _GoogleAccountRowState();
+}
+
+class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(_backupAccountProvider);
+    }
+  }
+
+  Future<void> _onTap() async {
+    final signedIn = ref.read(_backupAccountProvider).value != null;
+    if (signedIn) {
+      // 05-01 task 3 adds the sign-out confirmation on this branch —
+      // deliberately a no-op here so task 2 lands with a self-contained,
+      // analyzable file.
+      return;
+    }
+    final result = await ref
+        .read(googleAuthServiceProvider)
+        .signInAndAuthorize();
+    if (!mounted) return;
+    if (result == null) return; // user cancelled — nothing to persist.
+    await ref
+        .read(appProvider.notifier)
+        .updateSettings((s) => s.copyWith(googleEmail: result.email));
+    if (!mounted) return;
+    ref.invalidate(_backupAccountProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = ref.watch(_backupAccountProvider).value;
+    return ListTile(
+      title: const Text('Đăng nhập Google'),
+      subtitle: Text(email ?? 'Chưa đăng nhập'), // [NEW, PROVISIONAL]
+      onTap: _onTap,
     );
   }
 }
