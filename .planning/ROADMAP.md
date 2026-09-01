@@ -206,7 +206,7 @@ Plans:
   4. Restoring over existing data shows the side-by-side comparison first (including "⚠ Bản trên Drive CŨ HƠN" when it applies), and "Hoàn tác khôi phục" puts the previous data back within 7 days.
   5. Every feature still works for a user who has never signed into Google, and "Xuất file" hands them their JSON.
 
-**Plans**: 7/10 plans executed across 8 waves — 3 gap-closure plans added 2026-09-01 after `/gsd-verify-work` returned `gaps_found` (8/11 must-haves)
+**Plans**: 8/10 plans executed across 8 waves — 3 gap-closure plans added 2026-09-01 after `/gsd-verify-work` returned `gaps_found` (8/11 must-haves)
 
 Plans:
 **Wave 1**
@@ -236,7 +236,7 @@ Plans:
 
 **Wave 7** *(gap closure — blocked on Wave 6; closes the two blockers in `05-VERIFICATION.md` `gaps[]`)*
 
-- [ ] 05-08-PLAN.md — Both blockers: the `/data-issue` restore escape hatch that never escaped (CR-01), and the two Google auth call sites that could throw into nothing (CR-02) (wave 7, gap closure)
+- [x] 05-08-PLAN.md — Both blockers: the `/data-issue` restore escape hatch that never escaped (CR-01), and the two Google auth call sites that could throw into nothing (CR-02) (wave 7, gap closure)
 
 **Wave 8** *(gap closure — blocked on Wave 7; 05-09 and 05-10 have no file overlap and run in parallel)*
 
@@ -273,7 +273,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
-| 5. Google Drive Backup & Restore | 7/7 | In Progress|  |
+| 5. Google Drive Backup & Restore | 8/10 | In Progress|  |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
 ---
