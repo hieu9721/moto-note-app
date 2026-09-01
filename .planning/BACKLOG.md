@@ -256,3 +256,37 @@ lines. Consider doing it in the same pass as BL-09, which is the other odometer-
 inconsistency between these same two sheets.
 
 **Natural moment to do it:** Phase 6 polish, alongside BL-09.
+
+---
+
+## From Phase 05 — Google Drive Backup & Restore
+
+### BL-11 — The undo's one-shot backup-pause is in-memory and does not survive a process death
+
+**Raised:** 2026-09-01, by `05-05-PLAN.md`'s own "Flagged assumptions" item 2, filed here per the
+plan's own `<output>` instruction rather than persisted into the document.
+
+P5-D-09 chose an in-memory, consumable one-shot flag (`RealBackupService._suppressNextSchedule`) over
+a `Settings` field for the reason RESEARCH Assumption A2 and Pitfall 11 both give: a `Settings` field
+would cost a `build_runner` run and a D-21 commitment to spell its meaning forever, for a fact that
+only has to survive until the very next mutation in the same process. The residual: if the user
+undoes a restore, kills the app, and cold-starts more than 24 hours later without making any other
+change, `main.dart`'s `>24h` automatic-backup rule uploads the just-undone document, and the Drive
+copy the user restored from is then overwritten and gone.
+
+**Why deferred:** the window is narrow (kill the app within the first 24 hours after an undo, and
+never touch the app again in that window) and the outcome it produces — Drive matching the device —
+is the normal steady state of this whole feature, not data loss. Persisting the flag was already
+weighed and declined by P5-D-09 itself; recording it here is what P5-D-09's own "record, do not hide"
+instruction requires, not a new finding.
+
+**What promoting it looks like:** if this residual is ever judged worth closing, the fix is NOT to
+persist the flag into `Settings` (that reopens the D-21/build_runner cost P5-D-09 declined). A
+cheaper alternative worth evaluating first: have the `>24h` rule in `main.dart` also check
+`preRestoreSnapshotModifiedAt()` and skip the automatic upload while a live pre-restore snapshot
+still exists — the snapshot itself already carries the fact that an undo window is open, with no new
+field.
+
+**Natural moment to do it:** if `04-UAT.md`-style end-of-phase or later real-world use ever surfaces
+this exact sequence (undo → kill within 24h → cold start past 24h → no other change) in practice,
+promote it then rather than pre-emptively building for a sequence that may never occur.
