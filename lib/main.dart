@@ -57,6 +57,11 @@ Future<void> main() async {
   );
 
   final outcome = await container.read(appProvider.notifier).hydrate();
+  // P5-D-04/RESEARCH Pitfall 8: seed the live-outcome provider immediately
+  // so the router (built further below) reads live state from its very
+  // first `redirect` invocation rather than a value closed over once at
+  // `buildRouter()` call time.
+  container.read(hydrateOutcomeProvider.notifier).setOutcome(outcome);
 
   // BKP-06's >24h cold-start trigger (P5-D-17). Runs synchronously here,
   // never from a `WidgetsBindingObserver.didChangeAppLifecycleState` —
@@ -104,7 +109,6 @@ Future<void> main() async {
 
   final router = buildRouter(
     container: container,
-    outcome: outcome,
     initialLocation: initialLocation,
   );
 

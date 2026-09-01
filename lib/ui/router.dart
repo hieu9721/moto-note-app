@@ -36,6 +36,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../state/app_state.dart';
+import 'backup/restore_sheet.dart';
 import 'home/home_screen.dart';
 import 'item/item_detail_screen.dart';
 import 'notes/note_editor_screen.dart';
@@ -45,7 +46,6 @@ import 'settings/settings_screen.dart';
 
 GoRouter buildRouter({
   required ProviderContainer container,
-  required HydrateOutcome outcome,
   // P4-D-03: cold start routes straight to the destination a notification
   // promised — main.dart resolves this from the launch payload before the
   // router is built, so the first frame is already correct with no flash of
@@ -61,6 +61,14 @@ GoRouter buildRouter({
       // into the same branch as `notFound` (P1-D-09) — all three leave
       // `AppData.vehicles` empty, so a vehicle-count-only check cannot tell
       // a quarantined document from a first run.
+      //
+      // P5-D-04/RESEARCH Pitfall 8: read the LIVE outcome from the provider
+      // on every invocation rather than a value closed over once at
+      // `buildRouter()` call time — a restore triggered from `/data-issue`
+      // updates this provider directly (`AppNotifier.restoreFrom`), and a
+      // stale closed-over value would route back to `/data-issue` forever
+      // even after the document is valid again.
+      final outcome = container.read(hydrateOutcomeProvider);
       final isDataIssue =
           outcome == HydrateOutcome.undecodable ||
           outcome == HydrateOutcome.schemaTooNew;
@@ -80,7 +88,7 @@ GoRouter buildRouter({
       ),
       GoRoute(
         path: '/data-issue',
-        builder: (context, state) => DataIssueScreen(outcome: outcome),
+        builder: (context, state) => const DataIssueScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => ScaffoldWithNavBar(shell: shell),
@@ -197,18 +205,23 @@ class ScaffoldWithNavBar extends StatelessWidget {
   }
 }
 
-/// D-33's amended 7+1 exception: a read-only screen for the two
-/// `HydrateOutcome`s that mean "a document exists but this build could not
-/// read it" — reachable only from the redirect above, never from any normal
-/// navigation flow. It takes no action and offers no button; Phase 5 owns
-/// restore (P1-D-09) and may give this screen its first action.
-class DataIssueScreen extends StatelessWidget {
-  const DataIssueScreen({super.key, required this.outcome});
-
-  final HydrateOutcome outcome;
+/// D-33's amended 7+1 exception: a screen for the two `HydrateOutcome`s
+/// that mean "a document exists but this build could not read it" —
+/// reachable only from the redirect above, never from any normal
+/// navigation flow. As of this plan (P5-D-02), the `undecodable` branch
+/// offers one action — the restore sheet — so a user whose document is
+/// corrupt has a route out. `schemaTooNew` stays read-only, with no
+/// button, exactly as Phase 3 left it.
+class DataIssueScreen extends ConsumerWidget {
+  const DataIssueScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // P5-D-04: reads the same live provider the redirect above reads, so a
+    // restore that resolves this screen's outcome to `loaded` is reflected
+    // here too on the one frame between the mutation committing and the
+    // redirect navigating away.
+    final outcome = ref.watch(hydrateOutcomeProvider);
     final message = switch (outcome) {
       HydrateOutcome.undecodable =>
         'Không đọc được dữ liệu trên máy. Tệp gốc vẫn được giữ lại, chưa bị '
@@ -228,7 +241,40 @@ class DataIssueScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(message, style: const TextStyle(fontSize: 16)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(message, style: const TextStyle(fontSize: 16)),
+              // P5-D-02: on the `undecodable` branch ONLY, a way out. The
+              // redirect above sends both problem outcomes here
+              // unconditionally, and this screen offered no action and no
+              // navigation from Phase 3 through 05-02 — a user whose
+              // document is corrupt was trapped with no route to
+              // onboarding or Settings and no way out except clearing app
+              // data from the OS. P1-D-09 left this open for this phase
+              // deliberately.
+              //
+              // `schemaTooNew` stays read-only, no button: the Drive copy
+              // was very likely written by the same newer build that wrote
+              // the local document, so restoring it would fail in exactly
+              // the same way, and offering the button would promise a way
+              // out that does not exist.
+              //
+              // The sheet correctly derives its no-local-data mode here
+              // even though a file exists on disk: the document is
+              // quarantined and undecodable, so `appProvider` reads
+              // `AppData.empty()` — there is nothing to compare against and
+              // nothing a restore could destroy.
+              if (outcome == HydrateOutcome.undecodable) ...[
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: () => showRestoreSheet(context),
+                  child: const Text('Khôi phục từ Google Drive'),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
