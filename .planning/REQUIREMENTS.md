@@ -108,10 +108,10 @@ cross-platform; only the release and verification surface is Android-only.
 ### Backup, Restore & Export
 
 - [ ] **BKP-01**: A Google Cloud project exists with the Drive API enabled, a completed OAuth consent screen, an Android OAuth client carrying the SHA-1 of all three keys (debug keystore, release keystore and Play App Signing) and a Web client ID supplying `serverClientId`. *(Appendix B; §15 R6 — a missing SHA-1 makes sign-in fail silently)*
-- [ ] **BKP-02**: The app requests only the `https://www.googleapis.com/auth/drive.appdata` scope. *(§7.2)*
-- [ ] **BKP-03**: `GoogleAuthService` follows the google_sign_in v7 flow — `initialize()`, then `authenticate()`, then `authorizationClient.authorizeScopes()` — is reachable only from a user action, and returns null rather than throwing when the user cancels. *(§7.3)*
+- [x] **BKP-02**: The app requests only the `https://www.googleapis.com/auth/drive.appdata` scope. *(§7.2)*
+- [x] **BKP-03**: `GoogleAuthService` follows the google_sign_in v7 flow — `initialize()`, then `authenticate()`, then `authorizationClient.authorizeScopes()` — is reachable only from a user action, and returns null rather than throwing when the user cancels. *(§7.3)*
 - [ ] **BKP-04**: Automatic backup uses `silentToken()` only; a null token records the error "Cần đăng nhập lại Google" and never opens a sign-in dialog mid-flow. *(§7.3, §7.5)*
-- [ ] **BKP-05**: `DriveService` creates or updates `motonote-backup.json` in `appDataFolder` with `appProperties = { vehicles, logs, schema }`, and `peek()` returns modifiedAt / sizeBytes / vehicleCount / logCount from metadata without downloading the file. *(§7.4)*
+- [x] **BKP-05**: `DriveService` creates or updates `motonote-backup.json` in `appDataFolder` with `appProperties = { vehicles, logs, schema }`, and `peek()` returns modifiedAt / sizeBytes / vehicleCount / logCount from metadata without downloading the file. *(§7.4)*
 - [ ] **BKP-06**: Automatic backup runs on app open when the last backup is older than 24 hours, 30 seconds after a service log or ODO entry (debounced), and when the app goes to background — showing no toast and no spinner. *(§7.5)*
 - [ ] **BKP-07**: Settings shows "Lần sao lưu cuối: 3 ngày trước · Có lỗi" from `lastBackupAt` / `lastBackupError`, plus a "Sao lưu ngay" button that reports its result clearly. *(§7.5)*
 - [ ] **BKP-08**: The onboarding restore path signs in, finds the backup, and shows a summary ("24/08 · 1 xe · 34 log · 187KB") with the warning "⚠ Ảnh hoá đơn không khôi phục được" and the choice [ Khôi phục ] / [ Bắt đầu mới ]. *(§6, §4.3)*
@@ -120,7 +120,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **BKP-11**: Settings has an "Xuất file" button that shares the raw JSON document through `share_plus`. *(§7.2, §2)*
 - [ ] **BKP-12**: The app is fully functional having never signed into Google. *(§2, Appendix B Kỹ thuật)*
 - [ ] **BKP-13**: `android:allowBackup="true"` is set so Android Auto Backup acts as a free safety net for users who change phone without ever enabling Drive backup. *(§7.7, §15 R2)*
-- [ ] **BKP-14**: Settings states the three sign-in facts — "Không có tài khoản MotoNote.", "Có đăng nhập Google, và chỉ khi bạn bật backup.", "App chỉ thấy đúng file của nó." — and shows `googleEmail` so the user can see where backups go. *(§7.1, §4.2)*
+- [x] **BKP-14**: Settings states the three sign-in facts — "Không có tài khoản MotoNote.", "Có đăng nhập Google, và chỉ khi bạn bật backup.", "App chỉ thấy đúng file của nó." — and shows `googleEmail` so the user can see where backups go. *(§7.1, §4.2)*
 - [ ] **BKP-15**: Onboarding ends by prompting the user to enable Drive backup. *(§15 R2)*
 
 ### Settings
@@ -246,10 +246,10 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | NOTIF-10 | Phase 4 | Complete |
 | NOTIF-11 | Phase 4 | Complete |
 | BKP-01 | Phase 5 | Pending |
-| BKP-02 | Phase 5 | Pending |
-| BKP-03 | Phase 5 | Pending |
+| BKP-02 | Phase 5 | Complete |
+| BKP-03 | Phase 5 | Complete |
 | BKP-04 | Phase 5 | Pending |
-| BKP-05 | Phase 5 | Pending |
+| BKP-05 | Phase 5 | Complete |
 | BKP-06 | Phase 5 | Pending |
 | BKP-07 | Phase 5 | Pending |
 | BKP-08 | Phase 5 | Pending |
@@ -258,7 +258,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | BKP-11 | Phase 5 | Pending |
 | BKP-12 | Phase 5 | Pending |
 | BKP-13 | Phase 5 | Pending |
-| BKP-14 | Phase 5 | Pending |
+| BKP-14 | Phase 5 | Complete |
 | BKP-15 | Phase 5 | Pending |
 | SET-01 | Phase 6 | Pending |
 | SET-02 | Phase 6 | Pending |

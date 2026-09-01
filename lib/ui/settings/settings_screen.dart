@@ -16,6 +16,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../backup/backup_service.dart';
+import '../../backup/google_auth.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../notifications/battery_hint_sheet.dart';
@@ -41,6 +43,14 @@ final _notificationsEnabledProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(notificationSchedulerProvider).areNotificationsEnabled(),
 );
 
+/// Live-derived signed-in account address, never the stored `googleEmail`
+/// alone — the same "live OS state over stored intent" rule the
+/// exact-alarm row already follows (T-04-13/P4-D-08, BKP-14). Null means
+/// nobody is currently signed in.
+final _backupAccountProvider = FutureProvider.autoDispose<String?>(
+  (ref) => ref.watch(googleAuthServiceProvider).currentEmail(),
+);
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -48,6 +58,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appProvider.select((d) => d.settings));
     final notifier = ref.read(appProvider.notifier);
+    // The house secondary-text colour (T-03-30: no new literal colour
+    // constants) — same source as odo_sheet.dart/item_detail_screen.dart's
+    // caption text.
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
@@ -143,15 +157,85 @@ class SettingsScreen extends ConsumerWidget {
                 const _NotificationSoftPromptRow(),
               ],
             ),
-            const _SettingsGroup(
-              // Phase 5 (BKP-*) owns sign-in and the backup rows.
+            _SettingsGroup(
+              // Phase 5 (BKP-*) owns sign-in and the backup rows. Live as
+              // of 05-01 — the caption below would read as actively
+              // misleading under working rows (T-04-14).
               title: 'Sao lưu Drive',
+              showComingSoonCaption: false,
               rows: [
-                ListTile(title: Text('Đăng nhập Google'), enabled: false),
-                ListTile(
+                const _GoogleAccountRow(),
+                // 05-02 owns the switch (the >24h/debounce/paused
+                // triggers); left disabled with its existing shape here.
+                const ListTile(
                   title: Text('Tự động sao lưu'),
                   trailing: Icon(Icons.toggle_off_outlined),
                   enabled: false,
+                ),
+                ListTile(
+                  title: const Text('Sao lưu ngay'),
+                  onTap: () async {
+                    final outcome = await ref
+                        .read(backupServiceProvider)
+                        .runManual();
+                    if (!context.mounted) return;
+                    if (outcome.succeeded) {
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(
+                          lastBackupAt: outcome.at,
+                          lastBackupError: null,
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          // [NEW, PROVISIONAL]
+                          content: Text('Đã sao lưu thành công'),
+                        ),
+                      );
+                    } else if (outcome.code != null) {
+                      // BKP-07: the manual button reports its result
+                      // clearly — the deliberate opposite of the automatic
+                      // path's silence (D-23). Do not "fix" this into
+                      // silence.
+                      final message = kBackupErrorMessages[outcome.code]!;
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(lastBackupError: message),
+                      );
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text(message)));
+                    }
+                    // outcome.code == null && !succeeded: the user
+                    // cancelled the interactive sign-in, or a run was
+                    // already in flight — neither is a failure, so nothing
+                    // is persisted and nothing is reported.
+                  },
+                ),
+                // §7.1's three sign-in facts, reproduced verbatim from
+                // constraints.md — never paraphrase, reorder or abbreviate.
+                // The third is enforced by the drive.appdata scope (D-22),
+                // not merely asserted by this copy — do not soften it.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Không có tài khoản MotoNote.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                      Text(
+                        'Có đăng nhập Google, và chỉ khi bạn bật backup.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                      Text(
+                        'App chỉ thấy đúng file của nó.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -373,4 +457,116 @@ class _NotificationSoftPromptRowState
           ref.read(notificationSchedulerProvider).openAppNotificationSettings(),
     );
   }
+}
+
+/// The "Đăng nhập Google" row (BKP-03/BKP-14) — a `ConsumerStatefulWidget`
+/// in `_ExactAlarmRow`'s exact shape (05-PATTERNS.md). It re-derives the
+/// live signed-in account through `currentEmail()` rather than trusting the
+/// stored `googleEmail` alone (T-04-13/P4-D-08), and re-checks on resume
+/// the same way `_ExactAlarmRow` does — the OS-level grant can be revoked
+/// outside the app at any time.
+class _GoogleAccountRow extends ConsumerStatefulWidget {
+  const _GoogleAccountRow();
+
+  @override
+  ConsumerState<_GoogleAccountRow> createState() => _GoogleAccountRowState();
+}
+
+class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(_backupAccountProvider);
+    }
+  }
+
+  Future<void> _onTap() async {
+    final signedIn = ref.read(_backupAccountProvider).value != null;
+    if (signedIn) {
+      final confirmed = await _confirmGoogleSignOut(context);
+      if (!mounted) return;
+      if (confirmed != true) return;
+      await ref.read(googleAuthServiceProvider).signOut();
+      if (!mounted) return;
+      // One updateSettings call clearing googleEmail and disabling
+      // driveBackupEnabled together — no intermediate state exists where
+      // the app believes automatic backup is on with no account, and the
+      // same state change that clears googleEmail is what invalidates
+      // this row's live provider below, so a render racing the sign-out
+      // cannot show a stale address. The Drive file is NOT touched —
+      // deleting it is explicitly rejected (P5-D-13): it would destroy
+      // the user's only backup and duplicates Phase 6's delete-all-data
+      // button.
+      await ref
+          .read(appProvider.notifier)
+          .updateSettings(
+            (s) => s.copyWith(googleEmail: null, driveBackupEnabled: false),
+          );
+      if (!mounted) return;
+      ref.invalidate(_backupAccountProvider);
+      return;
+    }
+    final result = await ref
+        .read(googleAuthServiceProvider)
+        .signInAndAuthorize();
+    if (!mounted) return;
+    if (result == null) return; // user cancelled — nothing to persist.
+    await ref
+        .read(appProvider.notifier)
+        .updateSettings((s) => s.copyWith(googleEmail: result.email));
+    if (!mounted) return;
+    ref.invalidate(_backupAccountProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = ref.watch(_backupAccountProvider).value;
+    return ListTile(
+      title: const Text('Đăng nhập Google'),
+      subtitle: Text(email ?? 'Chưa đăng nhập'), // [NEW, PROVISIONAL]
+      onTap: _onTap,
+    );
+  }
+}
+
+/// P5-D-13's escape hatch — a user who signed into the wrong Google account
+/// has a route out that does not destroy their only backup. Copy is
+/// invented, `[NEW, PROVISIONAL]`, recorded verbatim in `05-01-SUMMARY.md`.
+/// Follows `odometer_confirm_dialog.dart`'s one-function-per-confirmation
+/// shape even though this confirmation has a single caller today —
+/// `_GoogleAccountRowState._onTap`.
+Future<bool?> _confirmGoogleSignOut(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Đăng xuất Google?'),
+      content: const Text(
+        'Backup tự động sẽ dừng lại. Bản sao lưu hiện có trên Drive vẫn '
+        'được giữ nguyên.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Đăng xuất'),
+        ),
+      ],
+    ),
+  );
 }
