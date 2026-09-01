@@ -266,4 +266,22 @@ class AppDataRepository {
         jsonDecode(await _preRestore.readAsString()) as Map<String, dynamic>;
     return AppData.fromJson(migrateRaw(raw));
   }
+
+  /// Completes the snapshot family (P5-D-28): after a successful undo, the
+  /// live document equals what the snapshot held, so the snapshot is
+  /// redundant — deleting it is what makes the "Hoàn tác khôi phục" row
+  /// disappear, since P5-D-05 makes the file's existence half the
+  /// predicate. A missing file is already the correct end state, not an
+  /// error — the same honest-no-op discipline this codebase uses for
+  /// absent things (T-03-22) — so calling this with no snapshot present
+  /// throws nothing. Also removes the temp file if one was somehow left
+  /// behind.
+  Future<void> deletePreRestoreSnapshot() async {
+    if (await _preRestore.exists()) {
+      await _preRestore.delete();
+    }
+    if (await _preRestoreTmp.exists()) {
+      await _preRestoreTmp.delete();
+    }
+  }
 }

@@ -220,6 +220,14 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
 
   @override
   Future<BackupOutcome> runManual() async {
+    // P5-D-09's derived consequence: pressing "Sao lưu ngay" is explicit
+    // user intent, and D-23 separates automatic from manual everywhere
+    // else in this feature — this is no exception. The pause exists to
+    // stop the AUTOMATIC upload machinery from undoing the user's
+    // just-completed undo, not to stop the user from backing up when they
+    // explicitly ask. Cleared before the in-flight guard, so even a manual
+    // tap that arrives while another run is in flight still clears it.
+    _suppressNextSchedule = false;
     if (_inFlight) {
       // Already running — not a failure, nothing new to report.
       return const BackupOutcome(succeeded: false, at: null, code: null);

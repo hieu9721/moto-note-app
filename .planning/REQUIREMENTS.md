@@ -116,7 +116,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [x] **BKP-07**: Settings shows "Lần sao lưu cuối: 3 ngày trước · Có lỗi" from `lastBackupAt` / `lastBackupError`, plus a "Sao lưu ngay" button that reports its result clearly. *(§7.5)*
 - [x] **BKP-08**: The onboarding restore path signs in, finds the backup, and shows a summary ("24/08 · 1 xe · 34 log · 187KB") with the warning "⚠ Ảnh hoá đơn không khôi phục được" and the choice [ Khôi phục ] / [ Bắt đầu mới ]. *(§6, §4.3)*
 - [x] **BKP-09**: Restore replaces all data with no merge, running `migrateRaw` on the downloaded document; when the device already has data it is reachable only from Settings and shows the explicit comparison — "Khôi phục sẽ THAY THẾ dữ liệu hiện có trên máy.", device side versus Drive side, "⚠ Bản trên Drive CŨ HƠN" when applicable — with [ Huỷ ] / [ Vẫn khôi phục ]. *(§7.6)*
-- [ ] **BKP-10**: Before overwriting, the current state is written to `appdata.pre-restore.json` and a "Hoàn tác khôi phục" button remains available for 7 days. *(§7.6, §15 R4)*
+- [x] **BKP-10**: Before overwriting, the current state is written to `appdata.pre-restore.json` and a "Hoàn tác khôi phục" button remains available for 7 days. *(§7.6, §15 R4)*
 - [ ] **BKP-11**: Settings has an "Xuất file" button that shares the raw JSON document through `share_plus`. *(§7.2, §2)*
 - [ ] **BKP-12**: The app is fully functional having never signed into Google. *(§2, Appendix B Kỹ thuật)*
 - [ ] **BKP-13**: `android:allowBackup="true"` is set so Android Auto Backup acts as a free safety net for users who change phone without ever enabling Drive backup. *(§7.7, §15 R2)*
@@ -254,7 +254,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | BKP-07 | Phase 5 | Complete |
 | BKP-08 | Phase 5 | Complete |
 | BKP-09 | Phase 5 | Complete |
-| BKP-10 | Phase 5 | Pending |
+| BKP-10 | Phase 5 | Complete |
 | BKP-11 | Phase 5 | Pending |
 | BKP-12 | Phase 5 | Pending |
 | BKP-13 | Phase 5 | Pending |

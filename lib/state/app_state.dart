@@ -372,6 +372,36 @@ class AppNotifier extends Notifier<AppData> {
         .setOutcome(HydrateOutcome.loaded);
   }
 
+  /// BKP-10/P5-D-08: the second half of restore — putting the previous
+  /// document back within the seven-day undo window (§7.6 Layer 3).
+  /// Mirrors [restoreFrom] above with exactly two differences:
+  ///
+  /// 1. It calls [BackupService.pauseNextAutomaticBackup] on the backup
+  ///    service IMMEDIATELY BEFORE its own `_mutate` call, so the debounce
+  ///    that `_mutate` schedules at the END of THIS SAME mutation is the
+  ///    one that gets skipped. This is P5-D-08's narrow, one-shot
+  ///    exception to D-17 ("write first, back up after"): `_mutate` still
+  ///    persists before it assigns, still assigns, still reschedules
+  ///    notifications, and is still the sole writer of `state` (DATA-06) —
+  ///    only the last of its two post-persist side effects is suppressed,
+  ///    once.
+  /// 2. It does NOT strip photo paths. [restoreFrom]'s stripping
+  ///    (P5-D-24) exists because that surface promised the user their
+  ///    photos were not coming back from a Drive download; [snapshot] here
+  ///    is this device's OWN document from minutes or days ago, not a
+  ///    foreign one, so no such promise was made and nothing is stripped.
+  ///
+  /// Why the upload is skipped at all is worth writing down, because from
+  /// inside this method it looks like an inconsistency: uploading the
+  /// undone document would replace the Drive copy the user just restored
+  /// from, and a second attempt at that same restore would then be
+  /// impossible. The Drive file is deliberately left exactly as it is
+  /// (P5-D-08).
+  Future<void> undoRestore(AppData snapshot) async {
+    ref.read(backupServiceProvider).pauseNextAutomaticBackup();
+    await _mutate((_) => snapshot);
+  }
+
   /// LOG-01…03: records one workshop visit across however many items were
   /// actually touched, taking the domain [ServiceLog] type directly — never
   /// a draft/form type from `lib/ui/`. Plan 02 just finished removing exactly
