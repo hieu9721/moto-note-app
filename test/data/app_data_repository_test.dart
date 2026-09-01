@@ -1159,5 +1159,63 @@ void main() {
         );
       },
     );
+
+    test(
+      'deletePreRestoreSnapshot removes an existing snapshot and leaves '
+      'appdata.json/appdata.backup.json byte-identical',
+      () async {
+        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+        final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+        await repo.save(first);
+        await repo.save(second);
+        await repo.writePreRestoreSnapshot(
+          AppData.empty().copyWith(deviceLabel: 'snapshot'),
+        );
+
+        final primary = File('${tempDir.path}/appdata.json');
+        final backup = File('${tempDir.path}/appdata.backup.json');
+        final primaryBefore = await primary.readAsBytes();
+        final backupBefore = await backup.readAsBytes();
+
+        await repo.deletePreRestoreSnapshot();
+
+        final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
+        expect(await snapshot.exists(), isFalse);
+        expect(await primary.readAsBytes(), equals(primaryBefore));
+        expect(await backup.readAsBytes(), equals(backupBefore));
+      },
+    );
+
+    test(
+      'deletePreRestoreSnapshot when no snapshot exists throws nothing and '
+      'leaves the directory otherwise unchanged',
+      () async {
+        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+        await repo.save(first);
+
+        final entriesBefore = (await tempDir.list().toList())
+            .map((e) => e.path)
+            .toSet();
+
+        await repo.deletePreRestoreSnapshot();
+
+        final entriesAfter = (await tempDir.list().toList())
+            .map((e) => e.path)
+            .toSet();
+        expect(entriesAfter, equals(entriesBefore));
+      },
+    );
+
+    test(
+      'preRestoreSnapshotModifiedAt returns null after deletePreRestoreSnapshot',
+      () async {
+        await repo.writePreRestoreSnapshot(AppData.empty());
+        expect(await repo.preRestoreSnapshotModifiedAt(), isNotNull);
+
+        await repo.deletePreRestoreSnapshot();
+
+        expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
+      },
+    );
   });
 }
