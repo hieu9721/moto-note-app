@@ -627,6 +627,15 @@ class AppNotifier extends Notifier<AppData> {
         settings: outcome.succeeded
             ? settings.copyWith(lastBackupAt: outcome.at, lastBackupError: null)
             : settings.copyWith(
+                // IN-01: as of 05-09, both call sites that reach this
+                // method — RealBackupService._recordResult and the
+                // "Sao lưu ngay" row — filter cancelled and in-flight
+                // outcomes (succeeded: false, code: null) before
+                // calling, and _classifyError always returns a
+                // non-null code, so no live caller reaches this arm
+                // today. It stays defensive: a future caller that
+                // forgets to filter must preserve a real recorded
+                // error rather than silently clear it.
                 lastBackupError: outcome.code == null
                     ? settings.lastBackupError
                     : kBackupErrorMessages[outcome.code]!,

@@ -264,14 +264,25 @@ class SettingsScreen extends ConsumerWidget {
                         .read(backupServiceProvider)
                         .runManual();
                     if (!context.mounted) return;
-                    if (outcome.succeeded) {
-                      await notifier.updateSettings(
-                        (s) => s.copyWith(
-                          lastBackupAt: outcome.at,
-                          lastBackupError: null,
-                        ),
-                      );
+                    if (outcome.succeeded || outcome.code != null) {
+                      // WR-01: route the result through the single
+                      // documented Settings writer below instead of
+                      // hand-rolling the write here — its own doc comment
+                      // already claims to be the only writer of
+                      // lastBackupAt/lastBackupError. The pause MUST run
+                      // first, exactly as RealBackupService._recordResult
+                      // orders it: the write below goes through _mutate,
+                      // whose unconditional post-persist call is
+                      // scheduleDebounced(), and without the armed
+                      // one-shot that schedules a fresh upload of the
+                      // document that was just uploaded (P5-D-19).
+                      ref
+                          .read(backupServiceProvider)
+                          .pauseNextAutomaticBackup();
+                      await notifier.recordBackupResult(outcome);
                       if (!context.mounted) return;
+                    }
+                    if (outcome.succeeded) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           // [NEW, PROVISIONAL]
@@ -283,13 +294,11 @@ class SettingsScreen extends ConsumerWidget {
                       // clearly — the deliberate opposite of the automatic
                       // path's silence (D-23). Do not "fix" this into
                       // silence.
-                      final message = kBackupErrorMessages[outcome.code]!;
-                      await notifier.updateSettings(
-                        (s) => s.copyWith(lastBackupError: message),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(kBackupErrorMessages[outcome.code]!),
+                        ),
                       );
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(message)));
                     }
                     // outcome.code == null && !succeeded: the user
                     // cancelled the interactive sign-in, or a run was
