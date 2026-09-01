@@ -19,6 +19,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../backup/backup_service.dart';
 import '../../backup/google_auth.dart';
 import '../../domain/backup_timing.dart';
+import '../../domain/models/app_data.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../backup/restore_sheet.dart';
@@ -52,6 +53,18 @@ final _notificationsEnabledProvider = FutureProvider.autoDispose<bool>(
 final _backupAccountProvider = FutureProvider.autoDispose<String?>(
   (ref) => ref.watch(googleAuthServiceProvider).currentEmail(),
 );
+
+/// Backs the "Hoàn tác khôi phục" row's visibility (P5-D-05) — the pre-
+/// restore snapshot file's own modification time, or null when no snapshot
+/// exists. Same `FutureProvider.autoDispose` idiom as
+/// [_canScheduleExactProvider] and [_backupAccountProvider] above; the row
+/// invalidates this itself after a successful (or failed-but-terminal)
+/// undo so the row's visibility reflects the file on disk, never a value
+/// captured once at first build.
+final _preRestoreSnapshotModifiedAtProvider =
+    FutureProvider.autoDispose<DateTime?>(
+      (ref) => ref.watch(repositoryProvider).preRestoreSnapshotModifiedAt(),
+    );
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -274,6 +287,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   onTap: () => showRestoreSheet(context),
                 ),
+                const _UndoRestoreRow(),
                 // §7.1's three sign-in facts, reproduced verbatim from
                 // constraints.md — never paraphrase, reorder or abbreviate.
                 // The third is enforced by the drive.appdata scope (D-22),
@@ -626,6 +640,141 @@ Future<bool?> _confirmGoogleSignOut(BuildContext context) {
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(true),
           child: const Text('Đăng xuất'),
+        ),
+      ],
+    ),
+  );
+}
+
+/// §7.6 Layer 3 / BKP-10's undo — one row, one condition (P5-D-05): renders
+/// only while [_preRestoreSnapshotModifiedAtProvider] resolves non-null
+/// AND `canUndoRestore` says the seven-day window is still open. Not a
+/// disabled row, not a greyed-out label — the row is either present or it
+/// renders nothing at all. No date arithmetic happens here; the predicate
+/// owns the boundary (already pinned by
+/// `test/domain/backup_timing_test.dart`) and this widget only asks it a
+/// yes/no question.
+///
+/// P5-D-06: deliberately no counterpart on `home_screen.dart`. §7.5/D-23
+/// design this whole feature as one quiet line in Settings, and unlike a
+/// dead notification (P4-D-12) — a truly *silent* failure the user cannot
+/// otherwise see — a wrong restore is not silent: the wrong data is on
+/// Trang chủ, where the user is already looking at it. Keeping this out of
+/// `home_screen.dart` also leaves T-03-28's counting invariant untouched.
+///
+/// A `ConsumerWidget`, not stateful: nothing here needs to react to an OS
+/// lifecycle resume the way `_ExactAlarmRow`/`_GoogleAccountRow` do — the
+/// snapshot file only ever changes because of an action this same app
+/// takes (a restore writes it, this row's own confirmed tap deletes it),
+/// never because of something outside the app the user could grant or
+/// revoke while away.
+class _UndoRestoreRow extends ConsumerWidget {
+  const _UndoRestoreRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final snapshotModifiedAt = ref
+        .watch(_preRestoreSnapshotModifiedAtProvider)
+        .value;
+    if (snapshotModifiedAt == null) return const SizedBox.shrink();
+    if (!canUndoRestore(snapshotModifiedAt)) return const SizedBox.shrink();
+
+    return ListTile(
+      title: const Text('Hoàn tác khôi phục'),
+      // [NEW, PROVISIONAL] — names how long has passed since the restore
+      // so the window closing is visible, rather than the user discovering
+      // one day that the button is simply gone.
+      subtitle: Text(
+        'Đã khôi phục ${relativeVi(snapshotModifiedAt)}. Có thể hoàn tác '
+        'trong vòng 7 ngày kể từ đó.',
+      ),
+      onTap: () => _onUndoTap(context, ref),
+    );
+  }
+
+  Future<void> _onUndoTap(BuildContext context, WidgetRef ref) async {
+    final confirmed = await _confirmUndoRestore(context);
+    if (!context.mounted) return;
+    if (confirmed != true) return;
+
+    final repo = ref.read(repositoryProvider);
+
+    // Step 1: read. If the snapshot is undecodable (SchemaTooNewException
+    // or a format/decode error), report it and change nothing — the same
+    // discipline the restore sheet applies to a document it cannot read.
+    // Do not delete a snapshot the app failed to read; it may be readable
+    // by a future build.
+    final AppData? snapshot;
+    try {
+      snapshot = await repo.readPreRestoreSnapshot();
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          // [NEW, PROVISIONAL]
+          content: Text(
+            'Không đọc được bản hoàn tác. Dữ liệu trên máy chưa bị thay đổi.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (!context.mounted) return;
+
+    if (snapshot == null) {
+      // The file vanished between the render and the tap.
+      ref.invalidate(_preRestoreSnapshotModifiedAtProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          // [NEW, PROVISIONAL]
+          content: Text('Không tìm thấy bản để hoàn tác.'),
+        ),
+      );
+      return;
+    }
+
+    // Steps 2 and 3 in this order deliberately: deleting the snapshot
+    // first would leave the user with neither the undo nor the data if
+    // the mutation then failed.
+    await ref.read(appProvider.notifier).undoRestore(snapshot);
+    if (!context.mounted) return;
+    await repo.deletePreRestoreSnapshot();
+    if (!context.mounted) return;
+    ref.invalidate(_preRestoreSnapshotModifiedAtProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        // [NEW, PROVISIONAL]
+        content: Text('Đã hoàn tác khôi phục'),
+      ),
+    );
+  }
+}
+
+/// P5-D-29's confirmation — invented surface, `[NEW, PROVISIONAL]`, recorded
+/// verbatim in this plan's SUMMARY. §7.6 specifies no confirmation for
+/// "Hoàn tác khôi phục", but every other data-replacing action in this app
+/// confirms (the odometer correction, the restore comparison itself,
+/// sign-out above), so this one does too. `Huỷ` renders as the visually
+/// primary [FilledButton] and `Hoàn tác` as the secondary [OutlinedButton]
+/// — the same never-default-to-destructive shape `restore_sheet.dart`
+/// already uses for `Huỷ`/`Vẫn khôi phục`.
+Future<bool?> _confirmUndoRestore(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Hoàn tác khôi phục?'),
+      content: const Text(
+        'Dữ liệu vừa khôi phục từ Drive sẽ được thay bằng dữ liệu trên máy '
+        'trước khi khôi phục. Bản sao lưu trên Drive không bị ảnh hưởng.',
+      ),
+      actions: [
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        OutlinedButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Hoàn tác'),
         ),
       ],
     ),
