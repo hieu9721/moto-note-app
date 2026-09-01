@@ -60,3 +60,48 @@ String relativeVi(DateTime then, {DateTime? now}) {
   if (diff < const Duration(days: 1)) return '${diff.inHours} giờ trước';
   return '${diff.inDays} ngày trước';
 }
+
+/// P5-D-20: the two-minute clock-skew margin for the §7.6 "⚠ Bản trên
+/// Drive CŨ HƠN" comparison. Drive's `modifiedTime` comes from Google's
+/// server clock; the local document's `updatedAt` comes from the device
+/// clock — two different clocks. A correctly-functioning backup writes
+/// Drive about thirty seconds after the local write (the debounce), so a
+/// document inside this margin is the same document seen twice, not a
+/// stale one. Without the margin, a device clock running a minute fast
+/// would make every Drive copy look stale — noise on the one screen where
+/// a wrong tap destroys data.
+const kClockSkewMargin = Duration(minutes: 2);
+
+/// §7.6's seven-day "Hoàn tác khôi phục" window as a [Duration], so the
+/// boundary lives in one place.
+const kUndoWindow = Duration(days: 7);
+
+/// True only when the local document is newer than the Drive copy by
+/// strictly more than [margin]. Exact equality and anything inside the
+/// margin are treated as the same document seen through two clocks, not a
+/// stale Drive copy — see [kClockSkewMargin]. A Drive copy that is newer
+/// than the local document is never "older", regardless of margin. Named
+/// parameters only: two adjacent [DateTime] arguments in the wrong order
+/// would invert the warning silently, on the one screen where that matters
+/// most.
+bool driveCopyIsOlder({
+  required DateTime driveModifiedAt,
+  required DateTime localUpdatedAt,
+  Duration margin = kClockSkewMargin,
+}) {
+  return localUpdatedAt.difference(driveModifiedAt) > margin;
+}
+
+/// True while a pre-restore snapshot (aged by [snapshotModifiedAt]) is
+/// still inside [kUndoWindow] — inclusive at exactly seven days, since the
+/// requirement says the button "remains available for 7 days" and a
+/// boundary that expires AT seven days makes that promise false on its
+/// last day. The `now ?? DateTime.now().toUtc()` idiom, matching
+/// [isBackupDue]/[relativeVi] above. A [snapshotModifiedAt] slightly in the
+/// future (a clock adjustment) yields a negative elapsed duration, which is
+/// correctly still within the window — treated as recent, never as
+/// expired.
+bool canUndoRestore(DateTime snapshotModifiedAt, {DateTime? now}) {
+  final n = now ?? DateTime.now().toUtc();
+  return n.difference(snapshotModifiedAt) <= kUndoWindow;
+}

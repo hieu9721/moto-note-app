@@ -98,4 +98,100 @@ void main() {
       expect(relativeVi(then, now: now), equals('vừa xong'));
     });
   });
+
+  group('driveCopyIsOlder', () {
+    final t = DateTime.utc(2026, 9, 1, 12, 0, 0);
+
+    test('hai mốc bằng nhau — cùng một bản, không phải bản cũ hơn', () {
+      expect(
+        driveCopyIsOlder(driveModifiedAt: t, localUpdatedAt: t),
+        isFalse,
+      );
+    });
+
+    test('máy mới hơn Drive 1 phút vẫn nằm trong biên đồng hồ', () {
+      expect(
+        driveCopyIsOlder(
+          driveModifiedAt: t,
+          localUpdatedAt: t.add(const Duration(minutes: 1)),
+        ),
+        isFalse,
+      );
+    });
+
+    test('máy mới hơn Drive đúng 2 phút — biên bao gồm cả điểm này', () {
+      expect(
+        driveCopyIsOlder(
+          driveModifiedAt: t,
+          localUpdatedAt: t.add(const Duration(minutes: 2)),
+        ),
+        isFalse,
+      );
+    });
+
+    test('máy mới hơn Drive 2 phút 1 giây — vượt biên, tính là cũ hơn', () {
+      expect(
+        driveCopyIsOlder(
+          driveModifiedAt: t,
+          localUpdatedAt: t.add(const Duration(minutes: 2, seconds: 1)),
+        ),
+        isTrue,
+      );
+    });
+
+    test('bản trên Drive mới hơn máy 5 ngày thì không bao giờ tính là cũ hơn', () {
+      expect(
+        driveCopyIsOlder(
+          driveModifiedAt: t,
+          localUpdatedAt: t.subtract(const Duration(days: 5)),
+        ),
+        isFalse,
+      );
+    });
+
+    test('bản trên Drive cũ hơn máy 30 ngày thì tính là cũ hơn', () {
+      expect(
+        driveCopyIsOlder(
+          driveModifiedAt: t.subtract(const Duration(days: 30)),
+          localUpdatedAt: t,
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('canUndoRestore', () {
+    final now = DateTime.utc(2026, 9, 1, 12, 0, 0);
+
+    test('snapshot 6 ngày trước vẫn còn trong hạn hoàn tác', () {
+      expect(
+        canUndoRestore(now.subtract(const Duration(days: 6)), now: now),
+        isTrue,
+      );
+    });
+
+    test('snapshot đúng 7 ngày trước vẫn còn trong hạn — biên bao gồm điểm này', () {
+      expect(
+        canUndoRestore(now.subtract(const Duration(days: 7)), now: now),
+        isTrue,
+      );
+    });
+
+    test('snapshot 7 ngày 1 giây trước thì đã hết hạn', () {
+      expect(
+        canUndoRestore(
+          now.subtract(const Duration(days: 7, seconds: 1)),
+          now: now,
+        ),
+        isFalse,
+      );
+    });
+
+    test('mốc snapshot ở tương lai (đồng hồ máy vừa chỉnh) vẫn coi là gần đây', () {
+      expect(
+        canUndoRestore(now.add(const Duration(hours: 1)), now: now),
+        isTrue,
+      );
+    });
+  });
 }
