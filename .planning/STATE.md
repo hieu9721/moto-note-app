@@ -4,11 +4,11 @@ milestone: v1.0
 current_phase: 5
 current_phase_name: Google Drive Backup & Restore
 status: planning
-stopped_at: Phase 04 complete, ready to plan Phase 5
-last_updated: "2026-09-01T02:16:47.182Z"
+stopped_at: Phase 5 context gathered
+last_updated: "2026-09-01T03:05:52.484Z"
 last_activity: 2026-09-01
 last_activity_desc: Phase 04 complete, transitioned to Phase 5
-state_head: 545ba075360e0f924977ee656a7d5e131dec2a6d
+state_head: 0ae640c9815c337bbaaf531badc54a3d5cc9bca8
 progress:
   total_phases: 6
   completed_phases: 4
@@ -56,8 +56,10 @@ gap plan — all three are consequences of decisions already locked in this phas
 
 1. `rescheduleAll()`'s opening `cancelAll()` (D-29) also clears *displayed* notifications, so opening the
    app for any reason wipes an unread reminder from the shade.
+
 2. A cold start alone never reschedules — `_LifecycleRescheduler` registers its observer after the app is
    already resumed, so rescheduling happens only on a mutation or a real background→foreground trip.
+
 3. The §10.4 ODO body can read "Xe Xe của Đạt" when the vehicle is itself named "Xe của Đạt". Copy is
    verbatim per spec; the doubling is data-driven, not a code defect.
 
@@ -259,9 +261,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-01
-Stopped at: Phase 04 complete and verified, ready to plan Phase 5
-Resume file: None
+Last session: 2026-09-01T03:05:51.851Z
+Stopped at: Phase 5 context gathered
+Resume file: .planning/phases/05-google-drive-backup-restore/05-CONTEXT.md
 
 Phase 04 is closed. `04-UAT.md` is `complete` (5/5 passed, 0 issues), `04-VERIFICATION.md` is
 `passed`, `04-SECURITY.md` has `threats_open: 0`, and ROADMAP.md/STATE.md have transitioned to
