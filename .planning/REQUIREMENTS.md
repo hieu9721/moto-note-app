@@ -117,11 +117,11 @@ cross-platform; only the release and verification surface is Android-only.
 - [x] **BKP-08**: The onboarding restore path signs in, finds the backup, and shows a summary ("24/08 · 1 xe · 34 log · 187KB") with the warning "⚠ Ảnh hoá đơn không khôi phục được" and the choice [ Khôi phục ] / [ Bắt đầu mới ]. *(§6, §4.3)*
 - [x] **BKP-09**: Restore replaces all data with no merge, running `migrateRaw` on the downloaded document; when the device already has data it is reachable only from Settings and shows the explicit comparison — "Khôi phục sẽ THAY THẾ dữ liệu hiện có trên máy.", device side versus Drive side, "⚠ Bản trên Drive CŨ HƠN" when applicable — with [ Huỷ ] / [ Vẫn khôi phục ]. *(§7.6)*
 - [x] **BKP-10**: Before overwriting, the current state is written to `appdata.pre-restore.json` and a "Hoàn tác khôi phục" button remains available for 7 days. *(§7.6, §15 R4)*
-- [ ] **BKP-11**: Settings has an "Xuất file" button that shares the raw JSON document through `share_plus`. *(§7.2, §2)*
-- [ ] **BKP-12**: The app is fully functional having never signed into Google. *(§2, Appendix B Kỹ thuật)*
+- [x] **BKP-11**: Settings has an "Xuất file" button that shares the raw JSON document through `share_plus`. *(§7.2, §2)*
+- [x] **BKP-12**: The app is fully functional having never signed into Google. *(§2, Appendix B Kỹ thuật)*
 - [ ] **BKP-13**: `android:allowBackup="true"` is set so Android Auto Backup acts as a free safety net for users who change phone without ever enabling Drive backup. *(§7.7, §15 R2)* **Verified, not rebuilt (05-07):** shipped in Phase 1 (01-02); `AndroidManifest.xml`'s `allowBackup="true"` and both rules files' `app_flutter/receipts/` exclusion with `domain="root"` were re-confirmed present and untouched. Stays unticked — the API ≤30 exclusion path remains unexercised (test device is API 36; `minSdk=26` keeps it reachable in production, per `01-SECURITY.md`), and the behavioural proof (restore across two real Android devices) is outstanding for want of a second device; recorded in `05-VALIDATION.md` § Manual-Only Verifications.
 - [x] **BKP-14**: Settings states the three sign-in facts — "Không có tài khoản MotoNote.", "Có đăng nhập Google, và chỉ khi bạn bật backup.", "App chỉ thấy đúng file của nó." — and shows `googleEmail` so the user can see where backups go. *(§7.1, §4.2)*
-- [ ] **BKP-15**: Onboarding ends by prompting the user to enable Drive backup. *(§15 R2)*
+- [x] **BKP-15**: Onboarding ends by prompting the user to enable Drive backup. *(§15 R2)*
 
 ### Settings
 
