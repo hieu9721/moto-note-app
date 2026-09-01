@@ -1,43 +1,67 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 04
-current_phase_name: Local Notifications
-status: executing
-stopped_at: Phase 4 — gap-closure planned; 04-05/04-06/04-07 ready for `/gsd-execute-phase 04 --gaps-only`
-last_updated: "2026-08-31T04:11:35.657Z"
-last_activity: 2026-08-31
-last_activity_desc: Phase 04 execution started
-state_head: 0c2f9a28af03a95160d464d7ea76348f21dcf5d4
+current_phase: 5
+current_phase_name: Google Drive Backup & Restore
+status: planning
+stopped_at: Phase 04 complete, ready to plan Phase 5
+last_updated: "2026-09-01T02:16:47.182Z"
+last_activity: 2026-09-01
+last_activity_desc: Phase 04 complete, transitioned to Phase 5
+state_head: 545ba075360e0f924977ee656a7d5e131dec2a6d
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 25
-  completed_plans: 22
+  completed_plans: 25
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-30)
+See: .planning/PROJECT.md (updated 2026-09-01)
 
 **Core value:** The user gets reminded on the right day that their bike needs something — accurately enough that they never turn the notifications off.
-**Current focus:** Phase 04 — Local Notifications
+**Current focus:** Phase 05 — Google Drive Backup & Restore
 
 ## Current Position
 
-Phase: 04 (Local Notifications) — EXECUTING
-Plan: 1 of 7
-Status: Executing Phase 04
-Last activity: 2026-08-31 — Phase 04 execution started
+Phase: 5 — Google Drive Backup & Restore
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-09-01 — Phase 04 complete, transitioned to Phase 5
 
-Progress: [██████████████████░░] 22/25 plans (Phases 01–03 of 6 complete; Phase 04 4/4 original plans
-closed, 3 gap-closure plans open, phase itself still open)
+Progress: [████████████████████] 25/25 plans (Phases 01–04 of 6 complete; Phases 05–06 not yet planned)
 
-**Next command:** `/gsd-execute-phase 04 --gaps-only` — then `/gsd-verify-work 04` on the SM-A066B.
+**Next command:** `/gsd-discuss-phase 5` — Google Drive Backup & Restore.
 
-### Gap-closure plan set (planned 2026-08-31, `/gsd-plan-phase 04 --gaps`)
+### Phase 04 closed (2026-09-01) — UAT 5/5 passed, 0 issues
+
+All seven plans executed (`04-01`…`04-04` original, `04-05`…`04-07` gap closure). `04-VERIFICATION.md`
+advanced `gaps_found` → `human_needed` → `passed`; `04-SECURITY.md` `threats_open: 0`; `04-VALIDATION.md`
+and `04-UI-REVIEW.md` (21/24) closed. On-device UAT ran on the real SM-A066B (Android 16, release APK)
+on 2026-09-01 07:26–08:54 +07 and cleared all five success criteria — arrival + reboot survival (SC1),
+one grouped notification for four same-day items (SC2), cold-start deep links to the due tab and the ODO
+sheet (SC3), full functionality under a genuine POST_NOTIFICATIONS denial plus all three exact-alarm
+round-trip legs (SC4), and the 45-day dead-notification banner (SC5).
+
+One accepted limitation, recorded not hidden, under the standing P4-D-18 rule: **the Xiaomi/Oppo/Vivo
+battery-hint branches ship unexercised** — only a Samsung device was available, so only the Samsung
+branch and its `IGNORE_BATTERY_OPTIMIZATION_SETTINGS` intent were confirmed. Same standing as Phase 1's
+un-exercisable API≤30 backup path.
+
+Three observations were recorded in `04-UAT.md` and belong in BACKLOG.md under D-34, not in a Phase 4
+gap plan — all three are consequences of decisions already locked in this phase:
+
+1. `rescheduleAll()`'s opening `cancelAll()` (D-29) also clears *displayed* notifications, so opening the
+   app for any reason wipes an unread reminder from the shade.
+2. A cold start alone never reschedules — `_LifecycleRescheduler` registers its observer after the app is
+   already resumed, so rescheduling happens only on a mutation or a real background→foreground trip.
+3. The §10.4 ODO body can read "Xe Xe của Đạt" when the vehicle is itself named "Xe của Đạt". Copy is
+   verbatim per spec; the doubling is data-driven, not a code defect.
+
+### Gap-closure plan set (planned 2026-08-31, `/gsd-plan-phase 04 --gaps`) — all three executed and closed
 
 Scope was **closed by the user** to exactly three items; the rest was routed to BACKLOG.md under D-34.
 
@@ -92,7 +116,8 @@ fabricated matrix, which the seal-time gate accepts.
 Deferred to BACKLOG under D-34, by explicit user decision, not oversight: WR-01 (the two independent
 one-shot post-frame effects in `home_screen.dart:82-90`), the `Colors.grey` literal at
 `settings_screen.dart:173`, merging the two near-duplicate battery-hint fallback strings, and the
-UTC-fixture fragility in item 3. All five `behavior_unverified_items` stay with `/gsd-verify-work 04`.
+UTC-fixture fragility in item 3. All five `behavior_unverified_items` were closed on-device on
+2026-09-01 — see the Phase 04 closed block above.
 
 ### Planning gate note — §13a decision coverage (2026-08-31, Phase 04 gap closure — sixth recurrence)
 
@@ -137,7 +162,7 @@ already cite the `P3-D-NN` ids.
 
 **Velocity:**
 
-- Total plans completed: 18
+- Total plans completed: 25
 - Average duration: —
 - Total execution time: 0.0 hours
 
@@ -148,6 +173,7 @@ already cite the `P3-D-NN` ids.
 | 01 | 6 | - | - |
 | 02 | 5 | - | - |
 | 03 | 7 | - | - |
+| 04 | 7 | - | - |
 
 **Recent Trend:**
 
@@ -174,45 +200,34 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Phase 04 gap CR-01 — `lib/domain/notification_plan.dart:84-106`, the monthly ODO-reminder loop
-  never filters out past dates.** The due-item loop 30 lines below it does exactly that at line 134
-  (`if (!scheduledAt.isAfter(n)) continue;`); the ODO loop has no equivalent. For `m = 0`,
-  `_nthMonthDay` returns the CURRENT month's target day/hour, which is in the past on most days of the
-  month. The verifier reproduced it against the repo's own existing fixture
-  (`test/domain/notification_plan_test.dart:129-136`, `now = 2026-08-29`): the `m=0` candidate resolves
-  to `2026-08-01 08:00` — 28 days in the past. Nothing crashes, because
-  `notification_service.dart:248-250` re-filters before `zonedSchedule`. But the stale entry still
-  consumes a slot in the domain-level `sort` + `take(30)`, so under the 30-item cap it can evict a
-  legitimate future notification. It also directly violates a must-have `04-02-PLAN.md` states in its
-  own words: *"Every PlannedNotification planNotifications returns has a scheduledAt strictly after the
-  injected now."* The one test meant to catch it (`schedulable under either mode`) passes or fails
-  depending on the test runner's UTC offset, so it never did.
+- **Phase 04 residual — three Xiaomi/Oppo/Vivo battery-hint branches ship unexercised.** UAT SC5 on
+  2026-09-01 confirmed only the Samsung branch's verbatim copy and its
+  `IGNORE_BATTERY_OPTIMIZATION_SETTINGS` intent, because the SM-A066B is the only device available.
+  Accepted by the operator under the standing P4-D-18 "record, do not hide" rule, same standing as the
+  Phase 1 API≤30 backup path below. Re-test if a Xiaomi/Redmi/Poco device ever becomes available.
 
-- **Phase 04 gap CR-02 — `lib/ui/settings/settings_screen.dart:255-276`, the exact-alarm opt-in is
-  shipped and does not work.** `_ExactAlarmRow._onChanged` awaits `requestExactAlarmsPermission()`,
-  which on Android is fire-and-forget: it `startActivity`s the system settings page and returns
-  immediately rather than blocking until the user comes back. The next two lines query
-  `canScheduleExactNotifications()` and persist the result, so `exactAlarmsEnabled` is written `false`
-  while that settings page is still opening. On resume, `didChangeAppLifecycleState` only invalidates
-  the display provider and never re-persists a real grant. Because `build` computes
-  `value: storedOptIn && liveGranted`, the "Nhắc đúng giờ" switch can **never** durably show on, even
-  after the user genuinely grants the permission. P4-D-07's feature is non-functional. The code comment
-  above it says "Written from what the OS actually granted when the user returns" — the intent is
-  right, the implementation never waits for the return. No test covers it: it is widget-level control
-  flow, outside the pure-Dart domain suite, which is exactly the seam this project's test strategy
-  leaves uncovered.
+- **Phase 04 residual — opening the app clears unread notifications from the shade.** `rescheduleAll()`
+  opens with `cancelAll()` (D-29) and the plugin cancels *displayed* notifications as well as pending
+  ones; since `rescheduleAll` runs on every mutation and every resume, an unread reminder vanishes the
+  moment the user opens the app for any reason. Observed directly during UAT. A consequence of a locked
+  decision, so it belongs in BACKLOG under D-34 — not a Phase 04 gap.
 
-- **Phase 04: `REQUIREMENTS.md` has stale checkboxes.** NOTIF-04, NOTIF-05 and NOTIF-07 still read
-  `[ ]` / "Pending" although their code is implemented and tested. Deliberately left as-is rather than
-  ticked: NOTIF-05's own text asserts the `_maxScheduled = 30` cap behaviour that CR-01 undermines, so
-  marking it complete now would paper over a live defect. Settle it in the gap-closure cycle.
+- **Phase 04 residual — a cold start alone never reschedules.** `_LifecycleRescheduler` registers its
+  observer during the first build, by which point the app is already resumed, so
+  `didChangeAppLifecycleState` never fires with `resumed` on a cold start. Rescheduling happens only on
+  a mutation or a real background→foreground round trip; stale alarms were observed surviving a cold
+  start and clearing only after a background/resume cycle. Matters for Phase 5: a restore must not
+  assume a relaunch re-arms the schedule.
 
-- **Phase 04 was executed with NO Android device attached, so all five ROADMAP success criteria are
-  unobserved.** Every criterion for this phase is device-observable. All four SUMMARYs honestly route
-  their claims to UAT under an explicit "On-Device Verification — NOT Performed This Session" section;
-  `04-VERIFICATION.md` records them as `behavior_unverified_items`, counted neither as passes nor as
-  gaps. Phase 04 cannot be signed off until the SM-A066B is re-attached. Note P4-D-18: only Samsung is
-  available, so three of `battery_hints.dart`'s four manufacturer branches ship unexercised.
+- **Phase 04 residual — the §10.4 ODO body can read "Xe Xe của Đạt".** The template is "Xe {name} …"
+  and the test vehicle is itself named "Xe của Đạt". Copy is verbatim per spec and the doubling is
+  data-driven, not a code defect, but it is user-visible. BACKLOG under D-34.
+
+- **Latent, still open — UTC fixtures in `test/domain/notification_plan_test.dart`.** Fixtures state
+  `now`/`lastServiceDate` via `DateTime.utc(...)` while `due.dart` normalises through `toLocal()`, so
+  several due-date assertions can shift by a calendar day at extreme offsets. `04-05` fixed only the ODO
+  branch and the one named test. Confirmed by both the planner and the checker; deferred to BACKLOG by
+  explicit user decision, not oversight.
 
 - **Android test device — RESOLVED in Phase 01.** SM-A066B (Galaxy A06 5G, Android 16 / API 36, 3.43 GB RAM) was used over wireless debugging and satisfied SETUP-06 on a real `--release` build. Keep in mind for later: the device must be re-attached for Phase 4's §10.6 OEM battery-optimisation work, which is still only observable on real hardware.
 - **Phase 4 residual (from Phase 01 UAT test 4):** the legacy `auto_backup_rules.xml` (API ≤30) exclusion path carries the identical `domain="root"` fix as the API 31+ rules but has **never been exercised** — the test device is API 36, while `minSdk=26` keeps that path reachable in production. Recorded in `01-SECURITY.md` audit trail.
@@ -244,14 +259,41 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-08-31T01:42:14.500Z
-Stopped at: Session resumed from HANDOFF.json; 04-01 awaiting task 3 + SUMMARY
-Resume file: .planning/phases/04-local-notifications/.continue-here.md
+Last session: 2026-09-01
+Stopped at: Phase 04 complete and verified, ready to plan Phase 5
+Resume file: None
 
-Phase 04 Wave 1 is partly done and merged. Next action is `/gsd-execute-phase 4`, resuming 04-01 at
-task 3.
+Phase 04 is closed. `04-UAT.md` is `complete` (5/5 passed, 0 issues), `04-VERIFICATION.md` is
+`passed`, `04-SECURITY.md` has `threats_open: 0`, and ROADMAP.md/STATE.md have transitioned to
+Phase 5. Next action is `/gsd-discuss-phase 5` — Google Drive Backup & Restore.
 
 Session notes:
+
+- **Phase 04 closed by `/gsd-verify-work 04` on 2026-09-01.** All five `behavior_unverified_items`
+  ran on the real SM-A066B (Android 16 / API 36) against a release APK built from HEAD, 07:26–08:54
+  +07, and all five passed with zero issues. One accepted limitation (the unexercised Xiaomi branch)
+  and three observations were recorded in `04-UAT.md` rather than hidden; none caused a failure.
+
+- **The installed APK was stale and would have produced a false SC1 failure.** The 2026-08-30 build
+  on the device declared neither `RECEIVE_BOOT_COMPLETED` nor `SCHEDULE_EXACT_ALARM`. Always confirm
+  the on-device build with `dumpsys package` before trusting an on-device UAT result — a rebuild from
+  HEAD was required before SC1 could even be attempted.
+
+- **`am kill`, not `am force-stop`, for cold-start deep-link tests.** `force-stop` also cancels the
+  app's posted notifications, destroying the very notification under test. SC3 used `am kill` plus a
+  `ps` check for zero processes to get a genuine cold start with the notification intact.
+
+- **Staging constants beat moving the device clock.** SC1, SC2 and SC5 were staged with temporary
+  constants (`kUatOdoOffsetMinutes`, `kUatSc2Minutes`, `kUatForceDeadBanner`) reverted with
+  `git checkout` afterwards, leaving the real `computeDue`, the real `byDay` bucketing key, `_compose`,
+  the sort/cap and `zonedSchedule` all running unmodified. The alternative — back-dating the operator's
+  real maintenance history — was rejected as dishonest. SC5's banner was later re-confirmed with no
+  staging at all, from the real predicate on real data.
+
+- **The fresh-install leg required pulling and restoring the operator's `appdata.json`.** Done with
+  explicit consent; both `appdata.json` and `appdata.backup.json` were restored byte-for-byte (7817
+  bytes) and the app came back up with the original vehicle, 11 items, the note and the correct
+  7-alarm schedule. Ask before uninstalling; verify the restore by content, not by the app launching.
 
 - **Phase 04 execution started 2026-08-30 and paused inside Wave 1 (commits `ace598d` … `0341e81`).**
   Waves are W1 = 04-01, W2 = 04-02 + 04-03 (parallel — `files_modified` overlap check done, no

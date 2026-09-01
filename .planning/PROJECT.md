@@ -57,13 +57,25 @@ All three must hold together for 1.0 to count as done:
   untouched while still recording the visit, "↳ giống lần trước (25/08)" reading the real prior
   service date, and a pinned note rendering from `noteDisplayTitle`'s first-line-of-body fallback.
 
+- ✓ Local notifications — the pure-Dart notification planner, monthly ODO reminder, due-soon and
+  overdue reminders, same-day grouping, `{kind}:{id}` deep links, reboot survival, the exact-alarm
+  opt-in with its inexact fallback, and the OEM battery-optimisation hints with the 45-day
+  dead-notification banner — **Phase 4** (11 requirements: NOTIF-01…11). Verified on real hardware
+  (SM-A066B, Android 16 / API 36, `--release`): a scheduled notification arrived and still arrived
+  after a reboot with the app never reopened, four same-day items produced exactly one grouped
+  notification carrying §10.5's "{a}, {b} và 2 mục khác" shape, both deep links landed on their
+  destination from a genuine cold start with the ODO sheet already open on the first frame, a real
+  POST_NOTIFICATIONS denial left every screen and every write fully working with only the soft-prompt
+  line visible, all three exact-alarm round-trip legs (grant, refuse, revoke) behaved per D-30, and
+  the dead-notification banner rendered from the real predicate on real data.
+  One accepted limitation: only the Samsung battery-hint branch was exercised — the Xiaomi, Oppo and
+  Vivo branches ship unobserved for want of the hardware, recorded under P4-D-18 rather than hidden.
+
 ### Active
 
 Full requirement list with IDs and source traceability: `.planning/REQUIREMENTS.md` (86 v1 requirements).
 Summarised by capability:
 
-- [ ] Local notifications — monthly ODO reminder, due-soon and overdue reminders, grouping, deep
-      links, reboot survival, and Android OEM battery-optimisation handling
 - [ ] Google Drive `appDataFolder` backup, three-layer-safe restore, undo, and local file export
 - [ ] Settings, polish, and Play Store release including OAuth verification and Data Safety
 
@@ -214,6 +226,18 @@ Full text with source line references: `.planning/intel/decisions.md`.
 - **D-07 [locked]:** All notifications are local notifications scheduled by the app with the OS via `flutter_local_notifications` — no push, because there is no server; this works offline, needs no FCM credential and costs nothing to operate. Source: §1, §10.
 - **D-29 [locked]:** `rescheduleAll()` calls `cancelAll()` and then schedules individual dated notifications rather than using repeating schedules, because repeating schedules cannot recompute content that changes daily and behave inconsistently across iOS and Android ROMs; the cost is tens of milliseconds, so over-calling is preferred to under-calling. Source: §10.4.
 - **D-30 [locked]:** Do not block features on the exact-alarm permission — from Android 14 it is not auto-granted on fresh install, so a refusal falls back to inexact scheduling (a few hours late is acceptable for a maintenance reminder), and a refused notification permission leaves the app fully usable with only a soft prompt line in Settings. Source: §10.3.
+  **Outcome (Phase 4, verified on-device 2026-09-01):** holds. Refusing POST_NOTIFICATIONS left every
+  screen and every write working with only the soft-prompt line visible; refusing the exact-alarm
+  permission left the switch off with no error and scheduling fell back to `inexactAllowWhileIdle`
+  (observed arriving ~3 min late inside a +2m14s window). Revoking the grant after the fact made the
+  OS downgrade the pending alarms in place rather than dropping them, so reminders still arrive.
+  One consequence worth knowing: while POST_NOTIFICATIONS is denied `rescheduleAll` arms zero alarms,
+  and the full schedule is only re-armed on the next resume after a grant — silent and self-healing,
+  but empty in the meantime.
+- **D-29 outcome (Phase 4, verified on-device 2026-09-01):** the `cancelAll()` opener also cancels
+  *displayed* notifications, so opening the app for any reason clears an unread reminder from the
+  shade. A real user-visible consequence of a locked decision; filed to BACKLOG under D-34 rather
+  than reopened.
 
 ### Post-1.0
 
@@ -248,4 +272,4 @@ during `/gsd-discuss-phase 2` and are kept here only as a record of what was dec
 </details>
 
 ---
-*Last updated: 2026-08-30 after Phase 3*
+*Last updated: 2026-09-01 after Phase 4*
