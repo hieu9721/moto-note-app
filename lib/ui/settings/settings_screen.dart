@@ -58,6 +58,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appProvider.select((d) => d.settings));
     final notifier = ref.read(appProvider.notifier);
+    // The house secondary-text colour (T-03-30: no new literal colour
+    // constants) — same source as odo_sheet.dart/item_detail_screen.dart's
+    // caption text.
+    final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
@@ -208,6 +212,30 @@ class SettingsScreen extends ConsumerWidget {
                     // already in flight — neither is a failure, so nothing
                     // is persisted and nothing is reported.
                   },
+                ),
+                // §7.1's three sign-in facts, reproduced verbatim from
+                // constraints.md — never paraphrase, reorder or abbreviate.
+                // The third is enforced by the drive.appdata scope (D-22),
+                // not merely asserted by this copy — do not soften it.
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Không có tài khoản MotoNote.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                      Text(
+                        'Có đăng nhập Google, và chỉ khi bạn bật backup.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                      Text(
+                        'App chỉ thấy đúng file của nó.',
+                        style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -468,9 +496,27 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
   Future<void> _onTap() async {
     final signedIn = ref.read(_backupAccountProvider).value != null;
     if (signedIn) {
-      // 05-01 task 3 adds the sign-out confirmation on this branch —
-      // deliberately a no-op here so task 2 lands with a self-contained,
-      // analyzable file.
+      final confirmed = await _confirmGoogleSignOut(context);
+      if (!mounted) return;
+      if (confirmed != true) return;
+      await ref.read(googleAuthServiceProvider).signOut();
+      if (!mounted) return;
+      // One updateSettings call clearing googleEmail and disabling
+      // driveBackupEnabled together — no intermediate state exists where
+      // the app believes automatic backup is on with no account, and the
+      // same state change that clears googleEmail is what invalidates
+      // this row's live provider below, so a render racing the sign-out
+      // cannot show a stale address. The Drive file is NOT touched —
+      // deleting it is explicitly rejected (P5-D-13): it would destroy
+      // the user's only backup and duplicates Phase 6's delete-all-data
+      // button.
+      await ref
+          .read(appProvider.notifier)
+          .updateSettings(
+            (s) => s.copyWith(googleEmail: null, driveBackupEnabled: false),
+          );
+      if (!mounted) return;
+      ref.invalidate(_backupAccountProvider);
       return;
     }
     final result = await ref
@@ -494,4 +540,33 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
       onTap: _onTap,
     );
   }
+}
+
+/// P5-D-13's escape hatch — a user who signed into the wrong Google account
+/// has a route out that does not destroy their only backup. Copy is
+/// invented, `[NEW, PROVISIONAL]`, recorded verbatim in `05-01-SUMMARY.md`.
+/// Follows `odometer_confirm_dialog.dart`'s one-function-per-confirmation
+/// shape even though this confirmation has a single caller today —
+/// `_GoogleAccountRowState._onTap`.
+Future<bool?> _confirmGoogleSignOut(BuildContext context) {
+  return showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Đăng xuất Google?'),
+      content: const Text(
+        'Backup tự động sẽ dừng lại. Bản sao lưu hiện có trên Drive vẫn '
+        'được giữ nguyên.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Huỷ'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Đăng xuất'),
+        ),
+      ],
+    ),
+  );
 }
