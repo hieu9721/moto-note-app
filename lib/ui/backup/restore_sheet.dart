@@ -143,12 +143,27 @@ class _RestoreSheetBodyState extends ConsumerState<RestoreSheetBody> {
       // worth protecting — a device with nothing on it has nothing to
       // snapshot.
       final current = ref.read(appProvider);
-      if (current.vehicles.isNotEmpty) {
-        await ref.read(repositoryProvider).writePreRestoreSnapshot(current);
+      try {
+        if (current.vehicles.isNotEmpty) {
+          await ref.read(repositoryProvider).writePreRestoreSnapshot(current);
+          if (!mounted) return;
+        }
+        await ref.read(appProvider.notifier).restoreFrom(downloaded);
         if (!mounted) return;
+      } catch (_) {
+        // WR-03: these two steps are local, disk-bound writes with no
+        // network involvement — a failure here (e.g. the device is out of
+        // storage) is never the Drive connection's fault, so it must not
+        // share the network failure's message with the download above.
+        // `_mutate` persists before it assigns (`app_state.dart`), so
+        // nothing was written on this device when this catch runs.
+        if (!mounted) return;
+        setState(() {
+          _working = false;
+          _error = _localWriteFailureMessage;
+        });
+        return;
       }
-      await ref.read(appProvider.notifier).restoreFrom(downloaded);
-      if (!mounted) return;
       Navigator.of(context).pop();
     } on SchemaTooNewException catch (e) {
       // P1-D-09/P5-D-22: the typed found/supported fields exist on this
@@ -413,3 +428,5 @@ const _genericFailureMessage =
     'Không thể kết nối tới Google Drive. Vui lòng thử lại.';
 const _damagedBackupMessage =
     'Tệp sao lưu bị hỏng. Dữ liệu trên máy chưa bị thay đổi.';
+const _localWriteFailureMessage =
+    'Không ghi được dữ liệu lên máy. Kiểm tra dung lượng trống rồi thử lại.';
