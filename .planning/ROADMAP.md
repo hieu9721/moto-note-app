@@ -206,7 +206,7 @@ Plans:
   4. Restoring over existing data shows the side-by-side comparison first (including "⚠ Bản trên Drive CŨ HƠN" when it applies), and "Hoàn tác khôi phục" puts the previous data back within 7 days.
   5. Every feature still works for a user who has never signed into Google, and "Xuất file" hands them their JSON.
 
-**Plans**: 3/7 plans executed across 6 waves
+**Plans**: 4/7 plans executed across 6 waves
 
 Plans:
 **Wave 1**
@@ -223,7 +223,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 05-04-PLAN.md — Restore over existing data: the §7.6 comparison, the "CŨ HƠN" predicate, and the pre-restore snapshot (wave 4)
+- [x] 05-04-PLAN.md — Restore over existing data: the §7.6 comparison, the "CŨ HƠN" predicate, and the pre-restore snapshot (wave 4)
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -264,7 +264,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
-| 5. Google Drive Backup & Restore | 3/7 | In Progress|  |
+| 5. Google Drive Backup & Restore | 4/7 | In Progress|  |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
 ---
