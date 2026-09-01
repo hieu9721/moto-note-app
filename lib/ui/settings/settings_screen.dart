@@ -43,6 +43,18 @@ const _googleSignInFailureMessage =
 const _googleSignOutFailureMessage =
     'Không thể đăng xuất khỏi Google. Vui lòng thử lại.';
 
+// [NEW, PROVISIONAL] — CR-03: the "Xuất file" failure SnackBar used to
+// interpolate the raw caught exception, which can carry absolute file
+// paths (OS user name + the app's private directory). This is the same
+// fixed-message discipline as the two consts above, applied to the export
+// row.
+const _exportFailureMessage = 'Xuất file thất bại. Vui lòng thử lại.';
+// [NEW, PROVISIONAL] — WR-02: a failed undo mutation used to be silently
+// swallowed. The claim below is true by construction — see the comment at
+// its use site in `_onUndoTap`.
+const _undoFailureMessage =
+    'Không hoàn tác được. Dữ liệu trên máy chưa bị thay đổi.';
+
 /// Live OS check backing the exact-alarm row's displayed state — never the
 /// stored flag alone, since the user can revoke the permission from system
 /// settings at any time without the app hearing about it (T-04-13).
@@ -264,14 +276,25 @@ class SettingsScreen extends ConsumerWidget {
                         .read(backupServiceProvider)
                         .runManual();
                     if (!context.mounted) return;
-                    if (outcome.succeeded) {
-                      await notifier.updateSettings(
-                        (s) => s.copyWith(
-                          lastBackupAt: outcome.at,
-                          lastBackupError: null,
-                        ),
-                      );
+                    if (outcome.succeeded || outcome.code != null) {
+                      // WR-01: route the result through the single
+                      // documented Settings writer below instead of
+                      // hand-rolling the write here — its own doc comment
+                      // already claims to be the only writer of
+                      // lastBackupAt/lastBackupError. The pause MUST run
+                      // first, exactly as RealBackupService._recordResult
+                      // orders it: the write below goes through _mutate,
+                      // whose unconditional post-persist call is
+                      // scheduleDebounced(), and without the armed
+                      // one-shot that schedules a fresh upload of the
+                      // document that was just uploaded (P5-D-19).
+                      ref
+                          .read(backupServiceProvider)
+                          .pauseNextAutomaticBackup();
+                      await notifier.recordBackupResult(outcome);
                       if (!context.mounted) return;
+                    }
+                    if (outcome.succeeded) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           // [NEW, PROVISIONAL]
@@ -283,13 +306,11 @@ class SettingsScreen extends ConsumerWidget {
                       // clearly — the deliberate opposite of the automatic
                       // path's silence (D-23). Do not "fix" this into
                       // silence.
-                      final message = kBackupErrorMessages[outcome.code]!;
-                      await notifier.updateSettings(
-                        (s) => s.copyWith(lastBackupError: message),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(kBackupErrorMessages[outcome.code]!),
+                        ),
                       );
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context)
-                          .showSnackBar(SnackBar(content: Text(message)));
                     }
                     // outcome.code == null && !succeeded: the user
                     // cancelled the interactive sign-in, or a run was
@@ -373,13 +394,17 @@ class SettingsScreen extends ConsumerWidget {
                           content: Text('Đã tạo file xuất dữ liệu'),
                         ),
                       );
-                    } catch (e) {
+                    } catch (_) {
+                      // CR-03: never interpolate the caught exception
+                      // object into user-facing Vietnamese copy — the same
+                      // mapped-message discipline the backup error codes
+                      // already enforce for the persisted field, extended
+                      // here to this display-only SnackBar. share_plus'
+                      // PlatformException.toString() and dart:io I/O
+                      // errors can both carry absolute file paths.
                       if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          // [NEW, PROVISIONAL]
-                          content: Text('Xuất file thất bại: $e'),
-                        ),
+                        const SnackBar(content: Text(_exportFailureMessage)),
                       );
                     }
                   },
@@ -820,9 +845,40 @@ class _UndoRestoreRow extends ConsumerWidget {
     // Steps 2 and 3 in this order deliberately: deleting the snapshot
     // first would leave the user with neither the undo nor the data if
     // the mutation then failed.
-    await ref.read(appProvider.notifier).undoRestore(snapshot);
+    try {
+      await ref.read(appProvider.notifier).undoRestore(snapshot);
+    } catch (_) {
+      // WR-02: a failed disk write here must be reported, not silently
+      // swallowed — this is the one control whose whole purpose is
+      // recovering from a bad restore. The claim that nothing on the
+      // device changed is true by construction: _mutate awaits
+      // _repo.save(next) before it assigns state, so a failed save
+      // leaves both the in-memory document and appdata.json exactly as
+      // they were. Do not delete the snapshot on this path: it is
+      // still the user's only route back, and step 3 must not run.
+      //
+      // Known residue, left alone deliberately: undoRestore() arms
+      // pauseNextAutomaticBackup() before its own _mutate call, and on
+      // this failure path that one-shot is never consumed — the next
+      // mutation's debounced automatic backup is skipped once. Costs
+      // one deferred automatic upload (the >24h cold-start trigger
+      // still fires); unwinding the flag from the UI layer would mean
+      // reaching past AppNotifier into BackupService state, which is
+      // worse than the residue.
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text(_undoFailureMessage)));
+      return;
+    }
     if (!context.mounted) return;
-    await repo.deletePreRestoreSnapshot();
+    try {
+      await repo.deletePreRestoreSnapshot();
+    } catch (_) {
+      // The undo itself already succeeded — telling the user it failed
+      // here would be a lie. Swallowed deliberately: the only visible
+      // consequence is that the undo row keeps rendering, and tapping it
+      // again re-applies the same snapshot, which is idempotent.
+    }
     if (!context.mounted) return;
     ref.invalidate(_preRestoreSnapshotModifiedAtProvider);
     ScaffoldMessenger.of(context).showSnackBar(
