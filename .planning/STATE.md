@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-current_phase: 5
+current_phase: 05
 current_phase_name: Google Drive Backup & Restore
-status: planning
-stopped_at: Phase 5 context gathered
-last_updated: "2026-09-01T03:05:52.484Z"
+status: executing
+stopped_at: Phase 5 planned — 7 plans, 6 waves
+last_updated: "2026-09-01T04:26:23.415Z"
 last_activity: 2026-09-01
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
-state_head: 0ae640c9815c337bbaaf531badc54a3d5cc9bca8
+last_activity_desc: Phase 05 planned — 7 plans, 6 waves, plan-checker passed
+state_head: 05b172076bec9b4a628f0af715b16cbb8c10d2fa
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 25
+  total_plans: 32
   completed_plans: 25
 ---
 
@@ -27,14 +27,62 @@ See: .planning/PROJECT.md (updated 2026-09-01)
 
 ## Current Position
 
-Phase: 5 — Google Drive Backup & Restore
+Phase: 05 (Google Drive Backup & Restore) — READY TO EXECUTE
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-09-01 — Phase 04 complete, transitioned to Phase 5
+Status: Ready to execute
+Last activity: 2026-09-01 — Phase 05 planned (7 plans, 6 waves)
 
-Progress: [████████████████████] 25/25 plans (Phases 01–04 of 6 complete; Phases 05–06 not yet planned)
+Progress: [████████████████░░░░] 25/32 plans (Phases 01–04 of 6 complete; Phase 05 planned, 7 plans ready to execute)
 
-**Next command:** `/gsd-discuss-phase 5` — Google Drive Backup & Restore.
+**Next command:** `/gsd-execute-phase 5` — 7 plans across 6 waves.
+
+### Phase 05 planned (2026-09-01) — 7 plans, 6 waves, plan-checker passed
+
+Research (`05-RESEARCH.md`, 105 KB) verified the `google_sign_in` 7.2.0 and `googleapis` 17.0.0 API
+surfaces against the actual resolved pub-cache source rather than from memory — 6.x's `signIn()` /
+`signInSilently()` / `AccessCredentials` do not exist in the resolved versions, which is why §7.4's
+hand-built-credentials sketch is superseded by P5-D-12. Pattern mapping found analogs for 13/13
+files. `05-VALIDATION.md` records that this phase's automated surface is unavoidably thin: only the
+day-counting predicates in the new `lib/domain/backup_timing.dart` (P5-D-18, the third D-32
+amendment) and the pre-restore snapshot file I/O are `dart test`-reachable; OAuth and Drive I/O are
+manual-only, the same honest shape as Phase 4's OEM battery-hint gaps.
+
+Tracer-first: `05-01` is one end-to-end slice (Cloud Console config → `google_auth.dart` →
+`drive_service.dart` → a user-visible "Sao lưu ngay" result) verified before waves 2–6 expand on it.
+`COVERAGE.md` decides all 49 Drive/Sign-In capabilities — 17 INTEGRATE, 32 reasoned OPT-OUT.
+Spec-less probe fallback ran (no SPEC.md): 22 edges — 11 explicit + 3 backstop authored into
+`must_haves.truths`, 8 unclassified surfaced as flagged assumptions. 22/22, no silent drops.
+
+**Two things that need a human before or during execution:**
+
+1. **`05-01` task 1 is a blocking human-action gate.** No Google Cloud project exists in this repo.
+   It creates the project, enables the Drive API, registers the debug-keystore SHA-1 for
+   `io.github.hieu9721.motonote`, and returns the Web client ID. Nothing downstream can be verified
+   until it is done. BKP-01 closes **partial by design** (P5-D-11) — the release-keystore SHA-1
+   (REL-03) and the Play App Signing SHA-1 (REL-09) are Phase 6 handover items.
+2. **`05-02` task 1 is an unresolved `checkpoint:decision` that CONTEXT.md did not anticipate.**
+   P5-D-15 requires `hydrate()` to stop calling `_mutate` on every open, but `_mutate` is also the
+   only member allowed to assign `state` (DATA-06) *and* it stamps `updatedAt` — so today that field
+   means "when the app was last opened", and §7.6's `Trên máy: … sửa 2 giờ trước` line plus the
+   `⚠ Bản trên Drive CŨ HƠN` warning both read it. The planner's recommendation is
+   `adoption-exception` (amend DATA-06 to name hydration as adoption, not mutation), tabled as
+   **P5-D-27**. Per the Phase 3 D-33 precedent a locked decision is amended by the user, not
+   reinterpreted by the planner — so this is deliberately left open.
+
+**Decision-coverage gate override (7th recurrence of the known parser mismatch).**
+`check.decision-coverage-plan` returned `passed: false, reason: could-not-parse, total: 0,
+uncovered: []` — the handler expects `- **D-NN:**` bullets and this project namespaces its
+phase decisions `P5-D-NN`, so it extracts nothing and names no uncovered decision. This is a
+false negative, not a coverage gap: verified independently by grep, **17/17** trackable decisions
+(P5-D-01…P5-D-17, none under Claude's Discretion) appear in the plans, zero uncovered. The gate was
+overridden on that evidence. `/gsd-verify-work` should re-surface it; the underlying handler bug is
+recorded in `05-CONTEXT.md` § "Known parser issue".
+
+Ten planner decisions (**P5-D-18…P5-D-30**) resolve CONTEXT.md's Claude's-Discretion items and three
+things research left open; they are tabled in `05-01` (18–26), `05-02` (27), `05-05` (28–29) and
+`05-06` (30). Two catch defects nobody had spotted: P5-D-19 (writing the backup result through
+`_mutate` would itself schedule another backup, unbounded) and the `_ensureInit()` `Future`-not-`bool`
+race that both RESEARCH and PATTERNS sketch wrongly.
 
 ### Phase 04 closed (2026-09-01) — UAT 5/5 passed, 0 issues
 
