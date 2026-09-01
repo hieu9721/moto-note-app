@@ -214,50 +214,55 @@ class SettingsScreen extends ConsumerWidget {
                       );
                       return;
                     }
-                    // Turning ON while nobody is signed in must run the
-                    // interactive sign-in from this gesture handler first
-                    // and only enable the setting if it succeeds — an
-                    // enabled switch with no account would itself produce
-                    // the exact silent failure BKP-04 exists to make
-                    // visible. On cancellation, leave the switch off and
-                    // write nothing.
-                    final signedIn =
-                        ref.read(_backupAccountProvider).value != null;
-                    if (!signedIn) {
-                      try {
-                        final result = await ref
-                            .read(googleAuthServiceProvider)
-                            .signInAndAuthorize();
-                        if (!context.mounted) return;
-                        if (result == null) {
-                          return; // cancelled — write nothing
-                        }
-                        await notifier.updateSettings(
-                          (s) => s.copyWith(
-                            driveBackupEnabled: true,
-                            googleEmail: result.email,
-                          ),
-                        );
-                        if (!context.mounted) return;
-                        ref.invalidate(_backupAccountProvider);
-                      } catch (_) {
-                        // CR-02: a config/SHA-1 mismatch must not strand the
-                        // switch mid-flight. Nothing is written on this path
-                        // — driveBackupEnabled stays false, so the switch
-                        // renders itself back to off from appProvider with
-                        // no manual state fiddling here.
-                        if (!context.mounted) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(_googleSignInFailureMessage),
-                          ),
-                        );
+                    // Turning ON must end with `drive.appdata` actually
+                    // AUTHORIZED — not merely with an account present.
+                    // Gating this on "is someone signed in?" was the
+                    // original defect (G-05-2): authentication says nothing
+                    // about whether the scope was granted, so once silent
+                    // authentication started succeeding the handler enabled
+                    // backup without ever requesting the scope, and the
+                    // first upload could only fail into the one-line
+                    // `· Có lỗi` state — the exact silent failure BKP-04
+                    // exists to make visible.
+                    //
+                    // One path now covers both cases, in the same
+                    // silent-then-interactive order `BackupService.runManual`
+                    // already uses: `silentAuthorization()` returns non-null
+                    // only when the scope is already granted (no UI at all),
+                    // and otherwise `signInAndAuthorize()` runs the
+                    // interactive authenticate + `authorizeScopes` from this
+                    // gesture handler, which is where the platform requires
+                    // it. On cancellation, leave the switch off and write
+                    // nothing.
+                    try {
+                      final auth = ref.read(googleAuthServiceProvider);
+                      var result = await auth.silentAuthorization();
+                      result ??= await auth.signInAndAuthorize();
+                      if (!context.mounted) return;
+                      if (result == null) {
+                        return; // cancelled — write nothing
                       }
-                      return;
+                      await notifier.updateSettings(
+                        (s) => s.copyWith(
+                          driveBackupEnabled: true,
+                          googleEmail: result!.email,
+                        ),
+                      );
+                      if (!context.mounted) return;
+                      ref.invalidate(_backupAccountProvider);
+                    } catch (_) {
+                      // CR-02: a config/SHA-1 mismatch must not strand the
+                      // switch mid-flight. Nothing is written on this path
+                      // — driveBackupEnabled stays false, so the switch
+                      // renders itself back to off from appProvider with
+                      // no manual state fiddling here.
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(_googleSignInFailureMessage),
+                        ),
+                      );
                     }
-                    await notifier.updateSettings(
-                      (s) => s.copyWith(driveBackupEnabled: true),
-                    );
                   },
                 ),
                 // This one line is the entire visible surface of automatic

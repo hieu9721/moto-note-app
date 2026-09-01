@@ -30,8 +30,17 @@ import 'drive_service.dart' show DriveApi;
 /// (RESEARCH Pitfall 3), which is precisely the silent-looking build-time
 /// failure this default exists to prevent. `--dart-define=
 /// GOOGLE_SERVER_CLIENT_ID=...` can still override it below.
+///
+/// Corrected during Phase 5 UAT (gap G-05-1). The value committed here
+/// originally was an `installed`/Desktop client id, not a Web one — the
+/// repo-root `client_secret_...json` declares `"installed"`. A direct A/B on
+/// a real device, same session and same console state, isolated it: the old
+/// id failed every interactive sign-in with
+/// `GoogleSignInExceptionCode.unknownError — [28444] Developer console is not
+/// set up correctly.`, while the Web client id below authenticates and holds
+/// the account across cold starts.
 const kGoogleServerClientIdDefault =
-    '163262363118-bv34ht6dt3lk94epcsob45p4kpiqfu64.apps.googleusercontent.com';
+    '163262363118-0j6k1vs0734uftt3s22307cfvok9c1ti.apps.googleusercontent.com';
 
 /// A single-element `const` list built from the package's own constant —
 /// never a hand-typed scope URL, so a typo can never silently request a
