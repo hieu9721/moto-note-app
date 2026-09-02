@@ -258,7 +258,7 @@ Plans:
   3. After ~1 month of real use on the developer's own bike, notifications fired on the expected dates, ODO estimation error stayed within the documented threshold, and no scheduled work was killed by OEM battery optimisation.
   4. MotoNote 1.0 passes Play Store review and is live, with the Appendix B Google Cloud/OAuth and Android checklists complete and a public privacy policy published.
 
-**Plans**: 6/11 plans executed
+**Plans**: 7/11 plans executed
 
 Plans:
 
@@ -282,7 +282,7 @@ Plans:
 
 **Wave 5**
 
-- [ ] 06-07-PLAN.md — SET-03 delete-all-data: five local files, receipts, alarms, sign-out and the opt-in Drive delete, sequenced so no debounced backup can re-upload the emptied document — opens with the P6-D-11 `checkpoint:decision` (wave 5, **not autonomous**)
+- [x] 06-07-PLAN.md — SET-03 delete-all-data: five local files, receipts, alarms, sign-out and the opt-in Drive delete, sequenced so no debounced backup can re-upload the emptied document — opens with the P6-D-11 `checkpoint:decision` (wave 5, **not autonomous**)
 
 **Wave 6** *(06-08 and 06-09 have no file overlap and run in parallel)*
 
@@ -312,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
 | 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
-| 6. Polish & Play Store Release | 6/11 | In Progress|  |
+| 6. Polish & Play Store Release | 7/11 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-28 from the ingest of motonote-v3-flutter.md*
