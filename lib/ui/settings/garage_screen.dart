@@ -11,10 +11,10 @@
 // Settings sub-screen can build, so there is no empty-state branch here
 // (`06-UI-SPEC.md` P1 empty).
 //
-// The row shape below is inline for this plan only — 06-05 task 2 promotes
-// it into a shared widget in `lib/ui/home/vehicle_switcher_sheet.dart` that
-// both this screen and the vehicle-switcher sheet call, so the two surfaces
-// can never render a vehicle differently.
+// The row itself is `VehicleRow`, shared with the vehicle-switcher sheet
+// (`lib/ui/home/vehicle_switcher_sheet.dart`) — one implementation, so the
+// two surfaces can never render a vehicle differently. This screen passes
+// its trailing delete `IconButton` in; the sheet passes none.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +22,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/models/vehicle.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
+import '../home/vehicle_switcher_sheet.dart' show VehicleRow;
 
 // [NEW, PROVISIONAL] — 06-UI-SPEC.md Copywriting Contract, no verbatim
 // source string exists for either. Recorded verbatim in 06-05-SUMMARY.md.
@@ -91,18 +92,14 @@ class _GarageScreenState extends ConsumerState<GarageScreen> {
     bool selected,
     ColorScheme colorScheme,
   ) {
-    final plate = vehicle.plate;
     final deleting = _deletingIds.contains(vehicle.id);
-    return ListTile(
-      leading: Icon(
-        Icons.two_wheeler,
-        color: selected ? colorScheme.primary : colorScheme.onSurfaceVariant,
-      ),
-      title: Text(
-        _displayName(vehicle),
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-      subtitle: (plate != null && plate.isNotEmpty) ? Text(plate) : null,
+    return VehicleRow(
+      vehicle: vehicle,
+      selected: selected,
+      // Tapping the already-selected row's body is a no-op — never a way to
+      // "unselect" a vehicle, since exactly one is always selected by
+      // construction.
+      onTap: selected ? null : () => _onRowTap(context, vehicle),
       trailing: deleting
           ? null
           : IconButton(
@@ -111,10 +108,6 @@ class _GarageScreenState extends ConsumerState<GarageScreen> {
               color: colorScheme.error,
               onPressed: () => _onDeleteTap(context, vehicle),
             ),
-      // Tapping the already-selected row's body is a no-op — never a way to
-      // "unselect" a vehicle, since exactly one is always selected by
-      // construction.
-      onTap: selected ? null : () => _onRowTap(context, vehicle),
     );
   }
 
