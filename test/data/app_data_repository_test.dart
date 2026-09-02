@@ -1194,4 +1194,46 @@ void main() {
       expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
     });
   });
+
+  group('deleteAllLocalState (SET-03, P6-D-10)', () {
+    test('all five local files present: deleteAllLocalState removes every '
+        'one of them', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      final tmp = File('${tempDir.path}/appdata.json.tmp');
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      final preRestore = File('${tempDir.path}/appdata.pre-restore.json');
+      final preRestoreTmp = File(
+        '${tempDir.path}/appdata.pre-restore.json.tmp',
+      );
+      for (final f in [primary, tmp, backup, preRestore, preRestoreTmp]) {
+        await f.writeAsString('placeholder');
+      }
+
+      await repo.deleteAllLocalState();
+
+      for (final f in [primary, tmp, backup, preRestore, preRestoreTmp]) {
+        expect(await f.exists(), isFalse, reason: '${f.path} should be gone');
+      }
+    });
+
+    test('called against an already-empty directory throws nothing', () async {
+      await expectLater(repo.deleteAllLocalState(), completes);
+    });
+
+    test('only a subset present (primary + backup): deleteAllLocalState '
+        'removes exactly those two and completes without error, leaving no '
+        'trace of the other three that were never created', () async {
+      final primary = File('${tempDir.path}/appdata.json');
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      await primary.writeAsString('placeholder');
+      await backup.writeAsString('placeholder');
+
+      await expectLater(repo.deleteAllLocalState(), completes);
+
+      expect(await primary.exists(), isFalse);
+      expect(await backup.exists(), isFalse);
+      final remaining = await tempDir.list().toList();
+      expect(remaining, isEmpty);
+    });
+  });
 }

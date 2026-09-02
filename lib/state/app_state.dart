@@ -18,7 +18,9 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../backup/backup_service.dart';
+import '../backup/google_auth.dart';
 import '../data/app_data_repository.dart';
+import '../data/receipt_storage.dart';
 import '../data/serial_queue.dart';
 import '../domain/catalog.dart';
 import '../domain/id.dart';
@@ -72,6 +74,28 @@ enum HydrateOutcome {
   /// screen for this outcome yet, so state stays [AppData.empty] and the
   /// placeholder screen in `main.dart` reports it.
   schemaTooNew,
+}
+
+/// SET-03/P6-D-10's summary of `AppNotifier.deleteAllData`'s outcome —
+/// enough for the caller to distinguish "everything the user asked for
+/// happened" from "the device is clear but the opt-in Drive copy could not
+/// be deleted", following UI-SPEC P4's own resolution: overall success is
+/// reported once local deletion succeeds, even when the (optional) Drive
+/// deletion failed; the Drive failure is surfaced separately, never
+/// swallowed (T-06-07-05).
+class DeleteAllDataResult {
+  const DeleteAllDataResult({
+    required this.driveDeleteRequested,
+    required this.driveDeleteSucceeded,
+  });
+
+  /// Whether the caller asked for the Drive backup to be deleted too.
+  final bool driveDeleteRequested;
+
+  /// Meaningful only when [driveDeleteRequested] is true — `false` when
+  /// the Drive delete was never requested, or when it was requested but
+  /// failed (no cached authorization, a timeout, or any Drive API error).
+  final bool driveDeleteSucceeded;
 }
 
 class AppNotifier extends Notifier<AppData> {
@@ -410,6 +434,120 @@ class AppNotifier extends Notifier<AppData> {
   Future<void> undoRestore(AppData snapshot) async {
     ref.read(backupServiceProvider).pauseNextAutomaticBackup();
     await _mutate((_) => snapshot);
+  }
+
+  /// SET-03 (P6-D-10/P6-D-11): the most destructive operation this app can
+  /// perform — clears every local file, cancels every alarm, optionally
+  /// deletes the Drive backup, and ends the Google session. Takes
+  /// [deleteDriveBackup] straight from the confirmation dialog's checkbox
+  /// (unchecked by default, P6-D-11) and returns enough for the caller to
+  /// tell an overall success apart from a Drive-only failure — UI-SPEC P4's
+  /// own resolution: local success is reported even when the (optional)
+  /// Drive delete failed, and the Drive failure is surfaced as its own
+  /// message, never swallowed (T-06-07-05).
+  ///
+  /// **The order below is the whole engineering content of this method.**
+  /// `_mutate`'s post-persist call is unconditionally `scheduleDebounced()`
+  /// (P1-D-05) — routing the reset through it naively would upload the
+  /// just-emptied document to Drive roughly 30 seconds later, silently
+  /// destroying the very backup the unchecked-by-default checkbox exists
+  /// to protect (P6-D-11's failure mode, P5-D-19's one layer up).
+  /// [undoRestore] immediately above already carries the fix: arm
+  /// [BackupService.pauseNextAutomaticBackup] BEFORE the final `_mutate`
+  /// call, not after. Steps 2 through 6 all run before step 7, so no
+  /// debounced automatic backup can ever race them:
+  ///
+  /// 1. collect every receipt photo path from the CURRENT state, before
+  ///    anything is reset — once the document is emptied the paths are
+  ///    gone and the files become unreachable orphans. Confined to the
+  ///    receipts directory (T-06-07-04): a path from a foreign
+  ///    Drive-restored document is untrusted input (accepted risk R-01,
+  ///    `01-SECURITY.md`) crossing into a filesystem delete, so anything
+  ///    outside `receiptsDirIn(...)`'s own path is skipped and logged
+  ///    rather than handed to [deleteReceipts];
+  /// 2. arm [BackupService.pauseNextAutomaticBackup], exactly as
+  ///    [undoRestore] does;
+  /// 3. cancel every scheduled notification through
+  ///    [NotificationService.cancelAllNotifications] — a terminal cancel,
+  ///    not a reschedule (D-29);
+  /// 4. delete the local files through
+  ///    [AppDataRepository.deleteAllLocalState], then the collected photos
+  ///    through [deleteReceipts];
+  /// 5. only when [deleteDriveBackup] is true, delete the Drive file
+  ///    through [BackupService.deleteRemoteBackup], capturing whether it
+  ///    succeeded rather than letting a failure abort the rest;
+  /// 6. sign out through [GoogleAuthService.signOut], inside its own
+  ///    try/catch so an auth failure cannot leave local deletion
+  ///    half-done. `google_auth.dart`'s own documented promise is
+  ///    unchanged by this method — [GoogleAuthService.signOut] still does
+  ///    not touch Drive (P5-D-13); this method never imports
+  ///    `package:googleapis/` or builds a Drive HTTP client itself, that
+  ///    bridge stays confined to `backup_service.dart`;
+  /// 7. LAST, reset the document with `await _mutate((_) =>
+  ///    AppData.empty());` — routed through the funnel like every other
+  ///    real change (DATA-06), never a bare `state` assignment, so the
+  ///    empty document is genuinely persisted rather than only held in
+  ///    memory.
+  Future<DeleteAllDataResult> deleteAllData({
+    required bool deleteDriveBackup,
+  }) async {
+    final current = state;
+
+    // 1. Collect every receipt photo path BEFORE anything is reset,
+    //    confined to the receipts directory.
+    final receiptsDir = await receiptsDirIn(_repo.documentsDirectory);
+    final candidatePaths = <String>[
+      ...current.logs.expand((l) => l.photoPaths),
+      ...current.vehicles.map((v) => v.photoPath).whereType<String>(),
+    ];
+    final photoPaths = <String>[];
+    for (final path in candidatePaths) {
+      if (path.startsWith(receiptsDir.path)) {
+        photoPaths.add(path);
+      } else {
+        // T-06-07-04: a path outside the receipts directory is untrusted
+        // input (accepted risk R-01) — skipped, never handed to
+        // File.delete(), and recorded through the existing _log seam.
+        _log('deleteAllData: skipped photo path outside receipts dir: $path');
+      }
+    }
+
+    // 2. Arm the one-shot suppression BEFORE any deletion — this is what
+    //    stops step 7's own _mutate from re-uploading the emptied
+    //    document.
+    ref.read(backupServiceProvider).pauseNextAutomaticBackup();
+
+    // 3. Cancel every scheduled notification — terminal, not a reschedule.
+    await ref.read(notificationSchedulerProvider).cancelAllNotifications();
+
+    // 4. Delete the local files, then the collected photos.
+    await _repo.deleteAllLocalState();
+    await deleteReceipts(photoPaths);
+
+    // 5. Only when asked, delete the Drive file. Capture the outcome
+    //    rather than letting a failure abort the rest.
+    var driveDeleteSucceeded = false;
+    if (deleteDriveBackup) {
+      driveDeleteSucceeded = await ref
+          .read(backupServiceProvider)
+          .deleteRemoteBackup();
+    }
+
+    // 6. Sign out, in its own try/catch — an auth failure here must not
+    //    leave local deletion half-done or abort the final reset below.
+    try {
+      await ref.read(googleAuthServiceProvider).signOut();
+    } catch (e) {
+      _log('deleteAllData: signOut failed: $e');
+    }
+
+    // 7. LAST — reset through the funnel, not a bare `state` assignment.
+    await _mutate((_) => AppData.empty());
+
+    return DeleteAllDataResult(
+      driveDeleteRequested: deleteDriveBackup,
+      driveDeleteSucceeded: driveDeleteSucceeded,
+    );
   }
 
   /// LOG-01…03: records one workshop visit across however many items were

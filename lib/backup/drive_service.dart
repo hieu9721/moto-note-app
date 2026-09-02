@@ -161,4 +161,21 @@ class DriveService {
     final raw = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     return AppData.fromJson(migrateRaw(raw));
   }
+
+  /// SET-03 (P6-D-11): the capability `COVERAGE.md` flips from OPT-OUT to
+  /// INTEGRATE for exactly the delete-all-data flow — `appDataFolder` scope
+  /// (D-22) is sufficient for deleting a file the app itself created, and
+  /// no scope widening is needed or permitted. Follows this file's own
+  /// `_find()`-then-act shape (`upload()`/`download()` above): a missing
+  /// file is the normal state for a user who never enabled Drive backup
+  /// and returns without error, the same honest-no-op idiom every method
+  /// in this class already uses — deliberately NOT a `StateError` the way
+  /// [download]'s missing-file branch throws, since that caller needs to
+  /// distinguish "nothing to restore" as an error state; a delete-all flow
+  /// does not.
+  Future<void> deleteBackupFile() async {
+    final f = await _find();
+    if (f == null) return;
+    await _api.files.delete(f.id!);
+  }
 }

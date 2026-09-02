@@ -43,6 +43,18 @@ abstract class BackupService {
   /// `scheduleDebounced()`) cannot start an unbounded
   /// record-upload-record loop.
   void pauseNextAutomaticBackup();
+
+  /// SET-03 (P6-D-11): deletes the remote backup file, but only when the
+  /// user explicitly opted in via the delete-all-data flow's checkbox —
+  /// the one and only call site is `AppNotifier.deleteAllData`
+  /// (`lib/state/app_state.dart`). Returns whether it succeeded rather
+  /// than throwing, so a Drive failure can never abort the local deletion
+  /// already in progress around it. Uses the silent authorization bridge
+  /// ONLY — see [_silentCycle]'s own comment on why that path is
+  /// structurally incapable of popping a sign-in dialog mid-deletion
+  /// (D-23) — never the interactive [GoogleAuthService.signInAndAuthorize]
+  /// entry point `runManual`/`_manualCycle` legitimately use.
+  Future<bool> deleteRemoteBackup();
 }
 
 /// The closed set P5-D-16 requires — only a value from this enum, mapped to
@@ -92,6 +104,9 @@ class NoopBackupService implements BackupService {
 
   @override
   void pauseNextAutomaticBackup() {}
+
+  @override
+  Future<bool> deleteRemoteBackup() async => false;
 }
 
 class RealBackupService with WidgetsBindingObserver implements BackupService {
@@ -273,6 +288,37 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
   Future<void> _recordResult(BackupOutcome outcome) async {
     pauseNextAutomaticBackup();
     await _ref.read(appProvider.notifier).recordBackupResult(outcome);
+  }
+
+  /// SET-03 (P6-D-11): builds the identical silent-authorization bridge
+  /// [_silentCycle] above already uses — silent only, never
+  /// [GoogleAuthService.signInAndAuthorize] — and calls
+  /// [DriveService.deleteBackupFile]. Returns `false` on a null
+  /// authorization result, on a timeout, or on any caught exception,
+  /// logging through the same [_log] seam every other failure path in this
+  /// class uses; never rethrows, so the caller (`AppNotifier.deleteAllData`)
+  /// can continue its own sequence regardless of the outcome. Deliberately
+  /// does NOT go through [_recordResult]/`recordBackupResult` — this is not
+  /// a backup cycle and must not touch `Settings.lastBackupAt`/
+  /// `lastBackupError`. Builds a FRESH [DriveService] rather than caching
+  /// one across calls, matching [_silentCycle]/[_manualCycle]'s own
+  /// discipline above.
+  @override
+  Future<bool> deleteRemoteBackup() async {
+    try {
+      final authService = _ref.read(googleAuthServiceProvider);
+      final result = await authService.silentAuthorization().timeout(
+        _cycleTimeout,
+      );
+      if (result == null) return false;
+      final client = result.authorization.authClient(scopes: kDriveScopes);
+      final driveService = DriveService(client);
+      await driveService.deleteBackupFile().timeout(_cycleTimeout);
+      return true;
+    } catch (e) {
+      _log('deleteRemoteBackup failed: $e');
+      return false;
+    }
   }
 
   @override

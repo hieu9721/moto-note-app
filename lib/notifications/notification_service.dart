@@ -77,6 +77,14 @@ abstract class NotificationService {
   /// route back once Android has recorded a permanent `POST_NOTIFICATIONS`
   /// denial (P4-D-08) — a plain text line would be a dead end.
   Future<void> openAppNotificationSettings();
+
+  /// SET-03 (P6-D-10): a terminal cancel — stops every scheduled
+  /// notification and plans nothing new. Distinct from [rescheduleAll],
+  /// which also cancels everything at its own top but then re-plans:
+  /// `rescheduleAll` cancels in order to re-plan, this cancels and stops.
+  /// The only call site is the delete-all-data flow
+  /// (`lib/state/app_state.dart`'s `deleteAllData`).
+  Future<void> cancelAllNotifications();
 }
 
 /// Phase 1 placeholder, replaced by [FlutterLocalNotificationService] as the
@@ -111,6 +119,9 @@ class NoopNotificationService implements NotificationService {
 
   @override
   Future<void> openAppNotificationSettings() async {}
+
+  @override
+  Future<void> cancelAllNotifications() async {}
 }
 
 /// The real implementation, wired in by `main.dart` after `hydrate()`. Owns
@@ -160,6 +171,14 @@ class FlutterLocalNotificationService implements NotificationService {
   @override
   Future<void> openAppNotificationSettings() async {
     await _android?.openAppNotificationSettings();
+  }
+
+  @override
+  Future<void> cancelAllNotifications() async {
+    // Exactly the call rescheduleAll already makes at its own top
+    // (notification_service.dart, this file) — reused rather than
+    // duplicated, since it is already proven correct.
+    await _plugin.cancelAll();
   }
 
   @override

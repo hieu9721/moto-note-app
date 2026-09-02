@@ -287,4 +287,27 @@ class AppDataRepository {
       await _preRestoreTmp.delete();
     }
   }
+
+  /// SET-03 (P6-D-10): the delete-all-data flow's local half — every file
+  /// path this class owns, all five `File` getters above (`_target`,
+  /// `_tmp`, `_backup`, `_preRestore`, `_preRestoreTmp`). P6-D-10 names
+  /// only three files by requirement text (the primary, the backup, the
+  /// pre-restore snapshot); this method deletes five, because either `.tmp`
+  /// sibling can hold a complete, decodable copy of the document a
+  /// fraction of a second after a write (§5.1's write-to-temp-then-rename
+  /// sequencing) — leaving one behind would leave the user's data readable
+  /// on disk after they asked for it to be gone. Each deletion is guarded
+  /// by an exists check, the same idiom [deletePreRestoreSnapshot] above
+  /// and `deleteReceipts` (`lib/data/receipt_storage.dart`) already use —
+  /// a missing file is not an error, so calling this against an already-
+  /// empty directory throws nothing. Deliberately does not touch [save],
+  /// [_writeAtomic], [_quarantine] or the [_lastWrite] chain — this is a
+  /// standalone teardown, not a variant of the write path.
+  Future<void> deleteAllLocalState() async {
+    for (final file in [_target, _tmp, _backup, _preRestore, _preRestoreTmp]) {
+      if (await file.exists()) {
+        await file.delete();
+      }
+    }
+  }
 }
