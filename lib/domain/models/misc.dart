@@ -66,6 +66,17 @@ abstract class Settings with _$Settings {
     // in-memory flag would let the prompt re-ask on every cold start, which
     // is the nag prohibition this field exists to prevent.
     @Default(false) bool driveBackupPromptShown,
+    // 06-01 (P6-D-03): the id of the vehicle Trang chủ and the ODO deep link
+    // resolve through, per the single resolver in
+    // `lib/domain/vehicle_selection.dart`. Nullable with no `@Default` —
+    // absence means "no selection recorded yet", which the resolver
+    // normalises at read time by falling back to the first vehicle in
+    // `AppData.vehicles`. Purely additive (D-21): no rename, no delete, so
+    // `kSchemaVersion` stays 1 and `migrations.dart` gains no branch. The id
+    // is a `Vehicle.id`; a value that no longer resolves — after a vehicle
+    // deletion or a Drive restore from another device — is a legal, expected
+    // state, not corruption.
+    String? selectedVehicleId,
   }) = _Settings;
 
   factory Settings.fromJson(Map<String, dynamic> json) =>

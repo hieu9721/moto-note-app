@@ -126,27 +126,24 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test(
-      'mốc tháng hiện tại đã qua -> chỉ còn 5 nhắc ODO trong tương lai '
-      '(CR-01)',
-      () {
-        // now đặt trên đồng hồ giờ địa phương (không phải DateTime.utc) để
-        // cả hai vế của isAfter đều là giờ dân sự cục bộ — kết quả không
-        // phụ thuộc múi giờ máy chạy test (WR-02).
-        final now = DateTime(2026, 8, 29, 12);
-        final data = _appData();
-        final result = planNotifications(data, now: now);
-        expect(result, hasLength(5));
-        for (final p in result) {
-          expect(p.payload, 'odo:v1');
-        }
-        for (final p in result) {
-          expect(p.scheduledAt.isAfter(now), isTrue);
-        }
-        expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
-        expect(result.last.scheduledAt, DateTime(2027, 1, 1, 8));
-      },
-    );
+    test('mốc tháng hiện tại đã qua -> chỉ còn 5 nhắc ODO trong tương lai '
+        '(CR-01)', () {
+      // now đặt trên đồng hồ giờ địa phương (không phải DateTime.utc) để
+      // cả hai vế của isAfter đều là giờ dân sự cục bộ — kết quả không
+      // phụ thuộc múi giờ máy chạy test (WR-02).
+      final now = DateTime(2026, 8, 29, 12);
+      final data = _appData();
+      final result = planNotifications(data, now: now);
+      expect(result, hasLength(5));
+      for (final p in result) {
+        expect(p.payload, 'odo:v1');
+      }
+      for (final p in result) {
+        expect(p.scheduledAt.isAfter(now), isTrue);
+      }
+      expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
+      expect(result.last.scheduledAt, DateTime(2027, 1, 1, 8));
+    });
 
     test(
       'mốc tháng hiện tại chưa tới -> đủ 6 nhắc ODO, kể cả tháng hiện tại',
@@ -163,17 +160,14 @@ void main() {
       },
     );
 
-    test(
-      'now trùng đúng mốc tháng hiện tại -> mốc đó bị loại (strictly-after, '
-      'CR-01, cùng quy tắc với due-item loop)',
-      () {
-        final now = DateTime(2026, 8, 1, 8);
-        final data = _appData();
-        final result = planNotifications(data, now: now);
-        expect(result, hasLength(5));
-        expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
-      },
-    );
+    test('now trùng đúng mốc tháng hiện tại -> mốc đó bị loại (strictly-after, '
+        'CR-01, cùng quy tắc với due-item loop)', () {
+      final now = DateTime(2026, 8, 1, 8);
+      final data = _appData();
+      final result = planNotifications(data, now: now);
+      expect(result, hasLength(5));
+      expect(result.first.scheduledAt, DateTime(2026, 9, 1, 8));
+    });
 
     test('body chứa đúng tên xe kèm dấu tiếng Việt', () {
       final data = _appData(vehicles: [_vehicle(name: 'Vision Hà Nội')]);
@@ -206,6 +200,95 @@ void main() {
       final february = result.firstWhere((p) => p.scheduledAt.month == 2);
       expect(february.scheduledAt.day, 28);
       expect(february.scheduledAt.year, 2027);
+    });
+  });
+
+  // 06-01 (P6-D-04): every vehicle gets its own monthly ODO reminder, named
+  // when there is more than one. `now` reused from the already-established
+  // 'mốc tháng hiện tại chưa tới' fixture above — DateTime(2026, 8, 1, 7)
+  // gives a known, deterministic per-vehicle count of 6 (no strictly-after
+  // filtering kicks in for any of the 6 monthly slots at this `now`).
+  group('odo reminder multi-vehicle (06-01, P6-D-04)', () {
+    test('ba xe, odoReminderEnabled true -> số nhắc ODO gấp 3 lần một xe cùng '
+        'now, đủ 3 payload odo: riêng biệt', () {
+      final now = DateTime(2026, 8, 1, 7);
+      final singleData = _appData(vehicles: [_vehicle(id: 'v1')]);
+      final singleOdo = planNotifications(
+        singleData,
+        now: now,
+      ).where((p) => p.payload.startsWith('odo:')).toList();
+
+      final multiData = _appData(
+        vehicles: [
+          _vehicle(id: 'v1', name: 'Xe 1'),
+          _vehicle(id: 'v2', name: 'Xe 2'),
+          _vehicle(id: 'v3', name: 'Xe 3'),
+        ],
+      );
+      final multiOdo = planNotifications(
+        multiData,
+        now: now,
+      ).where((p) => p.payload.startsWith('odo:')).toList();
+
+      expect(multiOdo.length, singleOdo.length * 3);
+      final payloads = multiOdo.map((p) => p.payload).toSet();
+      expect(payloads, hasLength(3));
+      expect(payloads, containsAll(['odo:v1', 'odo:v2', 'odo:v3']));
+    });
+
+    test('ba xe -> mỗi nhắc ODO chứa đúng tên xe của chính nó, không xe nào '
+        'trùng tiêu đề', () {
+      final now = DateTime(2026, 8, 1, 7);
+      final data = _appData(
+        vehicles: [
+          _vehicle(id: 'v1', name: 'Xe 1'),
+          _vehicle(id: 'v2', name: 'Xe 2'),
+          _vehicle(id: 'v3', name: 'Xe 3'),
+        ],
+      );
+      final odo = planNotifications(
+        data,
+        now: now,
+      ).where((p) => p.payload.startsWith('odo:')).toList();
+      expect(odo, isNotEmpty);
+
+      const namesById = {'v1': 'Xe 1', 'v2': 'Xe 2', 'v3': 'Xe 3'};
+      final titleByVehicle = <String, String>{};
+      for (final p in odo) {
+        final vehicleId = p.payload.split(':')[1];
+        expect(p.title, contains(namesById[vehicleId]!));
+        titleByVehicle[vehicleId] = p.title;
+      }
+      // Ba xe tên khác nhau -> ba tiêu đề khác nhau, không trùng lặp.
+      expect(titleByVehicle.values.toSet(), hasLength(3));
+    });
+
+    test('đúng một xe -> tiêu đề bằng đúng chuỗi Phase 04 đã ship, khớp chuỗi '
+        'literal, không so với const mới', () {
+      final now = DateTime(2026, 8, 1, 7);
+      final data = _appData(
+        vehicles: [_vehicle(id: 'v1', name: 'Xe test')],
+      );
+      final odo = planNotifications(
+        data,
+        now: now,
+      ).where((p) => p.payload == 'odo:v1').toList();
+      expect(odo, isNotEmpty);
+      for (final p in odo) {
+        // So sánh với literal, không phải const mới trong
+        // notification_plan.dart — một sửa đổi tương lai với const đó
+        // không được âm thầm đổi copy đã ship.
+        expect(p.title, 'Cập nhật số km');
+      }
+    });
+
+    test('không xe, odoReminderEnabled true -> không có nhắc ODO, không ném '
+        'lỗi', () {
+      final now = DateTime(2026, 8, 1, 7);
+      final data = _appData(vehicles: const []);
+      expect(() => planNotifications(data, now: now), returnsNormally);
+      final result = planNotifications(data, now: now);
+      expect(result.where((p) => p.payload.startsWith('odo:')), isEmpty);
     });
   });
 
