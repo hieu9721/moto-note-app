@@ -49,6 +49,7 @@ import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
 import '../../domain/notification_plan.dart';
 import '../../domain/odo.dart';
+import '../../domain/vehicle_selection.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
 import '../../state/derived.dart';
@@ -131,14 +132,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (sheetParam != 'odo') return;
     if (_consumedSheetParam) return;
     // The build-time defensive early return below covers the render path;
-    // this callback runs outside `build`, so it needs its own guard against
-    // an empty vehicle list.
+    // this callback runs outside `build`, so it needs its own guard —
+    // 06-01: resolved through `selectedVehicle`, not indexed directly, so
+    // this deep link opens against whichever vehicle is actually selected.
     final data = ref.read(appProvider);
-    if (data.vehicles.isEmpty) return;
+    final vehicle = selectedVehicle(data);
+    if (vehicle == null) return;
     // Set BEFORE opening — an await on `showOdoSheet` here would leave a
     // re-entrancy hole for a callback fired again before the sheet returns.
     _consumedSheetParam = true;
-    showOdoSheet(context, ref, data.vehicles.first);
+    showOdoSheet(context, ref, vehicle);
     // Prefer `replace` so the back gesture does not walk back into the
     // parameterised URL; `go` is an acceptable substitute if `replace`
     // misbehaves inside the StatefulShellRoute branch (untriggered here).
@@ -268,15 +271,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final data = ref.watch(appProvider);
-    if (data.vehicles.isEmpty) {
+    final vehicle = ref.watch(selectedVehicleProvider);
+    if (vehicle == null) {
       // The router's redirect never lets this screen build without a
       // vehicle (HOME-01) — this is a defensive no-op for the one frame
-      // that could theoretically race it, never expected to render.
+      // that could theoretically race it (or the frame between a vehicle
+      // deletion and the router's redirect, 06-01), never expected to
+      // render for long.
       return const Scaffold(body: SizedBox.shrink());
     }
-    // The model is multi-vehicle; SET-01 (Phase 6) owns choosing among
-    // them. This phase always shows the first one.
-    final vehicle = data.vehicles.first;
     final dueItems = ref.watch(dueItemsProvider(vehicle.id));
     final colorScheme = Theme.of(context).colorScheme;
 

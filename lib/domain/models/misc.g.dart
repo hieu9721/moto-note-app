@@ -72,6 +72,7 @@ _Settings _$SettingsFromJson(Map<String, dynamic> json) => _Settings(
       json['notificationPermissionAsked'] as bool? ?? false,
   exactAlarmsEnabled: json['exactAlarmsEnabled'] as bool? ?? false,
   driveBackupPromptShown: json['driveBackupPromptShown'] as bool? ?? false,
+  selectedVehicleId: json['selectedVehicleId'] as String?,
 );
 
 Map<String, dynamic> _$SettingsToJson(_Settings instance) => <String, dynamic>{
@@ -89,4 +90,5 @@ Map<String, dynamic> _$SettingsToJson(_Settings instance) => <String, dynamic>{
   'notificationPermissionAsked': instance.notificationPermissionAsked,
   'exactAlarmsEnabled': instance.exactAlarmsEnabled,
   'driveBackupPromptShown': instance.driveBackupPromptShown,
+  'selectedVehicleId': instance.selectedVehicleId,
 };

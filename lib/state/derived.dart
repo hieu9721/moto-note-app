@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/due.dart';
 import '../domain/models/maintenance_item.dart';
 import '../domain/models/vehicle.dart';
+import '../domain/vehicle_selection.dart';
 import 'app_state.dart';
 
 /// A maintenance item paired with its already-computed due status.
@@ -17,6 +18,15 @@ class DueItem {
 
   const DueItem({required this.item, required this.due});
 }
+
+/// 06-01 (P6-D-01/P6-D-02): the read seam for "the current vehicle" — a
+/// one-line delegation to [selectedVehicle], the single pure resolver. The
+/// decision itself lives in that function so it stays `dart test`-reachable;
+/// this provider exists only to give widgets a watchable seam over it. Do
+/// not duplicate the fallback logic here.
+final selectedVehicleProvider = Provider<Vehicle?>((ref) {
+  return selectedVehicle(ref.watch(appProvider));
+});
 
 /// Danh sách hạng mục của một xe kèm trạng thái, đã sắp theo độ gấp (§5.3).
 final dueItemsProvider = Provider.family<List<DueItem>, String>((
