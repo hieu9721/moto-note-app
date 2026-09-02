@@ -126,17 +126,6 @@ class GoogleAuthService {
     return GoogleAuthResult(authorization: authorization, email: account.email);
   }
 
-  /// Re-derives the live signed-in account rather than trusting a stored
-  /// value — the same "live OS state over stored intent" rule the
-  /// exact-alarm row already follows (T-04-13/P4-D-08). Returns null when
-  /// nobody is currently signed in.
-  Future<String?> currentEmail() async {
-    await _ensureInit();
-    final future = GoogleSignIn.instance.attemptLightweightAuthentication();
-    final account = future == null ? null : await future;
-    return account?.email;
-  }
-
   /// Does not touch Drive — deleting the user's only backup on sign-out is
   /// explicitly rejected (P5-D-13).
   Future<void> signOut() async {

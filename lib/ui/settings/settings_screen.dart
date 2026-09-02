@@ -70,18 +70,10 @@ final _notificationsEnabledProvider = FutureProvider.autoDispose<bool>(
   (ref) => ref.watch(notificationSchedulerProvider).areNotificationsEnabled(),
 );
 
-/// Live-derived signed-in account address, never the stored `googleEmail`
-/// alone — the same "live OS state over stored intent" rule the
-/// exact-alarm row already follows (T-04-13/P4-D-08, BKP-14). Null means
-/// nobody is currently signed in.
-final _backupAccountProvider = FutureProvider.autoDispose<String?>(
-  (ref) => ref.watch(googleAuthServiceProvider).currentEmail(),
-);
-
 /// Backs the "Hoàn tác khôi phục" row's visibility (P5-D-05) — the pre-
 /// restore snapshot file's own modification time, or null when no snapshot
 /// exists. Same `FutureProvider.autoDispose` idiom as
-/// [_canScheduleExactProvider] and [_backupAccountProvider] above; the row
+/// [_canScheduleExactProvider] above; the row
 /// invalidates this itself after a successful (or failed-but-terminal)
 /// undo so the row's visibility reflects the file on disk, never a value
 /// captured once at first build.
@@ -248,8 +240,6 @@ class SettingsScreen extends ConsumerWidget {
                           googleEmail: result!.email,
                         ),
                       );
-                      if (!context.mounted) return;
-                      ref.invalidate(_backupAccountProvider);
                     } catch (_) {
                       // CR-02: a config/SHA-1 mismatch must not strand the
                       // switch mid-flight. Nothing is written on this path
@@ -629,45 +619,45 @@ class _NotificationSoftPromptRowState
   }
 }
 
-/// The "Đăng nhập Google" row (BKP-03/BKP-14) — a `ConsumerStatefulWidget`
-/// in `_ExactAlarmRow`'s exact shape (05-PATTERNS.md). It re-derives the
-/// live signed-in account through `currentEmail()` rather than trusting the
-/// stored `googleEmail` alone (T-04-13/P4-D-08), and re-checks on resume
-/// the same way `_ExactAlarmRow` does — the OS-level grant can be revoked
-/// outside the app at any time.
-class _GoogleAccountRow extends ConsumerStatefulWidget {
+/// The "Đăng nhập Google" row (BKP-03/BKP-14) — a plain `ConsumerWidget`,
+/// deliberately NOT `_ExactAlarmRow`'s observe-and-recheck-on-resume shape.
+///
+/// This row originally live-derived the address through `currentEmail()` ->
+/// `attemptLightweightAuthentication()` and invalidated that on every
+/// `AppLifecycleState.resumed`, following the exact-alarm row's
+/// "live OS state over stored intent" rule (T-04-13/P4-D-08). On a real
+/// device that combination is an unbounded loop (gap G-05-3): despite its
+/// name and its documented contract, `attemptLightweightAuthentication()`
+/// PRESENTS a Google sheet, which pauses this app and resumes it on close,
+/// and that resume re-invalidated the provider which re-opened the sheet.
+/// Measured on SM A066B: zero flows while on Trang chủ, ~18 completed
+/// sign-in flows per 30s with this screen open, input focus flipping
+/// between the app and the GMS window so the whole app read as frozen.
+///
+/// So the address now comes from the stored document. Two of this phase's
+/// own decisions already required that a passive row behave this way:
+/// D-19 (no screen waits on the network) and D-23 (never pop a sign-in
+/// dialog mid-flow) — a row that merely DISPLAYS who is signed in must not
+/// be able to open a Google dialog at all. `googleEmail` is written by the
+/// only two events that can change it, in the same `updateSettings` call
+/// that changes the rest of the state: an explicit sign-in below, and an
+/// explicit sign-out below. Nothing else can desynchronise it in-app.
+///
+/// Accepted trade-off (this is the P4-D-08 liveness being given up here,
+/// and it is bounded): access revoked from the Google account page
+/// out-of-app leaves this row showing the last address until the next
+/// sign-in or sign-out. That state is not silent — it is exactly what
+/// BKP-04's `Lần sao lưu cuối: … · Có lỗi` line in Settings reports, which
+/// is the surface the source document assigns to a revoked grant.
+class _GoogleAccountRow extends ConsumerWidget {
   const _GoogleAccountRow();
 
-  @override
-  ConsumerState<_GoogleAccountRow> createState() => _GoogleAccountRowState();
-}
-
-class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
-    with WidgetsBindingObserver {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.invalidate(_backupAccountProvider);
-    }
-  }
-
-  Future<void> _onTap() async {
-    final signedIn = ref.read(_backupAccountProvider).value != null;
+  Future<void> _onTap(BuildContext context, WidgetRef ref) async {
+    final signedIn =
+        ref.read(appProvider.select((d) => d.settings.googleEmail)) != null;
     if (signedIn) {
       final confirmed = await _confirmGoogleSignOut(context);
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (confirmed != true) return;
       try {
         await ref.read(googleAuthServiceProvider).signOut();
@@ -676,13 +666,13 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
         // driveBackupEnabled EXACTLY as they were — the updateSettings
         // call below that clears them must NOT run, or the app would
         // claim signed-out while the platform still holds the account.
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text(_googleSignOutFailureMessage)),
         );
         return;
       }
-      if (!mounted) return;
+      if (!context.mounted) return;
       // One updateSettings call clearing googleEmail and disabling
       // driveBackupEnabled together — no intermediate state exists where
       // the app believes automatic backup is on with no account, and the
@@ -697,23 +687,19 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
           .updateSettings(
             (s) => s.copyWith(googleEmail: null, driveBackupEnabled: false),
           );
-      if (!mounted) return;
-      ref.invalidate(_backupAccountProvider);
       return;
     }
     try {
       final result = await ref
           .read(googleAuthServiceProvider)
           .signInAndAuthorize();
-      if (!mounted) return;
+      if (!context.mounted) return;
       if (result == null) return; // user cancelled — nothing to persist.
       await ref
           .read(appProvider.notifier)
           .updateSettings((s) => s.copyWith(googleEmail: result.email));
-      if (!mounted) return;
-      ref.invalidate(_backupAccountProvider);
     } catch (_) {
-      if (!mounted) return;
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text(_googleSignInFailureMessage)),
       );
@@ -721,12 +707,12 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final email = ref.watch(_backupAccountProvider).value;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final email = ref.watch(appProvider.select((d) => d.settings.googleEmail));
     return ListTile(
       title: const Text('Đăng nhập Google'),
       subtitle: Text(email ?? 'Chưa đăng nhập'), // [NEW, PROVISIONAL]
-      onTap: _onTap,
+      onTap: () => _onTap(context, ref),
     );
   }
 }
@@ -736,7 +722,7 @@ class _GoogleAccountRowState extends ConsumerState<_GoogleAccountRow>
 /// invented, `[NEW, PROVISIONAL]`, recorded verbatim in `05-01-SUMMARY.md`.
 /// Follows `odometer_confirm_dialog.dart`'s one-function-per-confirmation
 /// shape even though this confirmation has a single caller today —
-/// `_GoogleAccountRowState._onTap`.
+/// `_GoogleAccountRow._onTap`.
 Future<bool?> _confirmGoogleSignOut(BuildContext context) {
   return showDialog<bool>(
     context: context,
