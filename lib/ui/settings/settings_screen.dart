@@ -28,6 +28,7 @@ import '../../state/app_state.dart';
 import '../../state/derived.dart';
 import '../backup/restore_sheet.dart';
 import '../notifications/battery_hint_sheet.dart';
+import 'delete_all_data_dialog.dart';
 
 /// Bounded set of day counts for "Số ngày báo trước" (T-04-15) — a fixed
 /// picker rather than free text, so an out-of-range value can never reach
@@ -562,6 +563,34 @@ class SettingsScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 12, color: onSurfaceVariant),
                   ),
                   onTap: () => context.push('/settings/items'),
+                ),
+              ],
+            ),
+            _SettingsGroup(
+              // Phase 6 (SET-03, P6-D-10…13): the delete-all-data flow.
+              // MUST stay the last group in the list — the danger zone is
+              // deliberately at the very bottom, after every other group.
+              title: 'Vùng nguy hiểm',
+              showComingSoonCaption: false,
+              rows: [
+                ListTile(
+                  leading: Icon(
+                    Icons.delete_forever,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  // The one place in Settings a row is error-tinted at
+                  // rest, not only inside its dialog (Color table's named
+                  // exception) — SET-03 is store-mandated and deserves
+                  // visible weight without a tap to discover its severity.
+                  // The row background itself stays colorScheme.surface —
+                  // only the icon and label are tinted.
+                  title: Text(
+                    'Xoá tất cả dữ liệu',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  onTap: () => showDeleteAllDataFlow(context, ref),
                 ),
               ],
             ),
