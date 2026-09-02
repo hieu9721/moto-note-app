@@ -327,3 +327,34 @@ place instead of replicated pairwise (as `_maybeShowDriveBackupPrompt`'s read of
 
 **Natural moment to do it:** Phase 6 polish, or the next time a fourth one-shot effect needs to be
 added to this same hook.
+
+---
+
+## From Phase 06 — Polish & Play Store Release
+
+### BL-13 — the "không nhớ" baseline rule is written twice: `buildSelectedItems` and `seedMaintenanceItem`
+
+**Raised:** 2026-09-02, by `06-06-PLAN.md`'s own task 1 instruction ("Do not refactor
+`buildSelectedItems` to call this function in this plan... Note the duplication in the SUMMARY and
+file it to `BACKLOG.md`.").
+
+`lib/state/onboarding_draft.dart`'s `buildSelectedItems` and the new `lib/domain/item_seed.dart`'s
+`seedMaintenanceItem` both implement §6.1's "không nhớ" default (`lastServiceDate = now`,
+`lastServiceOdo = vehicle.currentOdoKm`, `baselineIsGuess = true`, intervals from the catalog entry)
+— one baseline rule, two independent Dart implementations, each of which could drift from the other
+under a future edit.
+
+**Why deferred:** `buildSelectedItems` also carries onboarding's CAT-03 oil-preset branch and its
+§6.1 day-offset arithmetic, both UAT'd, shipped behaviour from Phase 2. Folding the two together in
+06-06 would be a change to shipped onboarding for no requirement this phase asks for — 06-06 needed
+only the plain, no-offset baseline for a catalog entry enabled after onboarding, not the full
+onboarding commit path.
+
+**What promoting it looks like:** extract the shared "không nhớ" baseline fields (the four listed
+above) into `seedMaintenanceItem`, then have `buildSelectedItems` call it for its own default case
+and layer CAT-03's oil-preset override and the §6.1 day-offset arithmetic on top for `engine_oil`
+alone — the same "shared base, oil is the one override" shape `seedMaintenanceItem`'s own doc comment
+already assumes.
+
+**Natural moment to do it:** the next time either function is touched for an unrelated reason, or a
+future onboarding/catalog refactor.

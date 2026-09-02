@@ -125,7 +125,7 @@ cross-platform; only the release and verification surface is Android-only.
 
 ### Settings
 
-- [ ] **SET-01**: Settings manages vehicles and maintenance items, allows every `intervalKm` and `intervalMonths` to be edited, and the interval screen states that the defaults are general recommendations for urban use and that the manufacturer's manual for the specific model is more accurate. *(§13 Tuần 6–7, §8.3, Appendix A, §15 R9)*
+- [x] **SET-01**: Settings manages vehicles and maintenance items, allows every `intervalKm` and `intervalMonths` to be edited, and the interval screen states that the defaults are general recommendations for urban use and that the manufacturer's manual for the specific model is more accurate. *(§13 Tuần 6–7, §8.3, Appendix A, §15 R9)*
 - [ ] **SET-02**: Settings exposes `notificationsEnabled`, `odoReminderEnabled`, `odoReminderDayOfMonth` (1–28), `notifyHour` (0–23) and `leadDays`. *(§4.2, §10)*
 - [ ] **SET-03**: Settings has an in-app button that deletes all app data. *(Appendix B Store — mandatory on the store)*
 
@@ -260,7 +260,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | BKP-13 | Phase 5 | Pending |
 | BKP-14 | Phase 5 | Complete |
 | BKP-15 | Phase 5 | Pending |
-| SET-01 | Phase 6 | Pending |
+| SET-01 | Phase 6 | Complete |
 | SET-02 | Phase 6 | Pending |
 | SET-03 | Phase 6 | Pending |
 | REL-01 | Phase 6 | Pending |
