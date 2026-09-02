@@ -41,6 +41,7 @@ import 'home/home_screen.dart';
 import 'item/item_detail_screen.dart';
 import 'notes/note_editor_screen.dart';
 import 'notes/notes_screen.dart';
+import 'onboarding/onboarding_flow.dart';
 import 'onboarding/welcome_screen.dart';
 import 'settings/settings_screen.dart';
 
@@ -76,6 +77,16 @@ GoRouter buildRouter({
         return state.matchedLocation == '/data-issue' ? null : '/data-issue';
       }
       final hasVehicle = container.read(appProvider).vehicles.isNotEmpty;
+      // P6-D-24: this MUST stay an exact `==` comparison, never a prefix or
+      // `startsWith` test. `/onboarding/add-vehicle` (below) is a second,
+      // distinct top-level route reached by an explicit `push`, not by this
+      // redirect — widening this comparison to match it would silently
+      // bounce add-vehicle mode back to `/` on every redirect re-run, with
+      // no compile error and no test failure. If the vehicle list empties
+      // while `/onboarding/add-vehicle` is on the stack, the
+      // `!hasVehicle && !atOnboarding` clause below correctly sends the user
+      // to `/onboarding` instead — with no vehicles at all, first-run
+      // onboarding is the right destination, not a routing bug.
       final atOnboarding = state.matchedLocation == '/onboarding';
       final atDataIssue = state.matchedLocation == '/data-issue';
       if (!hasVehicle && !atOnboarding) return '/onboarding';
@@ -91,6 +102,18 @@ GoRouter buildRouter({
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const WelcomeScreen(),
+      ),
+      // P6-D-24: a second top-level route, not a query parameter on
+      // `/onboarding`. The redirect's `atOnboarding` test above is already
+      // an exact `==` comparison, so this distinct path segment is exempt
+      // from it by construction — no change to the redirect condition was
+      // needed. Renders `OnboardingFlow` directly, skipping `WelcomeScreen`:
+      // a user adding a second bike has no use for the "Khôi phục từ Google
+      // Drive" / "Bắt đầu mới" fork that first-run onboarding offers.
+      GoRoute(
+        path: '/onboarding/add-vehicle',
+        builder: (context, state) =>
+            const OnboardingFlow(isAddingVehicle: true),
       ),
       GoRoute(
         path: '/data-issue',
