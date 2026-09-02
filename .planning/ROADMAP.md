@@ -258,7 +258,7 @@ Plans:
   3. After ~1 month of real use on the developer's own bike, notifications fired on the expected dates, ODO estimation error stayed within the documented threshold, and no scheduled work was killed by OEM battery optimisation.
   4. MotoNote 1.0 passes Play Store review and is live, with the Appendix B Google Cloud/OAuth and Android checklists complete and a public privacy policy published.
 
-**Plans**: 1/11 plans executed
+**Plans**: 4/11 plans executed
 
 Plans:
 
@@ -268,9 +268,9 @@ Plans:
 
 **Wave 2** *(no `files_modified` overlap between the three — they run in parallel)*
 
-- [ ] 06-02-PLAN.md — Vehicle lifecycle: the deletion cascade as a pure function, add-vehicle re-entry of onboarding, and the `/onboarding/add-vehicle` route (wave 2)
-- [ ] 06-03-PLAN.md — Shared `EmptyState`/`ErrorState`, with the notes and item-detail empty states refactored onto them as proof they are wired (wave 2)
-- [ ] 06-04-PLAN.md — Housekeeping: `BACKLOG.md` to the repo root (REL-10), the broken-windows ledger repaired so `windows status` runs at all, `CLAUDE.md` corrected (wave 2)
+- [x] 06-02-PLAN.md — Vehicle lifecycle: the deletion cascade as a pure function, add-vehicle re-entry of onboarding, and the `/onboarding/add-vehicle` route (wave 2)
+- [x] 06-03-PLAN.md — Shared `EmptyState`/`ErrorState`, with the notes and item-detail empty states refactored onto them as proof they are wired (wave 2)
+- [x] 06-04-PLAN.md — Housekeeping: `BACKLOG.md` to the repo root (REL-10), the broken-windows ledger repaired so `windows status` runs at all, `CLAUDE.md` corrected (wave 2)
 
 **Wave 3**
 
@@ -312,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
 | 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
-| 6. Polish & Play Store Release | 1/11 | In Progress|  |
+| 6. Polish & Play Store Release | 4/11 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-28 from the ingest of motonote-v3-flutter.md*
