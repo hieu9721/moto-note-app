@@ -1,0 +1,18 @@
+# android/key.properties.example — template for the release-signing config
+# read by android/app/build.gradle.kts.
+#
+# Copy this file to android/key.properties (already gitignored — see
+# .gitignore lines 18-20, verified this session) and fill in the real
+# values from the upload keystore you generate with:
+#
+#   keytool -genkeypair -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# Losing this keystore means this app's Play Store listing can NEVER be
+# updated again under the same key — back the .jks file up somewhere
+# outside this repository. Never commit android/key.properties or the
+# .jks file; neither belongs in git history or in an agent transcript.
+
+storePassword=
+keyPassword=
+keyAlias=upload
+storeFile=upload-keystore.jks
