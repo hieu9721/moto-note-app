@@ -17,11 +17,7 @@ import 'package:flutter/material.dart';
 import '../../state/onboarding_draft.dart';
 
 class Step6LastOil extends StatelessWidget {
-  const Step6LastOil({
-    super.key,
-    required this.draft,
-    required this.onChanged,
-  });
+  const Step6LastOil({super.key, required this.draft, required this.onChanged});
 
   final OnboardingDraft draft;
   final VoidCallback onChanged;

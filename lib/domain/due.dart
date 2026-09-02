@@ -178,10 +178,10 @@ DueResult? computeDue(
   final status = daysLeft < 0
       ? DueStatus.overdue
       : daysLeft == 0
-          ? DueStatus.dueToday
-          : (daysLeft <= leadDays || progress >= 0.9)
-              ? DueStatus.dueSoon
-              : DueStatus.ok;
+      ? DueStatus.dueToday
+      : (daysLeft <= leadDays || progress >= 0.9)
+      ? DueStatus.dueSoon
+      : DueStatus.ok;
 
   return DueResult(
     status: status,

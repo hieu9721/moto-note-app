@@ -240,10 +240,7 @@ class AppDataRepository {
   /// added to the document for it, because that metadata is device-local
   /// and must never travel to Drive.
   Future<void> writePreRestoreSnapshot(AppData data) async {
-    await _preRestoreTmp.writeAsString(
-      jsonEncode(data.toJson()),
-      flush: true,
-    );
+    await _preRestoreTmp.writeAsString(jsonEncode(data.toJson()), flush: true);
     await _preRestoreTmp.rename(_preRestore.path);
   }
 

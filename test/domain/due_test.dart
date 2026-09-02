@@ -75,7 +75,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNotNull);
       expect(result!.drivenBy, equals(DrivenBy.time));
@@ -107,7 +112,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNotNull);
       expect(result!.status, equals(DueStatus.overdue));
@@ -131,10 +141,16 @@ void main() {
         name: 'Nhớt máy',
         intervalKm: 2000,
         lastServiceOdo: 4000,
-        baselineIsGuess: false, // chỉ ODO cũ là nguyên nhân, không phải mốc giả định
+        baselineIsGuess:
+            false, // chỉ ODO cũ là nguyên nhân, không phải mốc giả định
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNotNull);
       expect(result!.isEstimate, isTrue);
@@ -164,7 +180,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNull);
     });
@@ -189,7 +210,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       // §9.3's guard floors avgDailyKm at 0.5 when <= 0 — proving it FIRES,
       // not merely trusting it's written: a NaN/Infinity progress would
@@ -284,7 +310,10 @@ void main() {
         intervalMonths: 3,
         baselineIsGuess: false,
       );
-      expect(computeDue(bothNull, vehicle, 7, now: DateTime.utc(2026, 8, 29)), isNull);
+      expect(
+        computeDue(bothNull, vehicle, 7, now: DateTime.utc(2026, 8, 29)),
+        isNull,
+      );
 
       // Guard là "cả hai đều null" (AND), không phải "một trong hai null"
       // (OR) — một hạng mục có MỘT mốc vẫn phải tính được, nếu không sẽ
@@ -338,7 +367,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNotNull);
       expect(result!.daysLeft, equals(0));
@@ -367,7 +401,12 @@ void main() {
         lastServiceOdo: 4940,
         baselineIsGuess: false,
       );
-      final resultA = computeDue(itemA, vehicleA, 7, now: DateTime.utc(2026, 8, 29));
+      final resultA = computeDue(
+        itemA,
+        vehicleA,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(resultA, isNotNull);
       expect(resultA!.daysLeft, lessThanOrEqualTo(7));
       expect(resultA.progress, lessThan(0.9));
@@ -394,7 +433,12 @@ void main() {
         lastServiceOdo: 5800,
         baselineIsGuess: false,
       );
-      final resultB = computeDue(itemB, vehicleB, 7, now: DateTime.utc(2026, 8, 29));
+      final resultB = computeDue(
+        itemB,
+        vehicleB,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(resultB, isNotNull);
       expect(resultB!.daysLeft, greaterThan(7));
       expect(resultB.progress, greaterThanOrEqualTo(0.9));
@@ -421,7 +465,12 @@ void main() {
         baselineIsGuess: false,
       );
 
-      final result = computeDue(item, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final result = computeDue(
+        item,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
 
       expect(result, isNotNull);
       expect(result!.daysLeft, greaterThan(7));
@@ -457,7 +506,12 @@ void main() {
         lastServiceDate: lastServiceDate,
         baselineIsGuess: false,
       );
-      final tieResult = computeDue(tieItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final tieResult = computeDue(
+        tieItem,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(tieResult, isNotNull);
       expect(tieResult!.drivenBy, equals(DrivenBy.time));
 
@@ -471,8 +525,12 @@ void main() {
         lastServiceDate: lastServiceDate,
         baselineIsGuess: false,
       );
-      final timeOnlyResult =
-          computeDue(timeOnlyItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final timeOnlyResult = computeDue(
+        timeOnlyItem,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(timeOnlyResult, isNotNull);
       expect(timeOnlyResult!.drivenBy, equals(DrivenBy.time));
       expect(timeOnlyResult.kmLeft, isNull);
@@ -487,7 +545,12 @@ void main() {
         lastServiceOdo: 5000,
         baselineIsGuess: false,
       );
-      final kmOnlyResult = computeDue(kmOnlyItem, vehicle, 7, now: DateTime.utc(2026, 8, 29));
+      final kmOnlyResult = computeDue(
+        kmOnlyItem,
+        vehicle,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(kmOnlyResult, isNotNull);
       expect(kmOnlyResult!.drivenBy, equals(DrivenBy.km));
     });
@@ -522,8 +585,12 @@ void main() {
         lastServiceOdo: 4000,
         baselineIsGuess: true,
       );
-      final resultGuess =
-          computeDue(itemGuess, vehicleGuess, 7, now: DateTime.utc(2026, 8, 29));
+      final resultGuess = computeDue(
+        itemGuess,
+        vehicleGuess,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(resultGuess, isNotNull);
       expect(resultGuess!.isEstimate, isTrue);
       expect(resultGuess.baselineIsGuess, isTrue);
@@ -549,7 +616,12 @@ void main() {
         lastServiceOdo: 4000,
         baselineIsGuess: false,
       );
-      final result45 = computeDue(item45, vehicle45, 7, now: DateTime.utc(2026, 8, 29));
+      final result45 = computeDue(
+        item45,
+        vehicle45,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(result45, isNotNull);
       expect(result45!.isEstimate, isFalse);
       expect(result45.odoIsStale, isFalse);
@@ -573,7 +645,12 @@ void main() {
         lastServiceOdo: 4000,
         baselineIsGuess: false,
       );
-      final result46 = computeDue(item46, vehicle46, 7, now: DateTime.utc(2026, 8, 29));
+      final result46 = computeDue(
+        item46,
+        vehicle46,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(result46, isNotNull);
       expect(result46!.isEstimate, isTrue);
       expect(result46.odoIsStale, isTrue);
@@ -601,8 +678,12 @@ void main() {
         lastServiceOdo: 4000,
         baselineIsGuess: true,
       );
-      final resultBoth =
-          computeDue(itemBoth, vehicleBoth, 7, now: DateTime.utc(2026, 8, 29));
+      final resultBoth = computeDue(
+        itemBoth,
+        vehicleBoth,
+        7,
+        now: DateTime.utc(2026, 8, 29),
+      );
       expect(resultBoth, isNotNull);
       expect(resultBoth!.baselineIsGuess, isTrue);
       expect(resultBoth.odoIsStale, isTrue);
@@ -694,14 +775,14 @@ void main() {
     // near a month end hit it.
     test('mốc cuối tháng không trôi sang tháng sau', () {
       Vehicle vehicleWith(DateTime created) => Vehicle(
-            id: 'vme',
-            name: 'Xe test',
-            type: VehicleType.scooter,
-            currentOdoKm: 10000,
-            odoUpdatedAt: created,
-            avgDailyKm: 20,
-            createdAt: created,
-          );
+        id: 'vme',
+        name: 'Xe test',
+        type: VehicleType.scooter,
+        currentOdoKm: 10000,
+        odoUpdatedAt: created,
+        avgDailyKm: 20,
+        createdAt: created,
+      );
 
       // Each case: baseline date, interval in months, expected due date.
       // The expectation is always the LAST valid day of the target month when
@@ -742,7 +823,8 @@ void main() {
         expect(
           _dateOf(result!.dueDate),
           equals(_dateOf(expected)),
-          reason: '${baseline.toIso8601String().substring(0, 10)} + $months '
+          reason:
+              '${baseline.toIso8601String().substring(0, 10)} + $months '
               'tháng phải đến hạn ${expected.toIso8601String().substring(0, 10)}',
         );
       }

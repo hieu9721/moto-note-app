@@ -63,7 +63,7 @@ class BackupInfo {
 
 class DriveService {
   DriveService(http.Client authenticatedClient)
-      : _api = drive.DriveApi(authenticatedClient);
+    : _api = drive.DriveApi(authenticatedClient);
 
   final drive.DriveApi _api;
 
@@ -153,12 +153,10 @@ class DriveService {
     if (f == null) {
       throw StateError('no backup file found in appDataFolder');
     }
-    final media =
-        await _api.files.get(
-              f.id!,
-              downloadOptions: drive.DownloadOptions.fullMedia,
-            )
-            as drive.Media;
+    final media = await _api.files.get(
+      f.id!,
+      downloadOptions: drive.DownloadOptions.fullMedia,
+    ) as drive.Media;
     final bytes = await media.stream.expand((chunk) => chunk).toList();
     final raw = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
     return AppData.fromJson(migrateRaw(raw));

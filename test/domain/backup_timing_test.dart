@@ -58,9 +58,7 @@ void main() {
     });
 
     test('59 phút 59 giây trước là "59 phút trước"', () {
-      final then = now.subtract(
-        const Duration(minutes: 59, seconds: 59),
-      );
+      final then = now.subtract(const Duration(minutes: 59, seconds: 59));
       expect(relativeVi(then, now: now), equals('59 phút trước'));
     });
 
@@ -70,9 +68,7 @@ void main() {
     });
 
     test('23 giờ 59 phút trước không bị làm tròn xuống 0 ngày', () {
-      final then = now.subtract(
-        const Duration(hours: 23, minutes: 59),
-      );
+      final then = now.subtract(const Duration(hours: 23, minutes: 59));
       expect(relativeVi(then, now: now), equals('23 giờ trước'));
     });
 
@@ -82,9 +78,7 @@ void main() {
     });
 
     test('47 giờ 59 phút trước vẫn là "1 ngày trước"', () {
-      final then = now.subtract(
-        const Duration(hours: 47, minutes: 59),
-      );
+      final then = now.subtract(const Duration(hours: 47, minutes: 59));
       expect(relativeVi(then, now: now), equals('1 ngày trước'));
     });
 
@@ -103,10 +97,7 @@ void main() {
     final t = DateTime.utc(2026, 9, 1, 12, 0, 0);
 
     test('hai mốc bằng nhau — cùng một bản, không phải bản cũ hơn', () {
-      expect(
-        driveCopyIsOlder(driveModifiedAt: t, localUpdatedAt: t),
-        isFalse,
-      );
+      expect(driveCopyIsOlder(driveModifiedAt: t, localUpdatedAt: t), isFalse);
     });
 
     test('máy mới hơn Drive 1 phút vẫn nằm trong biên đồng hồ', () {
@@ -139,15 +130,18 @@ void main() {
       );
     });
 
-    test('bản trên Drive mới hơn máy 5 ngày thì không bao giờ tính là cũ hơn', () {
-      expect(
-        driveCopyIsOlder(
-          driveModifiedAt: t,
-          localUpdatedAt: t.subtract(const Duration(days: 5)),
-        ),
-        isFalse,
-      );
-    });
+    test(
+      'bản trên Drive mới hơn máy 5 ngày thì không bao giờ tính là cũ hơn',
+      () {
+        expect(
+          driveCopyIsOlder(
+            driveModifiedAt: t,
+            localUpdatedAt: t.subtract(const Duration(days: 5)),
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('bản trên Drive cũ hơn máy 30 ngày thì tính là cũ hơn', () {
       expect(
@@ -170,12 +164,15 @@ void main() {
       );
     });
 
-    test('snapshot đúng 7 ngày trước vẫn còn trong hạn — biên bao gồm điểm này', () {
-      expect(
-        canUndoRestore(now.subtract(const Duration(days: 7)), now: now),
-        isTrue,
-      );
-    });
+    test(
+      'snapshot đúng 7 ngày trước vẫn còn trong hạn — biên bao gồm điểm này',
+      () {
+        expect(
+          canUndoRestore(now.subtract(const Duration(days: 7)), now: now),
+          isTrue,
+        );
+      },
+    );
 
     test('snapshot 7 ngày 1 giây trước thì đã hết hạn', () {
       expect(
@@ -187,11 +184,14 @@ void main() {
       );
     });
 
-    test('mốc snapshot ở tương lai (đồng hồ máy vừa chỉnh) vẫn coi là gần đây', () {
-      expect(
-        canUndoRestore(now.add(const Duration(hours: 1)), now: now),
-        isTrue,
-      );
-    });
+    test(
+      'mốc snapshot ở tương lai (đồng hồ máy vừa chỉnh) vẫn coi là gần đây',
+      () {
+        expect(
+          canUndoRestore(now.add(const Duration(hours: 1)), now: now),
+          isTrue,
+        );
+      },
+    );
   });
 }

@@ -1047,30 +1047,27 @@ void main() {
   });
 
   group('pre-restore snapshot', () {
-    test(
-      'writePreRestoreSnapshot creates appdata.pre-restore.json and leaves '
-      'appdata.json/appdata.backup.json byte-identical',
-      () async {
-        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
-        final second = AppData.empty().copyWith(deviceLabel: 'second-save');
-        await repo.save(first);
-        await repo.save(second);
+    test('writePreRestoreSnapshot creates appdata.pre-restore.json and leaves '
+        'appdata.json/appdata.backup.json byte-identical', () async {
+      final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+      final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+      await repo.save(first);
+      await repo.save(second);
 
-        final primary = File('${tempDir.path}/appdata.json');
-        final backup = File('${tempDir.path}/appdata.backup.json');
-        final primaryBefore = await primary.readAsBytes();
-        final backupBefore = await backup.readAsBytes();
+      final primary = File('${tempDir.path}/appdata.json');
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      final primaryBefore = await primary.readAsBytes();
+      final backupBefore = await backup.readAsBytes();
 
-        await repo.writePreRestoreSnapshot(
-          AppData.empty().copyWith(deviceLabel: 'snapshot'),
-        );
+      await repo.writePreRestoreSnapshot(
+        AppData.empty().copyWith(deviceLabel: 'snapshot'),
+      );
 
-        final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
-        expect(await snapshot.exists(), isTrue);
-        expect(await primary.readAsBytes(), equals(primaryBefore));
-        expect(await backup.readAsBytes(), equals(backupBefore));
-      },
-    );
+      final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
+      expect(await snapshot.exists(), isTrue);
+      expect(await primary.readAsBytes(), equals(primaryBefore));
+      expect(await backup.readAsBytes(), equals(backupBefore));
+    });
 
     test(
       'writePreRestoreSnapshot leaves no appdata.pre-restore.json.tmp behind',
@@ -1082,34 +1079,28 @@ void main() {
       },
     );
 
-    test(
-      'a second snapshot write replaces the first content and moves the '
-      "file's modification time forward (P5-D-07)",
-      () async {
-        await repo.writePreRestoreSnapshot(
-          AppData.empty().copyWith(deviceLabel: 'first-snapshot'),
-        );
-        final firstMtime = await repo.preRestoreSnapshotModifiedAt();
+    test('a second snapshot write replaces the first content and moves the '
+        "file's modification time forward (P5-D-07)", () async {
+      await repo.writePreRestoreSnapshot(
+        AppData.empty().copyWith(deviceLabel: 'first-snapshot'),
+      );
+      final firstMtime = await repo.preRestoreSnapshotModifiedAt();
 
-        await Future<void>.delayed(const Duration(milliseconds: 1100));
-        await repo.writePreRestoreSnapshot(
-          AppData.empty().copyWith(deviceLabel: 'second-snapshot'),
-        );
-        final secondMtime = await repo.preRestoreSnapshotModifiedAt();
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      await repo.writePreRestoreSnapshot(
+        AppData.empty().copyWith(deviceLabel: 'second-snapshot'),
+      );
+      final secondMtime = await repo.preRestoreSnapshotModifiedAt();
 
-        final loaded = await repo.readPreRestoreSnapshot();
-        expect(loaded!.deviceLabel, equals('second-snapshot'));
-        expect(secondMtime!.isAfter(firstMtime!), isTrue);
-      },
-    );
+      final loaded = await repo.readPreRestoreSnapshot();
+      expect(loaded!.deviceLabel, equals('second-snapshot'));
+      expect(secondMtime!.isAfter(firstMtime!), isTrue);
+    });
 
-    test(
-      'preRestoreSnapshotModifiedAt returns null when no snapshot file '
-      'exists, and does not throw',
-      () async {
-        expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
-      },
-    );
+    test('preRestoreSnapshotModifiedAt returns null when no snapshot file '
+        'exists, and does not throw', () async {
+      expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
+    });
 
     test(
       'readPreRestoreSnapshot returns null when no snapshot file exists',
@@ -1118,104 +1109,89 @@ void main() {
       },
     );
 
-    test(
-      'readPreRestoreSnapshot round-trips a written document with no field '
-      'lost',
-      () async {
-        final note = Note(
-          id: 'a',
-          title: 'Thay nhớt',
-          body: 'Đã thay nhớt Motul 5100 10W-40',
-          pinned: true,
-          createdAt: DateTime(2026, 1, 1),
-          updatedAt: DateTime(2026, 1, 1),
-        );
-        final original = AppData.empty().copyWith(notes: [note]);
+    test('readPreRestoreSnapshot round-trips a written document with no field '
+        'lost', () async {
+      final note = Note(
+        id: 'a',
+        title: 'Thay nhớt',
+        body: 'Đã thay nhớt Motul 5100 10W-40',
+        pinned: true,
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      );
+      final original = AppData.empty().copyWith(notes: [note]);
 
-        await repo.writePreRestoreSnapshot(original);
-        final loaded = await repo.readPreRestoreSnapshot();
+      await repo.writePreRestoreSnapshot(original);
+      final loaded = await repo.readPreRestoreSnapshot();
 
-        expect(loaded, equals(original));
-      },
-    );
+      expect(loaded, equals(original));
+    });
 
-    test(
-      'a snapshot stamped with a future schemaVersion throws '
-      'SchemaTooNewException rather than returning a partially-parsed '
-      'document',
-      () async {
-        final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
-        await snapshot.writeAsString(
-          jsonEncode({
-            'schemaVersion': 2,
-            'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
-            'settings': <String, dynamic>{},
-          }),
-        );
+    test('a snapshot stamped with a future schemaVersion throws '
+        'SchemaTooNewException rather than returning a partially-parsed '
+        'document', () async {
+      final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
+      await snapshot.writeAsString(
+        jsonEncode({
+          'schemaVersion': 2,
+          'updatedAt': DateTime(2026, 1, 1).toIso8601String(),
+          'settings': <String, dynamic>{},
+        }),
+      );
 
-        expect(
-          () => repo.readPreRestoreSnapshot(),
-          throwsA(isA<SchemaTooNewException>()),
-        );
-      },
-    );
+      expect(
+        () => repo.readPreRestoreSnapshot(),
+        throwsA(isA<SchemaTooNewException>()),
+      );
+    });
 
-    test(
-      'deletePreRestoreSnapshot removes an existing snapshot and leaves '
-      'appdata.json/appdata.backup.json byte-identical',
-      () async {
-        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
-        final second = AppData.empty().copyWith(deviceLabel: 'second-save');
-        await repo.save(first);
-        await repo.save(second);
-        await repo.writePreRestoreSnapshot(
-          AppData.empty().copyWith(deviceLabel: 'snapshot'),
-        );
+    test('deletePreRestoreSnapshot removes an existing snapshot and leaves '
+        'appdata.json/appdata.backup.json byte-identical', () async {
+      final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+      final second = AppData.empty().copyWith(deviceLabel: 'second-save');
+      await repo.save(first);
+      await repo.save(second);
+      await repo.writePreRestoreSnapshot(
+        AppData.empty().copyWith(deviceLabel: 'snapshot'),
+      );
 
-        final primary = File('${tempDir.path}/appdata.json');
-        final backup = File('${tempDir.path}/appdata.backup.json');
-        final primaryBefore = await primary.readAsBytes();
-        final backupBefore = await backup.readAsBytes();
+      final primary = File('${tempDir.path}/appdata.json');
+      final backup = File('${tempDir.path}/appdata.backup.json');
+      final primaryBefore = await primary.readAsBytes();
+      final backupBefore = await backup.readAsBytes();
 
-        await repo.deletePreRestoreSnapshot();
+      await repo.deletePreRestoreSnapshot();
 
-        final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
-        expect(await snapshot.exists(), isFalse);
-        expect(await primary.readAsBytes(), equals(primaryBefore));
-        expect(await backup.readAsBytes(), equals(backupBefore));
-      },
-    );
+      final snapshot = File('${tempDir.path}/appdata.pre-restore.json');
+      expect(await snapshot.exists(), isFalse);
+      expect(await primary.readAsBytes(), equals(primaryBefore));
+      expect(await backup.readAsBytes(), equals(backupBefore));
+    });
 
-    test(
-      'deletePreRestoreSnapshot when no snapshot exists throws nothing and '
-      'leaves the directory otherwise unchanged',
-      () async {
-        final first = AppData.empty().copyWith(deviceLabel: 'first-save');
-        await repo.save(first);
+    test('deletePreRestoreSnapshot when no snapshot exists throws nothing and '
+        'leaves the directory otherwise unchanged', () async {
+      final first = AppData.empty().copyWith(deviceLabel: 'first-save');
+      await repo.save(first);
 
-        final entriesBefore = (await tempDir.list().toList())
-            .map((e) => e.path)
-            .toSet();
+      final entriesBefore = (await tempDir.list().toList())
+          .map((e) => e.path)
+          .toSet();
 
-        await repo.deletePreRestoreSnapshot();
+      await repo.deletePreRestoreSnapshot();
 
-        final entriesAfter = (await tempDir.list().toList())
-            .map((e) => e.path)
-            .toSet();
-        expect(entriesAfter, equals(entriesBefore));
-      },
-    );
+      final entriesAfter = (await tempDir.list().toList())
+          .map((e) => e.path)
+          .toSet();
+      expect(entriesAfter, equals(entriesBefore));
+    });
 
-    test(
-      'preRestoreSnapshotModifiedAt returns null after deletePreRestoreSnapshot',
-      () async {
-        await repo.writePreRestoreSnapshot(AppData.empty());
-        expect(await repo.preRestoreSnapshotModifiedAt(), isNotNull);
+    test('preRestoreSnapshotModifiedAt returns null after deletePreRestoreSnapshot', () async {
+      await repo.writePreRestoreSnapshot(AppData.empty());
+      expect(await repo.preRestoreSnapshotModifiedAt(), isNotNull);
 
-        await repo.deletePreRestoreSnapshot();
+      await repo.deletePreRestoreSnapshot();
 
-        expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
-      },
-    );
+      expect(await repo.preRestoreSnapshotModifiedAt(), isNull);
+    });
   });
 }

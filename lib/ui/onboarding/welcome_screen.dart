@@ -42,9 +42,7 @@ class WelcomeScreen extends StatelessWidget {
               FilledButton(
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const OnboardingFlow(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const OnboardingFlow()),
                   );
                 },
                 child: const Text('Bắt đầu mới'),

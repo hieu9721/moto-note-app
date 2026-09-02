@@ -28,7 +28,10 @@ void main() {
   group('refineAvgDailyKm', () {
     test('bỏ qua khi khoảng cách dưới 14 ngày', () {
       // 13-day gap: skipped, values pass through unchanged.
-      final vehicle13 = _vehicle(avgDailyKm: 20.0, source: AvgKmSource.computed);
+      final vehicle13 = _vehicle(
+        avgDailyKm: 20.0,
+        source: AvgKmSource.computed,
+      );
       final prev13 = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 1000);
       final next13 = _reading(date: DateTime.utc(2026, 1, 14), odoKm: 1300);
       final result13 = refineAvgDailyKm(vehicle13, next13, prev13);
@@ -36,7 +39,10 @@ void main() {
       expect(result13.source, equals(AvgKmSource.computed));
 
       // 14-day gap: the guard is `days < 14`, so exactly 14 days refines.
-      final vehicle14 = _vehicle(avgDailyKm: 10.0, source: AvgKmSource.computed);
+      final vehicle14 = _vehicle(
+        avgDailyKm: 10.0,
+        source: AvgKmSource.computed,
+      );
       final prev14 = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 1000);
       final next14 = _reading(date: DateTime.utc(2026, 1, 15), odoKm: 1280);
       final result14 = refineAvgDailyKm(vehicle14, next14, prev14);
@@ -47,7 +53,10 @@ void main() {
 
     test('bỏ qua khi ODO mới nhỏ hơn ODO cũ', () {
       // Negative delta: skipped regardless of the (ample) day gap.
-      final vehicleNeg = _vehicle(avgDailyKm: 20.0, source: AvgKmSource.computed);
+      final vehicleNeg = _vehicle(
+        avgDailyKm: 20.0,
+        source: AvgKmSource.computed,
+      );
       final prevNeg = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 1000);
       final nextNeg = _reading(date: DateTime.utc(2026, 1, 21), odoKm: 999);
       final resultNeg = refineAvgDailyKm(vehicleNeg, nextNeg, prevNeg);
@@ -57,7 +66,10 @@ void main() {
       // Exactly zero delta: the guard is `km < 0`, not `km <= 0`, so a
       // same-odometer pair still refines — producing measured=0, which
       // then clamps up to the 0.5 floor.
-      final vehicleZero = _vehicle(avgDailyKm: 1.0, source: AvgKmSource.computed);
+      final vehicleZero = _vehicle(
+        avgDailyKm: 1.0,
+        source: AvgKmSource.computed,
+      );
       final prevZero = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 1000);
       final nextZero = _reading(date: DateTime.utc(2026, 1, 15), odoKm: 1000);
       final resultZero = refineAvgDailyKm(vehicleZero, nextZero, prevZero);
@@ -91,7 +103,10 @@ void main() {
 
     test('kẹp trong khoảng [0.5, 400]', () {
       // High end: an absurd measured average clamps down to 400.
-      final vehicleHigh = _vehicle(avgDailyKm: 300.0, source: AvgKmSource.computed);
+      final vehicleHigh = _vehicle(
+        avgDailyKm: 300.0,
+        source: AvgKmSource.computed,
+      );
       final prevHigh = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 0);
       final nextHigh = _reading(date: DateTime.utc(2026, 1, 15), odoKm: 10000);
       final resultHigh = refineAvgDailyKm(vehicleHigh, nextHigh, prevHigh);
@@ -102,7 +117,10 @@ void main() {
       // Low end: the clamp is what floors the result, not the smoothing
       // itself — smoothed alone (0.2) is already below 0.5, proving the
       // clamp runs AFTER the 0.7/0.3 blend, not on its inputs.
-      final vehicleLow = _vehicle(avgDailyKm: 0.5, source: AvgKmSource.computed);
+      final vehicleLow = _vehicle(
+        avgDailyKm: 0.5,
+        source: AvgKmSource.computed,
+      );
       final prevLow = _reading(date: DateTime.utc(2026, 1, 1), odoKm: 1000);
       final nextLow = _reading(date: DateTime.utc(2026, 1, 15), odoKm: 1001);
       final resultLow = refineAvgDailyKm(vehicleLow, nextLow, prevLow);

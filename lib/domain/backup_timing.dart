@@ -53,7 +53,9 @@ bool isBackupDue(DateTime? lastBackupAt, {DateTime? now}) {
 String relativeVi(DateTime then, {DateTime? now}) {
   final n = now ?? DateTime.now().toUtc();
   final diff = n.difference(then);
-  if (diff < const Duration(minutes: 1)) return 'vừa xong'; // [NEW, PROVISIONAL]
+  if (diff < const Duration(minutes: 1)) {
+    return 'vừa xong'; // [NEW, PROVISIONAL]
+  }
   if (diff < const Duration(hours: 1)) {
     return '${diff.inMinutes} phút trước'; // [NEW, PROVISIONAL]
   }
