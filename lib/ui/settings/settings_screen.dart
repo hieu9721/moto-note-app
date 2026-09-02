@@ -328,7 +328,23 @@ class SettingsScreen extends ConsumerWidget {
                   subtitle: const Text(
                     'Sẽ thay thế toàn bộ dữ liệu hiện có trên máy.',
                   ),
-                  onTap: () => showRestoreSheet(context),
+                  // G-05-4: a successful restore WRITES the 7-day
+                  // pre-restore snapshot, but nothing told the row below
+                  // that the file now exists, so `Hoàn tác khôi phục` did
+                  // not appear until the app was restarted — the one
+                  // moment a user who restored by mistake goes looking for
+                  // it. `_preRestoreSnapshotModifiedAtProvider` is keyed on
+                  // that file's mtime and already documents being
+                  // invalidated after an undo; a restore is the event that
+                  // CREATES the snapshot and needs the same treatment.
+                  // Invalidating unconditionally on dismissal is correct
+                  // and cheap: the provider re-reads the file, so a
+                  // cancelled or failed restore simply resolves null again
+                  // and the row stays hidden (D-24's third protection).
+                  onTap: () async {
+                    await showRestoreSheet(context);
+                    ref.invalidate(_preRestoreSnapshotModifiedAtProvider);
+                  },
                 ),
                 const _UndoRestoreRow(),
                 // §7.1's three sign-in facts, reproduced verbatim from

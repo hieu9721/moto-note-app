@@ -139,6 +139,43 @@ class GoogleAuthService {
   }
 }
 
+/// How an auth-layer failure should be reported, without leaking the
+/// plugin's own exception type past this file — `backup_service.dart` is
+/// not allowed to import `package:google_sign_in` (see the header rule),
+/// so it asks this function instead of pattern-matching the error itself.
+///
+/// Returns null when [error] is not an auth-layer failure at all, leaving
+/// the caller's existing classification untouched.
+///
+/// Added closing gap G-05-6. `BackupService._classifyError` recognised only
+/// a rejection that came back FROM the Drive API (a `DetailedApiRequestError`
+/// with status 401/403). A grant the user revoked from their Google Account
+/// page never reaches Drive — it fails here — so it was reported as
+/// `Lỗi không xác định`, discarding the one instruction the user could act
+/// on. Verified on device during Phase 5 UAT.
+///
+/// The split matters: reporting EVERY `GoogleSignInException` as
+/// "sign in again" would be its own lie, because a sign-in that failed
+/// because the phone had no connection would tell the user to re-authorise
+/// something that was never revoked. `interrupted` is the code the plugin
+/// raises when the flow is cut off rather than refused, so it maps to the
+/// network string; a refusal maps to re-auth. `canceled` never reaches
+/// here — both call sites treat a cancelled sign-in as "no result", not as
+/// a failure.
+GoogleAuthFailureKind? classifyGoogleAuthFailure(Object error) {
+  if (error is! GoogleSignInException) return null;
+  if (error.code == GoogleSignInExceptionCode.interrupted) {
+    return GoogleAuthFailureKind.transient;
+  }
+  return GoogleAuthFailureKind.needsReauth;
+}
+
+/// The two shapes an auth-layer failure can take, kept deliberately coarse:
+/// this file reports WHAT went wrong at the auth layer, and
+/// `backup_service.dart` owns the mapping onto its own user-facing closed
+/// set (`BackupErrorCode`).
+enum GoogleAuthFailureKind { needsReauth, transient }
+
 final googleAuthServiceProvider = Provider<GoogleAuthService>(
   (_) => GoogleAuthService(),
 );

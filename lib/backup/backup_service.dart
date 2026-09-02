@@ -10,7 +10,8 @@ import 'dart:async' show TimeoutException, Timer, unawaited;
 import 'dart:io' show SocketException;
 
 import 'package:extension_google_sign_in_as_googleapis_auth/extension_google_sign_in_as_googleapis_auth.dart';
-import 'package:flutter/widgets.dart' show WidgetsBinding, WidgetsBindingObserver, AppLifecycleState;
+import 'package:flutter/widgets.dart'
+    show WidgetsBinding, WidgetsBindingObserver, AppLifecycleState;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/app_state.dart' show appProvider;
@@ -105,7 +106,34 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
   /// against the same missing file and create two remote files. Shared by
   /// `runManual()` and `runSilent()` — only one Drive upload cycle may be
   /// in flight at a time regardless of which trigger started it.
-  bool _inFlight = false;
+  ///
+  /// Holds the cycle currently in flight, or null when idle. This was a bare
+  /// `bool` until gap G-05-5: a manual tap that arrived while a run was in
+  /// flight returned `BackupOutcome(succeeded: false, code: null)`, which
+  /// the Settings caller reads as "nothing to report" and renders as
+  /// NOTHING AT ALL — no spinner, no SnackBar, no status line change. On
+  /// device that produced a `Sao lưu ngay` button that was completely dead
+  /// to the touch for the rest of the session, because a hung automatic
+  /// cycle had left the flag set and nothing could ever clear it.
+  ///
+  /// Holding the FUTURE instead lets a manual tap await the run that is
+  /// already going and report ITS real outcome, so the button always
+  /// answers. [_cycleTimeout] then bounds the pinning risk itself: a run
+  /// that hangs in the platform auth layer now completes as a timeout
+  /// rather than silently disabling backup until the app is restarted.
+  Future<BackupOutcome>? _inFlightRun;
+
+  /// Bounds the NON-INTERACTIVE steps of a cycle — the silent authorization
+  /// probe and the Drive upload. Long enough for a slow mobile round trip,
+  /// short enough that a hung platform call resolves as a normal
+  /// `TimeoutException` (which `_classifyError` maps to `networkError`)
+  /// instead of pinning [_inFlightRun] and silently disabling backup for
+  /// the rest of the session, which is what G-05-5 was.
+  ///
+  /// It must never wrap the interactive sign-in: that step waits on a
+  /// person reading Google's consent screens, and bounding it reported a
+  /// network failure on a healthy connection.
+  static const _cycleTimeout = Duration(seconds: 90);
 
   /// §7.5's 30-second debounce timer, owned by this service rather than by
   /// `app_state.dart` (P5-D-17) — `_LifecycleRescheduler` in `main.dart`
@@ -167,22 +195,45 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
     // BKP-12/D-18: nothing in this method may run for a user who has not
     // opted in — no network, no auth attempt, nothing.
     if (!_ref.read(appProvider).settings.driveBackupEnabled) return;
-    if (_inFlight) return; // already running — this cycle has nothing to do
-    _inFlight = true;
+    if (_inFlightRun != null) {
+      return; // already running — this cycle has nothing to do
+    }
+    // The cycle is published as a future BEFORE it is awaited, so a manual
+    // tap arriving mid-cycle can await this same run and report its real
+    // outcome instead of being dropped (G-05-5).
+    final run = _silentCycle();
+    _inFlightRun = run;
+    try {
+      await run;
+    } finally {
+      _inFlightRun = null;
+    }
+  }
+
+  /// One silent cycle, returning the outcome it recorded so a concurrent
+  /// `runManual()` can report the same result. Every exit path returns an
+  /// outcome; none returns null, because "no answer" is exactly the state
+  /// G-05-5 was about.
+  Future<BackupOutcome> _silentCycle() async {
     try {
       final authService = _ref.read(googleAuthServiceProvider);
       // Silent ONLY — this method never reaches the interactive sign-in
       // entry point that `runManual()` legitimately uses below. That is
       // what makes this path structurally incapable of showing a dialog,
       // not merely careful not to (T-05-03).
-      final result = await authService.silentAuthorization();
+      final result = await authService.silentAuthorization().timeout(
+        _cycleTimeout,
+      );
       if (result == null) {
         // BKP-04's exact case: no cached/authorized account. Never a
         // dialog, never a toast — just the mapped Settings line.
-        await _recordResult(
-          const BackupOutcome(succeeded: false, at: null, code: BackupErrorCode.needsReauth),
+        const outcome = BackupOutcome(
+          succeeded: false,
+          at: null,
+          code: BackupErrorCode.needsReauth,
         );
-        return;
+        await _recordResult(outcome);
+        return outcome;
       }
       // Bridge to an authenticated client and build a FRESH DriveService
       // every cycle — never cache the client or the service across calls.
@@ -191,17 +242,23 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
       // refresh mechanism (RESEARCH Pitfall 4), not a missed optimisation.
       final client = result.authorization.authClient(scopes: kDriveScopes);
       final driveService = DriveService(client);
-      await driveService.upload(_ref.read(appProvider));
-      await _recordResult(
-        BackupOutcome(succeeded: true, at: DateTime.now().toUtc(), code: null),
+      await driveService.upload(_ref.read(appProvider)).timeout(_cycleTimeout);
+      final outcome = BackupOutcome(
+        succeeded: true,
+        at: DateTime.now().toUtc(),
+        code: null,
       );
+      await _recordResult(outcome);
+      return outcome;
     } catch (e) {
       _log('runSilent failed: $e');
-      await _recordResult(
-        BackupOutcome(succeeded: false, at: null, code: _classifyError(e)),
+      final outcome = BackupOutcome(
+        succeeded: false,
+        at: null,
+        code: _classifyError(e),
       );
-    } finally {
-      _inFlight = false;
+      await _recordResult(outcome);
+      return outcome;
     }
   }
 
@@ -228,18 +285,45 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
     // explicitly ask. Cleared before the in-flight guard, so even a manual
     // tap that arrives while another run is in flight still clears it.
     _suppressNextSchedule = false;
-    if (_inFlight) {
-      // Already running — not a failure, nothing new to report.
-      return const BackupOutcome(succeeded: false, at: null, code: null);
+    final existing = _inFlightRun;
+    if (existing != null) {
+      // G-05-5: this used to return `code: null`, which the Settings caller
+      // reads as "nothing to report" and renders as nothing at all — the
+      // user tapped a button and the app said absolutely nothing back.
+      // Await the run that is already going and report ITS outcome, so the
+      // tap always produces either the success SnackBar or a mapped error.
+      return existing;
     }
-    _inFlight = true;
+    final run = _manualCycle();
+    _inFlightRun = run;
+    try {
+      return await run;
+    } finally {
+      _inFlightRun = null;
+    }
+  }
+
+  /// One manual cycle. Split out of [runManual] so the in-flight future can
+  /// be published before it is awaited (G-05-5).
+  Future<BackupOutcome> _manualCycle() async {
     try {
       final authService = _ref.read(googleAuthServiceProvider);
       // Silent first; only fall back to the interactive path when there is
       // no cached authorization. "Sao lưu ngay" is itself a user gesture,
       // so the interactive path is legitimate here — and only here in this
       // file.
-      var result = await authService.silentAuthorization();
+      var result = await authService.silentAuthorization().timeout(
+        _cycleTimeout,
+      );
+      // Deliberately NOT bounded by [_cycleTimeout]: this is the one call
+      // in the class that waits on a HUMAN. Google's account picker,
+      // unverified-app notice and consent screen are several taps of
+      // reading, and a user who takes two minutes over them has not
+      // failed — timing that out reported `Không có kết nối mạng` on a
+      // perfectly good connection, which is exactly the class of lie
+      // G-05-6 was about. The in-flight future is still published, so a
+      // second tap arriving during the consent flow joins this run rather
+      // than starting a competing one.
       result ??= await authService.signInAndAuthorize();
       if (result == null) {
         // The user cancelled the interactive sign-in — not a failure,
@@ -253,7 +337,7 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
       // refresh mechanism (RESEARCH Pitfall 4), not a missed optimisation.
       final client = result.authorization.authClient(scopes: kDriveScopes);
       final driveService = DriveService(client);
-      await driveService.upload(_ref.read(appProvider));
+      await driveService.upload(_ref.read(appProvider)).timeout(_cycleTimeout);
       return BackupOutcome(
         succeeded: true,
         at: DateTime.now().toUtc(),
@@ -265,13 +349,7 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
       // (the Settings row) may write into Settings, and only the caller
       // does that write; this service never writes Settings itself.
       _log('runManual failed: $e');
-      return BackupOutcome(
-        succeeded: false,
-        at: null,
-        code: _classifyError(e),
-      );
-    } finally {
-      _inFlight = false;
+      return BackupOutcome(succeeded: false, at: null, code: _classifyError(e));
     }
   }
 
@@ -282,6 +360,22 @@ class RealBackupService with WidgetsBindingObserver implements BackupService {
     if (error is DetailedApiRequestError &&
         (error.status == 401 || error.status == 403)) {
       return BackupErrorCode.needsReauth;
+    }
+    // G-05-6: a grant the user revoked from their Google Account page — the
+    // likeliest real-world backup failure, and the only one they can fix —
+    // never reaches the Drive API, so it never produces the 401/403 above.
+    // It fails one layer earlier, in `authorizeScopes`. Without this branch
+    // it fell through to `unknown` and the Settings line read `Lỗi không
+    // xác định`, discarding the actionable `Cần đăng nhập lại Google` that
+    // was already defined for exactly this case. `runSilent` above already
+    // classified its own null-authorization case correctly; only the
+    // interactive fallback in `runManual` was misreporting.
+    final authFailure = classifyGoogleAuthFailure(error);
+    if (authFailure != null) {
+      return switch (authFailure) {
+        GoogleAuthFailureKind.needsReauth => BackupErrorCode.needsReauth,
+        GoogleAuthFailureKind.transient => BackupErrorCode.networkError,
+      };
     }
     return BackupErrorCode.unknown;
   }
