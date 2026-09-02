@@ -258,7 +258,7 @@ Plans:
   3. After ~1 month of real use on the developer's own bike, notifications fired on the expected dates, ODO estimation error stayed within the documented threshold, and no scheduled work was killed by OEM battery optimisation.
   4. MotoNote 1.0 passes Play Store review and is live, with the Appendix B Google Cloud/OAuth and Android checklists complete and a public privacy policy published.
 
-**Plans**: 4/11 plans executed
+**Plans**: 5/11 plans executed
 
 Plans:
 
@@ -274,7 +274,7 @@ Plans:
 
 **Wave 3**
 
-- [ ] 06-05-PLAN.md — Garage screen, vehicle switcher, the two live Settings rows, SET-02 verified — opens with the D-33 screen-budget `checkpoint:decision` (wave 3, **not autonomous**)
+- [x] 06-05-PLAN.md — Garage screen, vehicle switcher, the two live Settings rows, SET-02 verified — opens with the D-33 screen-budget `checkpoint:decision` (wave 3, **not autonomous**)
 
 **Wave 4**
 
@@ -312,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
 | 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
-| 6. Polish & Play Store Release | 4/11 | In Progress|  |
+| 6. Polish & Play Store Release | 5/11 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-28 from the ingest of motonote-v3-flutter.md*
