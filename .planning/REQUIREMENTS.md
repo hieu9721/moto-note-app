@@ -140,7 +140,7 @@ cross-platform; only the release and verification surface is Android-only.
 - [ ] **REL-07**: The Appendix B technical acceptance checklist passes on a `--release` build — no analyzer warnings; data survives force-stop and reboot; the app works having never signed into Google; notifications fire after a reboot; migration runs correctly from every earlier schema version; verified on a real low-end Android device and on a real Xiaomi or Samsung device. *(Appendix B Kỹ thuật)*
 - [ ] **REL-08**: A one-month real-use soak on the developer's own bike confirms that notifications fired on the expected dates, that ODO estimation error stayed within the documented threshold, and that OEM battery management did not kill the scheduled work. *(§15 R5; v1.0 success metric a — the threshold itself is an open question on Phase 2)*
 - [ ] **REL-09**: MotoNote 1.0 passes Play Store review and is live, having gone through the internal testing track. *(§13 Tuần 6–7; v1.0 success metric c)*
-- [ ] **REL-10**: `BACKLOG.md` exists at the repo root and every idea raised during the build is filed there instead of being inserted into 1.0. *(§13.2, §15 R10)*
+- [x] **REL-10**: `BACKLOG.md` exists at the repo root and every idea raised during the build is filed there instead of being inserted into 1.0. *(§13.2, §15 R10)*
 
 ---
 
@@ -272,7 +272,7 @@ Deferred to a future release. Tracked but not in the current roadmap.
 | REL-07 | Phase 6 | Pending |
 | REL-08 | Phase 6 | Pending |
 | REL-09 | Phase 6 | Pending |
-| REL-10 | Phase 6 | Pending |
+| REL-10 | Phase 6 | Complete |
 
 **Coverage:**
 

@@ -23,7 +23,7 @@ This project is spec-driven through GSD. Do not start writing code ad hoc; work 
 - `/gsd-progress` — where things stand and what to do next.
 - `/gsd-resume-work` — restore context from `.planning/HANDOFF.json`.
 - `.planning/` is state, not documentation: phase execution updates STATE.md and ROADMAP.md.
-- Every new idea raised mid-build goes to `BACKLOG.md`, never into the version being built (D-34, §13.2). This project is on its third plan revision *because* of scope creep — the anti-scope-creep machinery is deliberate.
+- Every new idea raised mid-build goes to `BACKLOG.md` at the repository root, never into the version being built (D-34, §13.2). This project is on its third plan revision *because* of scope creep — the anti-scope-creep machinery is deliberate.
 
 The roadmap is 6 phases: toolchain+data layer → onboarding/catalog/engines → home+logging+notes → local notifications → Drive backup/restore → polish+Play Store.
 
@@ -36,7 +36,10 @@ flutter analyze                                          # required before every
 dart format .
 dart run build_runner build --delete-conflicting-outputs # after editing any freezed/json model
 dart run build_runner watch                              # during development
+dart test                                                 # whole tree (test_command in config.json) —
+                                                         # 148 tests green as of 06-04
 dart test test/domain/                                   # business logic — pure Dart, no Flutter
+dart test test/data/                                     # file-I/O tests, run against a temp directory
 dart test test/domain/due_test.dart                      # single test file
 dart test test/domain/due_test.dart -n 'computeDue'       # single group/test by name
 flutter run --release                                    # MANDATORY — debug is JIT; OAuth and
@@ -67,10 +70,16 @@ lib/
 ├── notifications/         # notification_service, battery_hints
 ├── ui/                    # router.dart + onboarding/ home/ log/ item/ notes/ settings/ widgets/
 └── theme/
-test/domain/               # due_test.dart, odo_test.dart — the ONLY two test files
+test/domain/               # pure-Dart business-logic tests, runnable under plain `dart test`
+test/data/                 # file-I/O tests (app_data_repository, atomic writes) using a temp dir
 ```
 
 No `services/`, `utils/` or `helpers/` directories of tiny files. Seven screens, no more (D-33) — ODO update is a modal sheet, not a screen.
+
+A test file is added under `test/domain/` or `test/data/` whenever new pure-Dart-reachable logic is
+added — the file count itself is not the invariant worth tracking, since it grows every phase. What
+must hold: **no file under `test/` may import `package:flutter/...`**, because `dart test` runs the
+whole tree and one Flutter import breaks every other test in it (mirrors D-31 for `lib/domain/`).
 
 ### Invariants that must not be violated
 
