@@ -258,13 +258,13 @@ Plans:
   3. After ~1 month of real use on the developer's own bike, notifications fired on the expected dates, ODO estimation error stayed within the documented threshold, and no scheduled work was killed by OEM battery optimisation.
   4. MotoNote 1.0 passes Play Store review and is live, with the Appendix B Google Cloud/OAuth and Android checklists complete and a public privacy policy published.
 
-**Plans**: 11 plans
+**Plans**: 1/11 plans executed
 
 Plans:
 
 **Wave 1** *(the multi-vehicle tracer — gates everything downstream, per P6-D-01)*
 
-- [ ] 06-01-PLAN.md — TRACER: the multi-vehicle spine — `Settings.selectedVehicleId`, one pure `selectedVehicle()` resolver, Trang chủ rendering the selected bike, and ODO reminders for every vehicle (wave 1)
+- [x] 06-01-PLAN.md — TRACER: the multi-vehicle spine — `Settings.selectedVehicleId`, one pure `selectedVehicle()` resolver, Trang chủ rendering the selected bike, and ODO reminders for every vehicle (wave 1)
 
 **Wave 2** *(no `files_modified` overlap between the three — they run in parallel)*
 
@@ -312,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
 | 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
-| 6. Polish & Play Store Release | 0/11 | Not started | - |
+| 6. Polish & Play Store Release | 1/11 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-28 from the ingest of motonote-v3-flutter.md*
