@@ -258,9 +258,47 @@ Plans:
   3. After ~1 month of real use on the developer's own bike, notifications fired on the expected dates, ODO estimation error stayed within the documented threshold, and no scheduled work was killed by OEM battery optimisation.
   4. MotoNote 1.0 passes Play Store review and is live, with the Appendix B Google Cloud/OAuth and Android checklists complete and a public privacy policy published.
 
-**Plans**: TBD
+**Plans**: 11 plans
+
+Plans:
+
+**Wave 1** *(the multi-vehicle tracer — gates everything downstream, per P6-D-01)*
+
+- [ ] 06-01-PLAN.md — TRACER: the multi-vehicle spine — `Settings.selectedVehicleId`, one pure `selectedVehicle()` resolver, Trang chủ rendering the selected bike, and ODO reminders for every vehicle (wave 1)
+
+**Wave 2** *(no `files_modified` overlap between the three — they run in parallel)*
+
+- [ ] 06-02-PLAN.md — Vehicle lifecycle: the deletion cascade as a pure function, add-vehicle re-entry of onboarding, and the `/onboarding/add-vehicle` route (wave 2)
+- [ ] 06-03-PLAN.md — Shared `EmptyState`/`ErrorState`, with the notes and item-detail empty states refactored onto them as proof they are wired (wave 2)
+- [ ] 06-04-PLAN.md — Housekeeping: `BACKLOG.md` to the repo root (REL-10), the broken-windows ledger repaired so `windows status` runs at all, `CLAUDE.md` corrected (wave 2)
+
+**Wave 3**
+
+- [ ] 06-05-PLAN.md — Garage screen, vehicle switcher, the two live Settings rows, SET-02 verified — opens with the D-33 screen-budget `checkpoint:decision` (wave 3, **not autonomous**)
+
+**Wave 4**
+
+- [ ] 06-06-PLAN.md — Item-management screen, the §15 R9 caveat, both interval axes editable, and the seeding rule that stops an enabled item from being silently never-due (wave 4)
+
+**Wave 5**
+
+- [ ] 06-07-PLAN.md — SET-03 delete-all-data: five local files, receipts, alarms, sign-out and the opt-in Drive delete, sequenced so no debounced backup can re-upload the emptied document — opens with the P6-D-11 `checkpoint:decision` (wave 5, **not autonomous**)
+
+**Wave 6** *(06-08 and 06-09 have no file overlap and run in parallel)*
+
+- [ ] 06-08-PLAN.md — Visual identity and release build: generated launcher icon and splash, tuned theme, R8 minify, upload keystore and the first signed `.aab` (wave 6, **not autonomous**)
+- [ ] 06-09-PLAN.md — Privacy policy on GitHub Pages (vi + en), the in-app link, the store-listing and Data Safety content pack, OAuth verification submitted (wave 6, **not autonomous**)
+
+**Wave 7**
+
+- [ ] 06-10-PLAN.md — Appendix B run on the real SM-A066B against the signed minified artifact, plus the on-device icon/splash review and the REL-01 per-screen walk (wave 7, **not autonomous**)
+
+**Wave 8**
+
+- [ ] 06-11-PLAN.md — Internal-testing upload, the third SHA-1 registered, and REL-08/REL-09/MIUI recorded as waived windows so the phase closes where P6-D-18 says it does (wave 8, **not autonomous**)
+
 **UI hint**: yes
-**Notes**: The Appendix B iOS section is out of scope for this milestone. `BACKLOG.md` must exist and absorb every idea raised during the build (§13.2, §15 R10).
+**Notes**: The Appendix B iOS section is out of scope for this milestone. `BACKLOG.md` must exist and absorb every idea raised during the build (§13.2, §15 R10). **P6-D-18 narrows where this phase closes:** the build on the internal testing track plus the Appendix B checklist passing on device. Success criteria 3 and 4 above (REL-08's 30-day soak, REL-09's Play review outcome) are recorded in `.planning/WINDOWS.md` as waived real-world windows by `06-11` rather than holding the phase — and the milestone — open for five to six weeks of wall-clock time; both requirements stay unticked until they are genuinely met. **Success criterion 1's "real Xiaomi or Samsung" clause closes partial (P6-D-19):** only an SM-A066B is available, which satisfies both the low-end and the Samsung halves; MIUI-class battery behaviour goes unverified for the second phase running and is recorded as its own window, never claimed as covered.
 
 ## Progress
 
@@ -274,7 +312,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
 | 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
-| 6. Polish & Play Store Release | 0/TBD | Not started | - |
+| 6. Polish & Play Store Release | 0/11 | Not started | - |
 
 ---
 *Roadmap created: 2026-08-28 from the ingest of motonote-v3-flutter.md*
