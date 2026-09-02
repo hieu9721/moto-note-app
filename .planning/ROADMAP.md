@@ -273,7 +273,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 2. Onboarding, Catalog & Estimation Engines | 5/5 | Complete    | 2026-08-30 |
 | 3. Home, Logging & Notes | 7/7 | Complete    | 2026-08-30 |
 | 4. Local Notifications | 7/7 | Complete    | 2026-09-01 |
-| 5. Google Drive Backup & Restore | 10/10 | In Progress|  |
+| 5. Google Drive Backup & Restore | 10/10 | Complete    | 2026-09-02 |
 | 6. Polish & Play Store Release | 0/TBD | Not started | - |
 
 ---
