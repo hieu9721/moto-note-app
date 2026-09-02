@@ -20,7 +20,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../backup/backup_service.dart';
 import '../data/app_data_repository.dart';
 import '../data/serial_queue.dart';
+import '../domain/catalog.dart';
 import '../domain/id.dart';
+import '../domain/item_seed.dart';
 import '../domain/models/app_data.dart';
 import '../domain/models/maintenance_item.dart';
 import '../domain/models/misc.dart';
@@ -609,6 +611,81 @@ class AppNotifier extends Notifier<AppData> {
     return _mutate(
       (current) => current.copyWith(settings: transform(current.settings)),
     );
+  }
+
+  /// Phase 6 (SET-01, P6-D-07/P6-D-09): enables or disables one catalog
+  /// entry's [MaintenanceItem] for [vehicleId]. An existing item is
+  /// replaced via `copyWith(enabled: ...)`, the same map-and-replace shape
+  /// `addServiceLog` already uses above. Enabling a catalog entry that has
+  /// no item yet seeds one through lib/domain/item_seed.dart's pure
+  /// seeding function — without that seed, an item enabled with no
+  /// baseline on either axis would make `computeDue` return null for it
+  /// forever (see that file's header — this is T-06-06-02). Disabling a
+  /// catalog entry that has no item, an unknown catalog code, or an
+  /// unknown vehicle id are all honest no-ops — the same
+  /// `indexWhere == -1` idiom this file already uses throughout. Routed
+  /// through `_mutate` like every other real change (DATA-06); the
+  /// reschedule after save is `_mutate`'s job, not this method's.
+  Future<void> setCatalogItemEnabled(
+    String vehicleId,
+    String catalogCode,
+    bool enabled,
+  ) {
+    return _mutate((current) {
+      final itemIndex = current.items.indexWhere(
+        (i) => i.vehicleId == vehicleId && i.catalogCode == catalogCode,
+      );
+      if (itemIndex != -1) {
+        final items = [...current.items];
+        items[itemIndex] = items[itemIndex].copyWith(enabled: enabled);
+        return current.copyWith(items: items);
+      }
+      if (!enabled) return current; // nothing to disable: honest no-op
+
+      final vehicleIndex = current.vehicles.indexWhere(
+        (v) => v.id == vehicleId,
+      );
+      if (vehicleIndex == -1) return current; // unknown id: honest no-op
+
+      CatalogEntry? entry;
+      for (final e in kCatalog) {
+        if (e.code == catalogCode) {
+          entry = e;
+          break;
+        }
+      }
+      if (entry == null) return current; // unknown catalog code: honest no-op
+
+      final seeded = seedMaintenanceItem(entry, current.vehicles[vehicleIndex]);
+      return current.copyWith(items: [...current.items, seeded]);
+    });
+  }
+
+  /// Phase 6 (SET-01, P6-D-09/D-28): updates one item's two due-axis
+  /// intervals. Both [intervalKm] and [intervalMonths] are written EXACTLY
+  /// as given — passing null for either is a legitimate instruction to
+  /// stop using that axis for this item's due computation
+  /// (`computeDue`'s existing nullable handling, unchanged), never a
+  /// "leave unchanged" signal. A caller that wants to leave an axis
+  /// untouched must pass its current value, not null. An unknown item id
+  /// is an honest no-op, same convention as every other lookup in this
+  /// file. Routed through `_mutate` like every other real change
+  /// (DATA-06).
+  Future<void> updateItemIntervals(
+    String itemId,
+    int? intervalKm,
+    int? intervalMonths,
+  ) {
+    return _mutate((current) {
+      final index = current.items.indexWhere((i) => i.id == itemId);
+      if (index == -1) return current; // unknown id: honest no-op
+      final items = [...current.items];
+      items[index] = items[index].copyWith(
+        intervalKm: intervalKm,
+        intervalMonths: intervalMonths,
+      );
+      return current.copyWith(items: items);
+    });
   }
 
   /// NOTIF-11: records that a notification was *opened* — not that one
