@@ -35,6 +35,45 @@ import '../notifications/battery_hint_sheet.dart';
 /// directly.
 const _leadDaysOptions = [1, 3, 5, 7, 10, 14, 21, 30];
 
+/// Bounded set of days-of-month for "Ngày nhắc cập nhật số km" (SET-02) —
+/// every day from 1 to 28 inclusive, so an out-of-range value can never
+/// reach `Settings.odoReminderDayOfMonth`. 28 is the ceiling, not 30/31:
+/// the field picks a day-of-month for a MONTHLY reminder
+/// (`notification_plan.dart`'s `_nthMonthDay`), and 29–31 do not exist in
+/// every month. The model's own `// 1–28` comment on the field already
+/// pins this range; this list is what makes that comment true by
+/// construction rather than merely documented.
+const _odoReminderDayOfMonthOptions = [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22,
+  23,
+  24,
+  25,
+  26,
+  27,
+  28,
+];
+
 // [NEW, PROVISIONAL] — the same fixed-message-on-catch-all shape
 // `_RestoreSheetBodyState._signIn`'s `_genericFailureMessage` already uses,
 // applied to the two Google auth call sites in this file that previously had
@@ -143,6 +182,53 @@ class SettingsScreen extends ConsumerWidget {
                   onChanged: (v) => notifier.updateSettings(
                     (s) => s.copyWith(odoReminderEnabled: v),
                   ),
+                ),
+                // SET-02: the fifth and last Settings field declared for
+                // this requirement — `odoReminderDayOfMonth` already had a
+                // model default and a live consumer in
+                // `notification_plan.dart` (only reached inside the
+                // `odoReminderEnabled` branch above), but no UI row until
+                // now (WINDOWS.md entry 5). Same "bounded ListTile + dialog
+                // picker" shape as "Số ngày báo trước" below, not a
+                // free-text field, so the model's `// 1–28` comment stays
+                // true by construction.
+                ListTile(
+                  title: const Text('Ngày nhắc cập nhật số km'),
+                  trailing: Text(
+                    'Ngày ${settings.odoReminderDayOfMonth} hàng tháng',
+                  ),
+                  onTap: () async {
+                    final picked = await showDialog<int>(
+                      context: context,
+                      builder: (ctx) => SimpleDialog(
+                        title: const Text('Ngày nhắc cập nhật số km'),
+                        children: [
+                          RadioGroup<int>(
+                            groupValue: settings.odoReminderDayOfMonth,
+                            onChanged: (v) => Navigator.of(ctx).pop(v),
+                            child: Column(
+                              children: [
+                                for (final d in _odoReminderDayOfMonthOptions)
+                                  RadioListTile<int>(
+                                    title: Text('Ngày $d'),
+                                    value: d,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (picked == null) return;
+                    if (!context.mounted) return;
+                    // Bounded by construction
+                    // (_odoReminderDayOfMonthOptions) — never an
+                    // out-of-range value reaches Settings (T-04-15's same
+                    // discipline, applied to the model's `// 1–28` range).
+                    await notifier.updateSettings(
+                      (s) => s.copyWith(odoReminderDayOfMonth: picked),
+                    );
+                  },
                 ),
                 ListTile(
                   title: const Text('Giờ nhắc'),
