@@ -15,14 +15,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../backup/backup_service.dart';
 import '../../backup/google_auth.dart';
 import '../../backup/local_export.dart';
 import '../../domain/backup_timing.dart';
+import '../../domain/catalog.dart';
 import '../../domain/models/app_data.dart';
 import '../../notifications/notification_service.dart';
 import '../../state/app_state.dart';
+import '../../state/derived.dart';
 import '../backup/restore_sheet.dart';
 import '../notifications/battery_hint_sheet.dart';
 
@@ -93,6 +96,29 @@ class SettingsScreen extends ConsumerWidget {
     // constants) — same source as odo_sheet.dart/item_detail_screen.dart's
     // caption text.
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    // 06-05 (SET-01): the two live "Quản lý xe/hạng mục" rows below read
+    // these — vehicle count/current vehicle for the first row, and the
+    // enabled-count over the selected vehicle's applicable catalog count
+    // for the second. `selectedVehicle` can only be null for the one frame
+    // between a vehicle deletion and the router's redirect away from
+    // Settings (06-01's resolver, same defensive gap `home_screen.dart`
+    // already documents), so every fallback below is empty/zero, never a
+    // crash.
+    final vehicles = ref.watch(appProvider.select((d) => d.vehicles));
+    final selectedVehicle = ref.watch(selectedVehicleProvider);
+    final currentVehicleName = selectedVehicle == null
+        ? ''
+        : (selectedVehicle.name.isEmpty ? 'Xe của bạn' : selectedVehicle.name);
+    final enabledItemCount = selectedVehicle == null
+        ? 0
+        : ref
+              .watch(appProvider.select((d) => d.items))
+              .where((i) => i.vehicleId == selectedVehicle.id && i.enabled)
+              .length;
+    final applicableCatalogCount = selectedVehicle == null
+        ? 0
+        : catalogFor(selectedVehicle.type).length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Cài đặt')),
@@ -422,12 +448,35 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ],
             ),
-            const _SettingsGroup(
-              // Phase 6 (SET-*) owns vehicle and item management.
+            _SettingsGroup(
+              // Phase 6 (SET-*) owns vehicle and item management. Live as
+              // of 06-05 — the coming-soon caption below would read as
+              // actively misleading under working rows (T-04-14).
               title: 'Quản lý xe/hạng mục',
+              showComingSoonCaption: false,
               rows: [
-                ListTile(title: Text('Quản lý xe'), enabled: false),
-                ListTile(title: Text('Quản lý hạng mục'), enabled: false),
+                ListTile(
+                  title: const Text('Quản lý xe'),
+                  subtitle: Text(
+                    '${vehicles.length} xe · Đang dùng: $currentVehicleName',
+                    style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                  ),
+                  onTap: () => context.push('/settings/vehicles'),
+                ),
+                // 06-06 declares '/settings/items' — that route does not
+                // exist yet at the end of this plan, so tapping this row is
+                // deliberately a no-op for exactly one wave (recorded in
+                // 06-05-SUMMARY.md, not an oversight). Not rendered
+                // disabled, and no temporary SnackBar substitutes for it.
+                ListTile(
+                  title: const Text('Quản lý hạng mục'),
+                  subtitle: Text(
+                    '$enabledItemCount/$applicableCatalogCount hạng mục '
+                    'đang bật',
+                    style: TextStyle(fontSize: 12, color: onSurfaceVariant),
+                  ),
+                  onTap: () => context.push('/settings/items'),
+                ),
               ],
             ),
           ],
