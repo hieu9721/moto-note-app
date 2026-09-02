@@ -4,16 +4,16 @@ milestone: v1.0
 current_phase: 06
 current_phase_name: Polish & Play Store Release
 status: executing
-stopped_at: Phase 06 planned — 11 plans, 8 waves, plan-checker passed
-last_updated: "2026-09-02T06:45:14.765Z"
+stopped_at: Phase 06 wave 6 — paused at the human boundary; 06-08 and 06-09 halted at blocking-human checkpoints
+last_updated: "2026-09-02T10:30:00.000Z"
 last_activity: 2026-09-02
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 06 waves 1–6 executed; awaiting upload keystore, GitHub Pages publish and OAuth submission
 state_head: 8f22ab27b614220692d1e21ba7d4b9bbc3bc045c
 progress:
   total_phases: 6
   completed_phases: 5
   total_plans: 46
-  completed_plans: 35
+  completed_plans: 42
 ---
 
 # Project State
@@ -27,14 +27,42 @@ See: .planning/PROJECT.md (updated 2026-09-01)
 
 ## Current Position
 
-Phase: 06 (Polish & Play Store Release) — EXECUTING
-Plan: 1 of 11
-Status: Executing Phase 06
-Last activity: 2026-09-02 — Phase 06 execution started
+Phase: 06 (Polish & Play Store Release) — EXECUTING, PAUSED at the human boundary
+Plan: 7 of 11 complete (06-01…06-07); 06-08 and 06-09 partially executed and merged
+Status: Waves 1–6 run. Both wave-6 plans halted at `blocking-human` checkpoints and wrote no SUMMARY.
+Last activity: 2026-09-02 — waves 1–6 executed
 
-Progress: [████████████████████] 35/35 plans (Phases 01–05 of 6 complete)
+Progress: [████████████████░░░░] 42/46 plans (Phases 01–05 complete; Phase 06 at 7/11)
 
-**Next command:** `/gsd-execute-phase 6` — 11 plans across 8 waves; two blocking checkpoints (06-05 CP1 amends D-33, 06-07 CP1 the Drive-delete checkbox).
+Requirements closed this phase: SET-01, SET-02, SET-03, REL-10.
+Still open: REL-01 (needs 06-10), REL-02/REL-03 (need the keystore), REL-04/05/06 (need
+Pages + the two consoles), REL-07/08/09 (need the SM-A066B device and Play Console).
+
+**Blocked on the user — nothing else can proceed until these are done:**
+
+1. `git push origin main` — `main` is ~390 commits ahead of `origin/main`; GitHub Pages
+   cannot serve the policy until the branch is pushed.
+2. Create the upload keystore and fill `android/key.properties` (template at
+   `android/key.properties.example`; both it and `*.jks` are already gitignored), then
+   register its SHA-1 on the existing Android OAuth client without deleting the debug one.
+   Full commands are in the 06-08 checkpoint return.
+3. Enable GitHub Pages on `/docs` and confirm
+   `https://hieu9721.github.io/moto-note-app/privacy-policy` resolves byte-for-byte —
+   the in-app link is a hard-coded constant and must match exactly.
+4. Submit OAuth verification and fill the Play Console forms from
+   `06-STORE-LISTING.md`. If any screen mentions CASA or third-party security review,
+   stop: that implies a scope wider than `drive.appdata`, which would violate D-22.
+
+Then 06-10 (Appendix B on the real device) and 06-11 (internal testing track upload).
+
+**Next command:** `/gsd-execute-phase 6` — resumes at 06-08; completed plans are skipped
+automatically via their SUMMARY files.
+
+### Open broken window
+
+`WINDOWS.md` #6 (`unrun-verify`): 06-07's on-device human-check for the delete-all-data
+danger zone was not run — no Android device this session. Harvest into `06-UAT.md`
+alongside the deferred human-checks recorded in the 06-03, 06-06 and 06-07 SUMMARYs.
 
 ### Phase 05 planned (2026-09-01) — 7 plans, 6 waves, plan-checker passed
 
