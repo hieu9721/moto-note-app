@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Onboarding, Catalog & Estimation Engines** - A bike set up in six steps, and the pure-Dart engines that know when each item is due (completed 2026-08-30)
 - [x] **Phase 3: Home, Logging & Notes** - Usable for real on the developer's own bike (completed 2026-08-30)
 - [x] **Phase 4: Local Notifications** - The right reminder on the right day, even on a Xiaomi (completed 2026-09-01)
-- [ ] **Phase 5: Google Drive Backup & Restore** - Lose the phone, get everything back
+- [x] **Phase 5: Google Drive Backup & Restore** - Lose the phone, get everything back (completed 2026-09-02)
 - [ ] **Phase 6: Polish & Play Store Release** - 1.0 live on the Play Store
 
 ## Phase Details

@@ -4,15 +4,15 @@ milestone: v1.0
 current_phase: 06
 current_phase_name: Polish & Play Store Release
 status: active
-stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-09-02T05:29:51.875Z"
+stopped_at: Phase 06 planned — 11 plans, 8 waves, plan-checker passed
+last_updated: "2026-09-02T06:42:34.796Z"
 last_activity: 2026-09-02
 last_activity_desc: Phase 05 closed out — verification passed, UAT complete
-state_head: 12cbc827c186f0bf0a235a2344e106a1fffafb63
+state_head: 77061c5dfcda6080629bf6343d1c79349166c920
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 35
+  total_plans: 46
   completed_plans: 35
 ---
 
@@ -27,14 +27,14 @@ See: .planning/PROJECT.md (updated 2026-09-01)
 
 ## Current Position
 
-Phase: 06 (Polish & Play Store Release) — NOT STARTED
-Plan: 0 of TBD
-Status: Phase 05 complete; Phase 06 awaiting discussion
+Phase: 06 (Polish & Play Store Release) — PLANNED
+Plan: 0 of 11
+Status: Phase 06 planned, ready to execute
 Last activity: 2026-09-02 — Phase 05 closed out
 
 Progress: [████████████████████] 35/35 plans (Phases 01–05 of 6 complete)
 
-**Next command:** `/gsd-discuss-phase 6` — gather context for the final phase.
+**Next command:** `/gsd-execute-phase 6` — 11 plans across 8 waves; two blocking checkpoints (06-05 CP1 amends D-33, 06-07 CP1 the Drive-delete checkbox).
 
 ### Phase 05 planned (2026-09-01) — 7 plans, 6 waves, plan-checker passed
 
@@ -310,9 +310,9 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-02T05:29:51.025Z
-Stopped at: Phase 6 UI-SPEC approved
-Resume file: .planning/phases/06-polish-play-store-release/06-UI-SPEC.md
+Last session: 2026-09-02T06:42:33.836Z
+Stopped at: Phase 06 planned — 11 plans, 8 waves, plan-checker passed
+Resume file: .planning/phases/06-polish-play-store-release/06-01-PLAN.md
 
 Phase 04 is closed. `04-UAT.md` is `complete` (5/5 passed, 0 issues), `04-VERIFICATION.md` is
 `passed`, `04-SECURITY.md` has `threats_open: 0`, and ROADMAP.md/STATE.md have transitioned to
