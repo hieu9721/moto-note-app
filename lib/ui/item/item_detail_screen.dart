@@ -37,6 +37,7 @@ import '../catalog_icons.dart';
 import '../home/due_card.dart';
 import '../log/service_log_sheet.dart';
 import '../notes/notes_screen.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 
 class ItemDetailScreen extends ConsumerWidget {
@@ -151,8 +152,13 @@ class ItemDetailScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             if (logs.isEmpty)
               // [NEW, PROVISIONAL] — no verbatim source string exists for
-              // this surface; flagged in the SUMMARY for UAT.
-              const Text('Chưa có lịch sử bảo dưỡng cho hạng mục này.')
+              // this surface; flagged in the SUMMARY for UAT. Refactored
+              // onto the shared EmptyState widget in 06-03 (P6-D-14); copy
+              // unchanged.
+              const EmptyState(
+                icon: Icons.history,
+                message: 'Chưa có lịch sử bảo dưỡng cho hạng mục này.',
+              )
             else
               for (final log in logs) _buildHistoryRow(context, log, itemId),
             if (attachedNotes.isNotEmpty) ...[

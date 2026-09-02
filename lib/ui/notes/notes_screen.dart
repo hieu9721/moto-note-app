@@ -14,6 +14,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/models/misc.dart';
 import '../../state/app_state.dart';
+import '../widgets/empty_state.dart';
 
 class NotesScreen extends ConsumerWidget {
   const NotesScreen({super.key});
@@ -35,7 +36,12 @@ class NotesScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: notes.isEmpty
-            ? const _EmptyNotes()
+            ? const EmptyState(
+                icon: Icons.note_outlined,
+                message:
+                    'Ghi lại điều bạn muốn nhớ sẵn khi đứng trước xe — ở tiệm sửa '
+                    'hay bất cứ đâu.',
+              )
             : ListView(
                 children: [
                   for (final note in notes)
@@ -78,27 +84,4 @@ String noteDisplayTitle(Note note) {
   if (title != null && title.isNotEmpty) return title;
   if (note.body.isEmpty) return '';
   return note.body.split('\n').first;
-}
-
-/// Final copy (Claude's Discretion per 03-CONTEXT.md — the empty state's
-/// wording was explicitly left to planning, unlike every other string in
-/// this phase, which ships verbatim from the source document). Follows
-/// `welcome_screen.dart`'s centred-column idiom.
-class _EmptyNotes extends StatelessWidget {
-  const _EmptyNotes();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Text(
-          'Ghi lại điều bạn muốn nhớ sẵn khi đứng trước xe — ở tiệm sửa '
-          'hay bất cứ đâu.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16),
-        ),
-      ),
-    );
-  }
 }
