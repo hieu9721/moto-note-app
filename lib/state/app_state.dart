@@ -27,6 +27,7 @@ import '../domain/models/misc.dart';
 import '../domain/models/service_log.dart';
 import '../domain/models/vehicle.dart';
 import '../domain/odo.dart';
+import '../domain/vehicle_cascade.dart';
 import '../notifications/notification_service.dart';
 import 'onboarding_draft.dart';
 
@@ -367,9 +368,7 @@ class AppNotifier extends Notifier<AppData> {
     // screen — the router's redirect re-reads this on every invocation
     // instead of a value captured once at `buildRouter()` call time
     // (P5-D-04, RESEARCH Pitfall 8).
-    ref
-        .read(hydrateOutcomeProvider.notifier)
-        .setOutcome(HydrateOutcome.loaded);
+    ref.read(hydrateOutcomeProvider.notifier).setOutcome(HydrateOutcome.loaded);
   }
 
   /// BKP-10/P5-D-08: the second half of restore — putting the previous
@@ -545,6 +544,20 @@ class AppNotifier extends Notifier<AppData> {
       ),
     );
   }
+
+  /// P6-D-06/P6-D-25: deletes a [Vehicle] and everything that belongs to it
+  /// — every related MaintenanceItem, ServiceLog, OdoReading and
+  /// vehicle-tied Note, plus a re-pointed selected-vehicle id. The cascade
+  /// rules themselves (which four collections are filtered, why a
+  /// vehicle-less Note always survives) live in
+  /// lib/domain/vehicle_cascade.dart, a pure `dart test`-reachable function
+  /// — this method is a thin wrapper over the save-and-reschedule funnel
+  /// above. No notification call, no navigation, no snackbar here: the
+  /// funnel already reschedules notifications after a successful save, and
+  /// navigation after a delete belongs to the router (P6-D-13), not this
+  /// notifier.
+  Future<void> deleteVehicle(String vehicleId) =>
+      _mutate((current) => applyVehicleDeletion(current, vehicleId));
 
   /// NOTE-02: flips one note's `pinned` flag in place. Implemented as its
   /// own method rather than making the editor round-trip a whole [Note] for
