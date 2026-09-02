@@ -238,6 +238,14 @@ class AppNotifier extends Notifier<AppData> {
   /// call — `odoUpdatedAt` and `createdAt` above are each already their own
   /// separate `now()` call, and a third call here would put the reading
   /// microseconds ahead of the vehicle it describes.
+  ///
+  /// P6-D-27: the vehicle just built also becomes the selected one — set on
+  /// the same returned document, inside this single transform, rather than
+  /// a second write. For first-run this is a no-op in effect (one vehicle,
+  /// which the resolver in `lib/domain/vehicle_selection.dart` would have
+  /// returned anyway), but it makes the selection field non-null from the
+  /// first save, and it is what makes adding a second bike land the user on
+  /// the bike they just added instead of the one they already had.
   Future<void> completeOnboarding(OnboardingDraft draft) {
     return _mutate((current) {
       final vehicle = Vehicle(
@@ -263,6 +271,7 @@ class AppNotifier extends Notifier<AppData> {
         vehicles: [...current.vehicles, vehicle],
         items: [...current.items, ...items],
         odoReadings: [...current.odoReadings, setupReading],
+        settings: current.settings.copyWith(selectedVehicleId: vehicle.id),
       );
     });
   }

@@ -21,6 +21,7 @@
 // changes, since the applicable catalog differs per type.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../domain/catalog.dart';
 import '../../domain/models/vehicle.dart';
@@ -33,7 +34,16 @@ import 'step5_oil_grade.dart';
 import 'step6_last_oil.dart';
 
 class OnboardingFlow extends ConsumerStatefulWidget {
-  const OnboardingFlow({super.key});
+  /// P6-D-24: false (the default) is the original first-run flow, pushed by
+  /// `welcome_screen.dart` and reached only via the router's own redirect.
+  /// true is the `/onboarding/add-vehicle` re-entry — same six steps, plus a
+  /// close affordance that always confirms before discarding, and an
+  /// explicit post-submit navigation instead of relying on the redirect
+  /// (see `_submit` below). Defaulting to false keeps `welcome_screen.dart`'s
+  /// existing call site compiling unchanged.
+  const OnboardingFlow({super.key, this.isAddingVehicle = false});
+
+  final bool isAddingVehicle;
 
   @override
   ConsumerState<OnboardingFlow> createState() => _OnboardingFlowState();
@@ -90,14 +100,24 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       // `State._element != null`). See 02-01-SUMMARY.md's "Decisions Made"
       // for the original on-device finding this preserves.
       if (!mounted) return;
-      // Under `go_router` (HOME-01, research Pitfall 2), `/onboarding` is
-      // reached via the router's own `redirect` (`lib/ui/router.dart`), not
-      // an imperative `Navigator.push` from a `home:` branch as it was
-      // before this phase. The instant `completeOnboarding` above updates
-      // `appProvider`, `_AppRefreshNotifier` fires and the redirect alone
-      // sends the user to `/` — no imperative pop is needed here, and
-      // calling one anyway risks popping the wrong route (or nothing, if the
-      // redirect has already unmounted this one) depending on exact timing.
+      // Under `go_router` (HOME-01, research Pitfall 2), first-run
+      // `/onboarding` is reached via the router's own `redirect`
+      // (`lib/ui/router.dart`), not an imperative `Navigator.push` from a
+      // `home:` branch as it was before this phase. The instant
+      // `completeOnboarding` above updates `appProvider`,
+      // `_AppRefreshNotifier` fires and the redirect alone sends a
+      // redirect-reached first-run flow to `/` — no imperative navigation
+      // needed there.
+      //
+      // P6-D-24's second half: add-vehicle mode is different. This widget
+      // is reached by a plain `push` onto `/onboarding/add-vehicle`, not by
+      // the redirect, and a pushed route does not relocate itself just
+      // because the vehicle list changed underneath it — the redirect only
+      // fires on a NEW navigation attempt, and nothing here starts one. So
+      // add-vehicle mode navigates home explicitly.
+      if (widget.isAddingVehicle) {
+        context.go('/');
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -136,6 +156,41 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
       _error = null;
       _step -= 1;
     });
+  }
+
+  /// P6-D-24 / 06-UI-SPEC.md Per-Screen Contract item G: add-vehicle mode's
+  /// close affordance always confirms before discarding — there is no
+  /// draft-emptiness fast path, per the UI-SPEC's own Claude's-Discretion
+  /// resolution. Follows `settings_screen.dart`'s `_confirmGoogleSignOut`
+  /// shape exactly: `showDialog<bool>` returning an `AlertDialog` with a
+  /// neutral `TextButton` first and a destructive `FilledButton` second.
+  /// Copy is invented, `[NEW, PROVISIONAL]` — the app has never released, so
+  /// wording it before 1.0 costs nothing.
+  Future<void> _confirmCancel() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Huỷ thiết lập xe?'),
+        content: const Text('Thông tin bạn vừa nhập sẽ không được lưu.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Ở lại'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Huỷ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    // CLAUDE.md trap: BuildContext/State used after an await.
+    if (!mounted) return;
+    Navigator.of(context).pop();
   }
 
   bool get _continueEnabled {
@@ -202,7 +257,19 @@ class _OnboardingFlowState extends ConsumerState<OnboardingFlow> {
   Widget build(BuildContext context) {
     const totalSteps = 6;
     return Scaffold(
-      appBar: AppBar(title: const Text('Thiết lập xe')),
+      appBar: AppBar(
+        title: const Text('Thiết lập xe'),
+        // P6-D-24: add-vehicle mode shows a close affordance; first-run
+        // mode omits it entirely — this codebase's standing "omit rather
+        // than disable" convention, not a disabled icon button.
+        leading: widget.isAddingVehicle
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Huỷ',
+                onPressed: _submitting ? null : _confirmCancel,
+              )
+            : null,
+      ),
       body: SafeArea(
         child: Column(
           children: [
