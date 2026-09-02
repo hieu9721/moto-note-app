@@ -65,52 +65,82 @@ class PlannedNotification {
 final NumberFormat _kmFmt = NumberFormat.decimalPattern('vi_VN');
 String _fmtKm(int km) => _kmFmt.format(km);
 
+// 06-01 (P6-D-04): the ODO-reminder title, shipped-copy pair. The
+// single-vehicle string is byte-identical to what Phase 04 shipped and
+// UAT'd — do not reword. The multi-vehicle string is [NEW, PROVISIONAL] —
+// invented Vietnamese copy with no verbatim source string, flagged for UAT
+// rather than presented as sourced (06-01-SUMMARY.md records it verbatim
+// for harvest).
+const _odoReminderTitleSingleVehicle = 'Cập nhật số km';
+const _odoReminderTitleMultiVehicleTemplate = 'Cập nhật số km · '; // + v.name
+
 /// Returns the planned notifications for [data], sorted by [scheduledAt]
 /// with a deterministic secondary key on [PlannedNotification.payload] (not
 /// a priority rule — P4-D-17 declines one — purely to keep the 30-item cut
 /// stable run to run, matching `derived.dart`'s own tie-break hardening),
 /// then capped at [kMaxScheduledNotifications].
 ///
-/// Two halves, both from `AppData`: the monthly ODO reminder (§10.4's own
-/// scoping to `data.vehicles.first`, P4-D-16 — 04-01's tracer slice), and
-/// the due-item cadence below — "sắp tới hạn"/"quá hạn", bucketed by
-/// (vehicle, day) and composed per §10.5 (04-02's addition, P4-D-13/14).
+/// Two halves, both from `AppData`: the monthly ODO reminder — originally
+/// §10.4's single-vehicle scoping (04-01's tracer slice), widened to every
+/// vehicle by 06-01 (P6-D-04) — and the due-item cadence below — "sắp tới
+/// hạn"/"quá hạn", bucketed by (vehicle, day) and composed per §10.5
+/// (04-02's addition, P4-D-13/14).
 List<PlannedNotification> planNotifications(AppData data, {DateTime? now}) {
   final n = now ?? DateTime.now().toUtc();
   if (!data.settings.notificationsEnabled) return const [];
 
   final planned = <PlannedNotification>[];
 
-  if (data.settings.odoReminderEnabled && data.vehicles.isNotEmpty) {
-    final v = data.vehicles.first; // P4-D-16: first only, flagged for Phase 6
-    for (var m = 0; m < 6; m++) {
-      final scheduledAt = _nthMonthDay(
-        n,
-        m,
-        data.settings.odoReminderDayOfMonth,
-        data.settings.notifyHour,
-      );
-      // Strictly-after, same rule and same expression as the due-item loop
-      // below (CR-01) — for m = 0, `_nthMonthDay` hands back the CURRENT
-      // month's slot, which is in the past on most days of the month under
-      // the shipped defaults. Without this guard the stale candidate still
-      // occupies a slot in the `sort` + `take(kMaxScheduledNotifications)`
-      // cut below, where it always sorts first and can evict a legitimate
-      // future reminder.
-      if (!scheduledAt.isAfter(n)) continue;
-      planned.add(
-        PlannedNotification(
-          scheduledAt: scheduledAt,
-          title: 'Cập nhật số km',
-          // The `~` is inside the composed body literal, not appended at a
-          // call site — deliberate and unconditional (P4-D-15). `{name}` is
-          // interpolated verbatim, no truncation, no normalisation.
-          body:
-              'Xe ${v.name} đang ở khoảng ~${_fmtKm(estimateOdo(v, now: n))} '
-              'km. Số thật là bao nhiêu?',
-          payload: 'odo:${v.id}',
-        ),
-      );
+  if (data.settings.odoReminderEnabled) {
+    // 06-01 (P6-D-04): every vehicle gets its own monthly ODO reminder
+    // instead of only the first one in the list — mirrors the due-item
+    // cadence loop below, already correct in this exact file. An empty list
+    // simply produces no iterations; the now-redundant
+    // `data.vehicles.isNotEmpty` guard is dropped rather than kept as a
+    // second check. N vehicles now compete for the same
+    // `kMaxScheduledNotifications` cap below (up to 6N candidates) —
+    // intended per P6-D-04, no per-vehicle sub-cap is added, so a user does
+    // not miss an oil change on their second bike because they were looking
+    // at the first.
+    for (final v in data.vehicles) {
+      for (var m = 0; m < 6; m++) {
+        final scheduledAt = _nthMonthDay(
+          n,
+          m,
+          data.settings.odoReminderDayOfMonth,
+          data.settings.notifyHour,
+        );
+        // Strictly-after, same rule and same expression as the due-item
+        // loop below (CR-01) — for m = 0, `_nthMonthDay` hands back the
+        // CURRENT month's slot, which is in the past on most days of the
+        // month under the shipped defaults. Without this guard the stale
+        // candidate still occupies a slot in the `sort` +
+        // `take(kMaxScheduledNotifications)` cut below, where it always
+        // sorts first and can evict a legitimate future reminder.
+        // Evaluated per candidate slot per vehicle — CR-01 survives the
+        // multi-vehicle rewrite unweakened.
+        if (!scheduledAt.isAfter(n)) continue;
+        planned.add(
+          PlannedNotification(
+            scheduledAt: scheduledAt,
+            // P6-D-04: the vehicle name is appended to the title only when
+            // the document holds more than one vehicle — a single-vehicle
+            // install's title stays byte-identical to what Phase 04 shipped
+            // and UAT'd.
+            title: data.vehicles.length > 1
+                ? '$_odoReminderTitleMultiVehicleTemplate${v.name}'
+                : _odoReminderTitleSingleVehicle,
+            // The `~` is inside the composed body literal, not appended at
+            // a call site — deliberate and unconditional (P4-D-15).
+            // `{name}` is interpolated verbatim, no truncation, no
+            // normalisation.
+            body:
+                'Xe ${v.name} đang ở khoảng ~${_fmtKm(estimateOdo(v, now: n))} '
+                'km. Số thật là bao nhiêu?',
+            payload: 'odo:${v.id}',
+          ),
+        );
+      }
     }
   }
 
