@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 0
+open_count: 1
 waived_count: 0
 fixed_count: 4
-total_count: 4
-last_updated: 2026-09-02T07:08:30.000Z
+total_count: 5
+last_updated: 2026-09-02T07:40:07.221Z
 ---
 
 # Broken Windows Ledger
@@ -19,6 +19,7 @@ last_updated: 2026-09-02T07:08:30.000Z
 | 2 | 01 | unrun-verify | lib/main.dart |  | Force-stop survival (kill app via Android Settings > Apps > MotoNote > Force stop, relaunch, appdata.json intact) not run — no real low-end Android device available (P1-D-13) | fixed | PASSED: am force-stop left appdata.json byte-identical (sha256 89d3980c) with no .tmp residue; relaunch loaded with every data field identical, only updatedAt bumped per DATA-06. | 2026-08-28T10:20:18.930Z | 2026-08-28T14:31:32.675Z |
 | 3 | 01 | unrun-verify | lib/main.dart |  | Reboot survival (reboot device, relaunch MotoNote, same hydrate outcome) not run — no real low-end Android device available (P1-D-13) | fixed | PASSED: adb reboot (uptime 10min confirms); appdata.json / appdata.backup.json / receipts probe all byte-identical across reboot; relaunch loaded, all fields intact incl. Vietnamese text. | 2026-08-28T10:20:24.425Z | 2026-08-28T14:31:32.675Z |
 | 4 | 01 | unrun-verify | android/app/src/main/res/xml/data_extraction_rules.xml |  | Receipt-photo backup exclusion (D-20) fix for 01-REVIEW.md CR-01 — domain changed file->root — not empirically verified. Needs on-device check: place a probe file at {dataDir}/app_flutter/receipts/probe.jpg, run `adb shell bmgr backupnow io.github.hieu9721.motonote`, unpack with abe, confirm the probe is absent. No real Android device available (P1-D-13). | fixed | PASSED on API 36 via bmgr backupnow + LocalTransport, reading FullBackup_native measured lines: release build measured only appdata.json + appdata.backup.json under app_flutter; receipts/ and probe.jpg absent while probe verified present on disk. CAVEAT: only data_extraction_rules.xml (API 31+) exercised; auto_backup_rules.xml (API<=30) carries the same fix but remains unproven. | 2026-08-28T10:40:16.037Z | 2026-08-28T14:31:32.675Z |
+| 5 | 06 | unmet-truth | lib/ui/settings/settings_screen.dart |  | SET-02 verification (06-05 task 2): odoReminderDayOfMonth has NO live control in Settings today -- 4 of 5 fields verified (notificationsEnabled, odoReminderEnabled, notifyHour, leadDays), one missing. 06-CONTEXT.md's claim that all five are already implemented is wrong. Not added here per plan's own instruction (scope change needing its own decision); SET-02 left unchecked in REQUIREMENTS.md. | open |  | 2026-09-02T07:40:07.221Z |  |
 
 ````json
 [
@@ -69,6 +70,18 @@ last_updated: 2026-09-02T07:08:30.000Z
     "reason": "PASSED on API 36 via bmgr backupnow + LocalTransport, reading FullBackup_native measured lines: release build measured only appdata.json + appdata.backup.json under app_flutter; receipts/ and probe.jpg absent while probe verified present on disk. CAVEAT: only data_extraction_rules.xml (API 31+) exercised; auto_backup_rules.xml (API<=30) carries the same fix but remains unproven.",
     "recorded_at": "2026-08-28T10:40:16.037Z",
     "resolved_at": "2026-08-28T14:31:32.675Z"
+  },
+  {
+    "id": 5,
+    "kind": "unmet-truth",
+    "phase": "06",
+    "file": "lib/ui/settings/settings_screen.dart",
+    "line": null,
+    "description": "SET-02 verification (06-05 task 2): odoReminderDayOfMonth has NO live control in Settings today -- 4 of 5 fields verified (notificationsEnabled, odoReminderEnabled, notifyHour, leadDays), one missing. 06-CONTEXT.md's claim that all five are already implemented is wrong. Not added here per plan's own instruction (scope change needing its own decision); SET-02 left unchecked in REQUIREMENTS.md.",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-02T07:40:07.221Z",
+    "resolved_at": null
   }
 ]
 ````

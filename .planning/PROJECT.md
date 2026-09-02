@@ -98,8 +98,9 @@ Summarised by capability:
 - **Push notifications** — there is no server; all notifications are scheduled locally. See D-07.
 - **Widget tests and mocks** — only two pure-function test files; UI is checked by hand on a real device.
   See D-32.
-- **More than seven screens** — the screen inventory is a scope-control device. See D-33, including
-  its 7 + 1 amendment: the read-only data-issue screen is a named exception, not a precedent.
+- **More than seven screens** — the screen inventory is a scope-control device. See D-33, now amended
+  to 7 + 3: the read-only data-issue screen (Phase 3), `GarageScreen`, and `ItemManagementScreen`
+  (Phase 6, P6-D-26) are the three named exceptions, none of them a precedent for a fourth.
 - **The `drive` or `drive.readonly` scopes** — they trigger sensitive-scope review and possibly a paid
   security assessment. See D-22.
 - **iOS release in 1.0** — deferred past 1.0 by decision at project setup. The code stays
@@ -203,6 +204,18 @@ Full text with source line references: `.planning/intel/decisions.md`.
   (Phase 3 research Pitfall 1). Adding a *feature* screen still needs a new decision; this exception
   does not license an eighth feature screen. Phase 5 owns restore (P1-D-09) and may give this screen
   its first action.
+  — **Amended 2026-09-02 (Phase 6 planning, `06-05` checkpoint), 7 + 3 — P6-D-26.** Two more named
+  exceptions join `DataIssueScreen` outside the seven-screen *feature* cap: **`GarageScreen`**
+  (`/settings/vehicles`) and **`ItemManagementScreen`** (`/settings/items`). Both are reachable only
+  from Cài đặt, add no top-level navigation entry, and are Settings-internal CRUD surfaces rather
+  than a new "feature" in the seven-screen sense — the same class of exception the `DataIssueScreen`
+  amendment already established, applied a second time on the same reasoning (`06-UI-SPEC.md`'s
+  "Screen-budget note", which the checker recommended and the user confirmed on the record before
+  either screen was written). Each needs a real `AppBar`/back-gesture and, for `ItemManagementScreen`,
+  keyboard avoidance for two numeric fields at row depth — degradations a `showModalBottomSheet`
+  would cost on the target 3–4 GB device. **This is still not a general precedent**: a fourth
+  surface asking for the same exemption needs its own explicit decision, not an inference from this
+  one.
 
 ### Backup and restore
 

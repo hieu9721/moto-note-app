@@ -43,6 +43,7 @@ import 'notes/note_editor_screen.dart';
 import 'notes/notes_screen.dart';
 import 'onboarding/onboarding_flow.dart';
 import 'onboarding/welcome_screen.dart';
+import 'settings/garage_screen.dart';
 import 'settings/settings_screen.dart';
 
 GoRouter buildRouter({
@@ -170,6 +171,17 @@ GoRouter buildRouter({
               GoRoute(
                 path: '/settings',
                 builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  // 06-05 (D-33's 7+3 amendment, P6-D-26): resolves to
+                  // '/settings/vehicles', nested under the Cài đặt branch's
+                  // own Navigator, the identical placement `item/:id` and
+                  // `notes/:id` already use, so the system back gesture
+                  // returns to Settings rather than exiting the shell.
+                  GoRoute(
+                    path: 'vehicles',
+                    builder: (context, state) => const GarageScreen(),
+                  ),
+                ],
               ),
             ],
           ),

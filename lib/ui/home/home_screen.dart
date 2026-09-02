@@ -59,6 +59,7 @@ import '../notifications/battery_hint_sheet.dart';
 import '../widgets/formatters.dart';
 import 'due_card.dart';
 import 'odo_sheet.dart';
+import 'vehicle_switcher_sheet.dart';
 
 // Standalone literals rather than inlined interpolation fragments, so the
 // zero-prefix and the "ngày" suffix are each a single, greppable source of
@@ -302,7 +303,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Trang chủ')),
+      appBar: AppBar(
+        title: const Text('Trang chủ'),
+        // 06-05 (P6-D-02): omitted entirely — not shown disabled — while
+        // the document holds one vehicle or none, so a single-vehicle
+        // install's AppBar stays byte-for-byte what Phase 3 shipped and
+        // UAT'd (06-UI-SPEC.md Per-Screen Contract item B).
+        actions: data.vehicles.length > 1
+            ? [
+                TextButton.icon(
+                  icon: const Icon(Icons.expand_more),
+                  label: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: Text(
+                      vehicle.name.isEmpty ? 'Xe của bạn' : vehicle.name,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  onPressed: () => showVehicleSwitcherSheet(context, ref),
+                ),
+              ]
+            : null,
+      ),
       body: SafeArea(
         child: ListView(
           // 96 = 2 × 2xl, sized to the FAB's own Material footprint so the
