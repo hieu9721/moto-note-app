@@ -44,6 +44,7 @@ import 'notes/notes_screen.dart';
 import 'onboarding/onboarding_flow.dart';
 import 'onboarding/welcome_screen.dart';
 import 'settings/garage_screen.dart';
+import 'settings/item_management_screen.dart';
 import 'settings/settings_screen.dart';
 
 GoRouter buildRouter({
@@ -180,6 +181,16 @@ GoRouter buildRouter({
                   GoRoute(
                     path: 'vehicles',
                     builder: (context, state) => const GarageScreen(),
+                  ),
+                  // 06-06 (D-33's 7+3 amendment, P6-D-26): resolves to
+                  // '/settings/items', nested under the same Cài đặt
+                  // branch Navigator as 'vehicles' above, so the system
+                  // back gesture returns to Settings rather than exiting
+                  // the shell. Closes the one-wave no-op 06-05 left on the
+                  // 'Quản lý hạng mục' Settings row's onTap.
+                  GoRoute(
+                    path: 'items',
+                    builder: (context, state) => const ItemManagementScreen(),
                   ),
                 ],
               ),
