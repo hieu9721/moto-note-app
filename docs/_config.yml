@@ -1,0 +1,16 @@
+# docs/_config.yml — minimal Jekyll config for GitHub Pages (06-09, REL-04).
+# This is a two-page static site (privacy policy, vi + en, plus a landing
+# page) — no blog, no collections, nothing beyond what GitHub Pages needs to
+# render Markdown under a theme.
+#
+# baseurl is the repository path GitHub Pages serves this site under
+# (derived from `git remote -v`'s origin: github.com/hieu9721/moto-note-app
+# — see docs/privacy-policy.md's own derivation note and
+# 06-09-SUMMARY.md). Every internal link in this docs/ tree uses
+# `{{ site.baseurl }}` rather than a hardcoded path so it keeps working if
+# the repository is ever renamed.
+title: MotoNote
+description: "Chính sách quyền riêng tư — MotoNote"
+baseurl: "/moto-note-app"
+theme: jekyll-theme-minimal
+markdown: kramdown
