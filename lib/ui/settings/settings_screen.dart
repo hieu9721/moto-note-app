@@ -13,6 +13,7 @@
 // therefore reschedules on save with no extra wiring (P1-D-05/P1-D-06).
 import 'dart:async';
 
+import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -97,6 +98,38 @@ const _exportFailureMessage = 'Xuất file thất bại. Vui lòng thử lại.'
 // its use site in `_onUndoTap`.
 const _undoFailureMessage =
     'Không hoàn tác được. Dữ liệu trên máy chưa bị thay đổi.';
+
+// 06-09 (REL-04): the published privacy-policy URL, and the ONE place its
+// string literal appears in this file (task 1 acceptance criterion). Every
+// other reference — `06-STORE-LISTING.md`'s listing field, the OAuth
+// consent-screen entry — must match this string byte for byte, so a diff
+// against this constant is how those documents are checked, not a second
+// hardcoded copy in this file.
+//
+// Derived from `git remote -v`'s origin
+// (`https://github.com/hieu9721/moto-note-app.git`) per the plan's own
+// instruction not to guess the hostname: GitHub user `hieu9721`, repo
+// `moto-note-app`, so the Pages URL is
+// `https://hieu9721.github.io/moto-note-app/<path>`. `docs/privacy-policy.md`
+// carries an explicit `permalink: /privacy-policy` in its own front matter
+// (not the Jekyll default `/privacy-policy.html`), which is what makes this
+// exact path — no `.html` suffix — the one GitHub Pages actually serves once
+// Pages is enabled with source = default branch, folder = /docs.
+const _privacyPolicyUrl =
+    'https://hieu9721.github.io/moto-note-app/privacy-policy';
+
+// [NEW, PROVISIONAL] — same fixed-message-on-catch-all shape as
+// `_googleSignInFailureMessage` above, applied to the privacy-policy link's
+// Android view intent. A launch failure here (no browser/app registered to
+// handle a view intent) is a real, if rare, possibility on a stripped-down
+// ROM — unlike `openBatterySettings()` in `lib/notifications/battery_hints.dart`,
+// which deliberately lets a launch failure surface unhandled because it is
+// itself the terminal action of its own sheet, this row sits inside the
+// ordinary Settings list, where CR-02/CR-03's established discipline (never
+// interpolate a caught exception into user-facing copy) already governs
+// every other tappable row.
+const _privacyPolicyLaunchFailureMessage =
+    'Không thể mở chính sách quyền riêng tư. Vui lòng thử lại.';
 
 /// Live OS check backing the exact-alarm row's displayed state — never the
 /// stored flag alone, since the user can revoke the permission from system
@@ -567,6 +600,21 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
             _SettingsGroup(
+              // 06-09 (REL-04): the app-information row group — one row,
+              // opening the published privacy policy. Placed ABOVE the
+              // danger-zone group deliberately (that group must stay last),
+              // and below every functional group, matching the plan's own
+              // "near the app-information rows at the bottom" placement.
+              title: 'Về ứng dụng',
+              showComingSoonCaption: false,
+              rows: [
+                ListTile(
+                  title: const Text('Chính sách quyền riêng tư'),
+                  onTap: () => _openPrivacyPolicy(context),
+                ),
+              ],
+            ),
+            _SettingsGroup(
               // Phase 6 (SET-03, P6-D-10…13): the delete-all-data flow.
               // MUST stay the last group in the list — the danger zone is
               // deliberately at the very bottom, after every other group.
@@ -597,6 +645,30 @@ class SettingsScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 06-09 (REL-04): opens the published privacy policy in whatever
+/// browser/app the OS resolves for a view intent, reusing
+/// `android_intent_plus` — the dependency `openBatterySettings()` already
+/// uses in `lib/notifications/battery_hints.dart` — rather than adding a new
+/// URL-launching package. Wrapped in try/catch with a mapped, non-interpolated
+/// failure message, matching every other async row handler in this file
+/// (CR-02/CR-03); `context.mounted` is checked before the SnackBar because
+/// the sheet/screen can be popped while the platform channel call is in
+/// flight (the CLAUDE.md trap this file guards against everywhere else).
+Future<void> _openPrivacyPolicy(BuildContext context) async {
+  try {
+    const intent = AndroidIntent(
+      action: 'action_view',
+      data: _privacyPolicyUrl,
+    );
+    await intent.launch();
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text(_privacyPolicyLaunchFailureMessage)),
     );
   }
 }
