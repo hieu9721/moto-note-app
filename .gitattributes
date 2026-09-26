@@ -1,0 +1,23 @@
+# Normalise line endings.
+#
+# core.autocrlf=true on this machine checks files out as CRLF, but the Dart and
+# Flutter toolchains (build_runner, dart format) always write LF. Without this
+# file, `dart run build_runner build` leaves every generated file flagged as
+# modified in `git status` even though the content is byte-identical — which
+# breaks the phase-1 must-have that a second build_runner run leaves no diff.
+* text=auto eol=lf
+
+# Windows launchers must keep CRLF or cmd.exe mis-parses them.
+*.bat text eol=crlf
+
+# Binary — never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.jar binary
+*.jks binary
+*.keystore binary
+*.p12 binary
+*.ttf binary
+*.otf binary

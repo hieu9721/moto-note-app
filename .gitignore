@@ -6,13 +6,14 @@
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-pubspec.lock
-*.g.dart
-*.freezed.dart
 coverage/
+# pubspec.lock, *.g.dart and *.freezed.dart are committed intentionally:
+# an app (not a library) locks its resolved deps, and generated Dart sources
+# must be present so a clean checkout analyzes without running codegen first.
 
 # Android
 android/.gradle/
+android/.kotlin/
 android/local.properties
 android/key.properties
 android/app/*.jks
@@ -51,3 +52,6 @@ Thumbs.db
 .claude/settings.local.json
 .claude/hooks/node_modules/
 .claude/gsd-install-state.json
+.claude/worktrees/
+.gsd/
+.planning/milestone.lock
